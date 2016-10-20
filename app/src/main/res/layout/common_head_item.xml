@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.lh.imbilibili.widget.ForegroundLinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                                                 android:id="@+id/head"
+                                                 android:layout_width="match_parent"
+                                                 android:layout_height="wrap_content"
+                                                 android:clickable="true"
+                                                 android:foreground="?selectableItemBackground"
+                                                 android:gravity="center_vertical"
+                                                 android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:drawableLeft="@drawable/ic_lianzai"
+        android:drawablePadding="@dimen/item_half_spacing"
+        android:gravity="center"
+        android:text="新番连载"
+        android:textAppearance="@style/TextAppearance.App.Title"/>
+
+    <android.support.v4.widget.Space
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"/>
+
+    <TextView
+        android:id="@+id/sub_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:drawablePadding="@dimen/item_half_spacing"
+        android:drawableRight="@drawable/ic_gray_arrow_right"
+        android:text="所有连载"
+        android:textAppearance="@style/TextAppearance.App.Subtitle"
+        android:textColor="@color/gray_dark"/>
+
+</com.lh.imbilibili.widget.ForegroundLinearLayout>

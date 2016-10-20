@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.lh.imbilibili.widget.CardFrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                                          android:layout_width="match_parent"
+                                          android:layout_height="wrap_content"
+                                          android:clickable="true"
+                                          android:foreground="?selectableItemBackground">
+
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="10dp">
+
+        <com.lh.imbilibili.widget.ScalableImageView xmlns:app="http://schemas.android.com/apk/res-auto"
+                                                    android:id="@+id/cover"
+                                                    android:layout_width="match_parent"
+                                                    android:layout_height="wrap_content"
+                                                    android:scaleType="fitXY"
+                                                    app:aspectRadioHeight="300"
+                                                    app:aspectRadioWidth="960"/>
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/cover"
+            android:layout_marginLeft="@dimen/item_spacing"
+            android:layout_marginRight="@dimen/item_spacing"
+            android:layout_marginTop="8dp"
+            android:singleLine="true"
+            android:textAppearance="@style/TextAppearance.App.Title"
+            android:textColor="?android:textColorPrimary"/>
+
+        <ImageView
+            android:id="@+id/badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_marginRight="@dimen/item_spacing"
+            android:layout_marginTop="-2dp"
+            android:background="@drawable/shape_badge_bangumi_index_promo"
+            android:paddingBottom="6dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="8dp"
+            android:src="@drawable/ic_new_text"
+            android:textAppearance="@style/TextAppearance.App.Body"
+            android:textColor="@color/white"/>
+
+        <TextView
+            android:id="@+id/text1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/title"
+            android:layout_alignRight="@+id/title"
+            android:layout_below="@+id/title"
+            android:layout_marginTop="8dp"
+            android:ellipsize="end"
+            android:lineSpacingMultiplier="1.2"
+            android:textAppearance="@style/TextAppearance.App.Subtitle"
+            android:textColor="@color/gray_dark"/>
+        <!--<TextView-->
+        <!--android:id="@+id/text2"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_alignLeft="@+id/title"-->
+        <!--android:layout_below="@+id/text1"-->
+        <!--android:layout_marginTop="8dp"-->
+        <!--android:drawableLeft="@drawable/ic_bangumi_author"-->
+        <!--android:drawablePadding="3.0dip"-->
+        <!--android:textAppearance="@style/TextAppearance.App.Subtitle"-->
+        <!--android:textColor="@color/gray_dark"/>-->
+
+        <!--<TextView-->
+        <!--android:id="@id/text3"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_alignRight="@id/title"-->
+        <!--android:layout_below="@id/text1"-->
+        <!--android:layout_marginTop="8.0dip"-->
+        <!--android:drawableLeft="@drawable/ic_comment"-->
+        <!--android:drawablePadding="3.0dip"-->
+        <!--android:gravity="center_vertical"-->
+        <!--android:textAppearance="@style/TextAppearance.App.Subtitle"-->
+        <!--android:textColor="@color/gray_dark"/>-->
+    </RelativeLayout>
+</com.lh.imbilibili.widget.CardFrameLayout>

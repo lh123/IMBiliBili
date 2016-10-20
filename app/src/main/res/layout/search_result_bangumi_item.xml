@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.lh.imbilibili.widget.ForegroundRelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:foreground="?selectableItemBackground"
+    android:padding="6dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.lh.imbilibili.widget.CardFrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="2.2">
+
+            <com.lh.imbilibili.widget.ScalableImageView
+                android:id="@+id/cover"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:scaleType="centerCrop"
+                app:aspectRadioHeight="4"
+                app:aspectRadioWidth="3"/>
+
+        </com.lh.imbilibili.widget.CardFrameLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/item_spacing"
+            android:layout_marginTop="@dimen/item_half_spacing"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="-2dp"
+                android:drawableLeft="@drawable/search_result_ic_bangumi"
+                android:drawablePadding="2dp"
+                android:gravity="center"
+                android:paddingBottom="@dimen/item_spacing"
+                android:singleLine="true"
+                android:text="番剧"
+                android:textAppearance="@style/TextAppearance.App.Medium"
+                android:textColor="?android:textColorSecondary"/>
+
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textAppearance="@style/TextAppearance.App.XLarge"/>
+
+            <TextView
+                android:id="@+id/newest_ep"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/item_spacing"
+                android:singleLine="true"
+                android:textAppearance="@style/TextAppearance.App.Subtitle"
+                android:textColor="?android:textColorSecondary"/>
+
+            <TextView
+                android:id="@+id/cat_desc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/item_spacing"
+                android:singleLine="true"
+                android:textAppearance="@style/TextAppearance.App.Subtitle"
+                android:textColor="?android:textColorSecondary"/>
+        </LinearLayout>
+    </LinearLayout>
+</com.lh.imbilibili.widget.ForegroundRelativeLayout>

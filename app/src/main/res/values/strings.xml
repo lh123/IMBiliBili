@@ -1,0 +1,36 @@
+<resources>
+    <string name="app_name">IMBiliBili</string>
+    <string name="splash_skip">跳过 %ss</string>
+
+    <string name="login_pls">请先登录</string>
+
+    <string name="head_title_enter">进去看看</string>
+
+    <string name="loading">加载中…</string>
+    <string name="load_error">加载失败了Σ(OДO</string>
+    <string name="load_failed_with_click">加载失败,请点击重新尝试</string>
+    <string name="reload">重新加载</string>
+
+    <string name="no_data_tips">╮(╯3╰)╭再怎么找也没有啦</string>
+    <string name="space_tips_no_permission">Ta木有公开内容</string>
+
+    <string name="video_load_error_404">视频不见了哟</string>
+    <string name="video_load_error_failed">加载失败啦！！！</string>
+    <string name="video_load_error_no_permission">你的权限好像不够哦~</string>
+    <string name="video_load_error_not_formal">正式会员可以看!</string>
+    <string name="video_load_error_repeat">稿件异常，正在为您跳转…</string>
+
+    <string name="author_space_privacy_denied">未公开</string>
+    <string name="author_space_header_bangumi">TA的追番</string>
+    <string name="author_space_header_coins_videos">最近投硬币的视频</string>
+    <string name="author_space_header_favorites">TA的收藏夹</string>
+    <string name="author_space_header_game">TA玩的游戏</string>
+    <string name="author_space_header_group">TA的圈子</string>
+    <string name="author_space_header_my_bangumi">我的追番</string>
+    <string name="author_space_header_my_favorites">我的收藏夹</string>
+    <string name="author_space_header_my_game">我玩的游戏</string>
+    <string name="author_space_header_my_group">我的圈子</string>
+    <string name="author_space_header_my_videos">我的投稿</string>
+    <string name="author_space_header_videos">全部投稿</string>
+
+</resources>

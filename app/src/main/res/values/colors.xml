@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="statusBar">#30000000</color>
+    <color name="colorPrimaryLight">#aeb8ec</color>
+
+    <color name="theme_color_window_background">#ffeaeaea</color>
+    <color name="theme_color_dividing_line">#ffcccccc</color>
+    <color name="theme_color_secondary">#fffb7299</color>
+
+    <color name="white">#ffffffff</color>
+    <color name="white_half_alpha">#7fffffff</color>
+    <color name="white_light">#fff2f2f2</color>
+    <color name="white_lighter">#ccffffff</color>
+    <color name="white_trans">#99ffffff</color>
+
+    <color name="gray">#ffbbbbbb</color>
+    <color name="gray_bg">#ffcccccc</color>
+    <color name="gray_dark">#ff999999</color>
+    <color name="gray_light">#ffdcdcdc</color>
+    <color name="gray_lighter">#ffeaeaea</color>
+    <color name="gray_second">#55999999</color>
+    <color name="gray_second1">#ffc4c4c4</color>
+    <color name="gray_trans">#44999999</color>
+    <color name="gray_trans_lighter">#22999999</color>
+
+    <color name="black">#ff000000</color>
+    <color name="black_1">#ff4a4a4a</color>
+    <color name="black_60_alpha">#99000000</color>
+    <color name="black_dark">#ff232323</color>
+    <color name="black_darker">#ff212121</color>
+    <color name="black_half_alpha">#7f000000</color>
+    <color name="black_light">#ff333333</color>
+    <color name="black_light_alpha">#26000000</color>
+    <color name="black_lighter">#ff666666</color>
+    <color name="black_trans">#66000000</color>
+
+    <color name="yellow">#ffffd11b</color>
+    <color name="yellow_dark">#ffffa500</color>
+    <color name="yellow_first">#fffeb345</color>
+
+    <color name="red">#ffff0000</color>
+    <color name="red_authentic">#fff44336</color>
+    <color name="red_light">#fffd7072</color>
+
+    <color name="pink">#fffb7299</color>
+    <color name="pink_dark">#ffb85671</color>
+    <color name="pink_dark_trans">#99b85671</color>
+    <color name="pink_half_alpha">#7ffb7299</color>
+    <color name="pink_light">#ffb87891</color>
+    <color name="pink_third">#ffbf917a</color>
+    <color name="pink_trans">#99f0486c</color>
+
+    <color name="blue_light">#ff21c1fc</color>
+    <color name="theme_color_view_background">#fffafafa</color>
+
+    <color name="bangumi_index_mask">#b3000000</color>
+
+</resources>

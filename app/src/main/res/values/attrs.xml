@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ScalableImageView">
+        <attr name="aspectRadioHeight" format="integer"/>
+        <attr name="aspectRadioWidth" format="integer"/>
+    </declare-styleable>
+
+    <declare-styleable name="ForegroundView">
+        <attr name="android:foreground"/>
+    </declare-styleable>
+    <declare-styleable name="IndicatorTextView">
+        <attr name="indicatorDrawable" format="reference"/>
+    </declare-styleable>
+    <declare-styleable name="FlowLayout">
+        <attr name="itemSpace" format="dimension"/>
+    </declare-styleable>
+</resources>

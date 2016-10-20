@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <com.lh.imbilibili.widget.ForegroundRelativeLayout
+        android:id="@+id/feedback_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:foreground="?selectableItemBackgroundBorderless">
+
+        <com.lh.imbilibili.widget.ScalableImageView android:id="@+id/cover"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/ic_card_border"
+            android:scaleType="fitXY"
+            app:aspectRadioHeight="128"
+            app:aspectRadioWidth="96" />
+
+        <TextView
+            android:id="@+id/favourites"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/cover"
+            android:background="@drawable/shape_gradient_black"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:paddingBottom="@dimen/item_half_spacing"
+            android:paddingLeft="@dimen/item_half_spacing"
+            android:paddingRight="@dimen/item_half_spacing"
+            android:paddingTop="@dimen/item_huge_spacing"
+            android:textAppearance="@style/TextAppearance.App.Subtitle"
+            android:textColor="@color/white"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/cover"
+            android:layout_marginBottom="2dp"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="@style/TextAppearance.App.Subtitle"
+            android:textColor="?android:textColorPrimary"/>
+
+        <TextView
+            android:id="@+id/text1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/title"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="@style/TextAppearance.App.Subtitle"
+            android:textColor="@color/gray_dark"/>
+
+    </com.lh.imbilibili.widget.ForegroundRelativeLayout>
+
+    <TextView
+        android:id="@+id/text2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right|top"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/ic_bangumi_badge"
+        android:gravity="center"
+        android:maxLines="1"
+        android:padding="3dp"
+        android:singleLine="true"
+        android:textAppearance="@style/TextAppearance.App.Body"
+        android:textColor="@color/white"/>
+
+</FrameLayout>

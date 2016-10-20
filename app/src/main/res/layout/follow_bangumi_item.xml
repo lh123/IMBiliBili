@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.lh.imbilibili.widget.ForegroundLinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:foreground="?selectableItemBackground"
+    android:orientation="horizontal"
+    android:padding="@dimen/item_medium_spacing">
+
+    <com.lh.imbilibili.widget.ScalableImageView
+        android:id="@+id/cover"
+        android:layout_width="90dp"
+        android:layout_height="wrap_content"
+        app:aspectRadioHeight="128"
+        app:aspectRadioWidth="96"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingLeft="@dimen/item_spacing"
+        android:paddingTop="@dimen/item_medium_spacing">
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/item_half_spacing"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.App.Title"/>
+
+        <TextView
+            android:id="@+id/watch_history"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/item_half_spacing"
+            android:textAppearance="@style/TextAppearance.App.Subtitle"
+            android:textColor="@color/gray_dark"/>
+
+        <TextView
+            android:id="@+id/total_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/item_half_spacing"
+            android:textAppearance="@style/TextAppearance.App.Subtitle"
+            android:textColor="@color/gray_dark"/>
+
+        <TextView
+            android:id="@+id/favourites"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/item_half_spacing"
+            android:textAppearance="@style/TextAppearance.App.Subtitle"
+            android:textColor="@color/gray_dark"/>
+    </LinearLayout>
+
+</com.lh.imbilibili.widget.ForegroundLinearLayout>

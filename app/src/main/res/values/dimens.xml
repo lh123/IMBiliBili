@@ -1,0 +1,31 @@
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    <dimen name="cover_width">118dp</dimen>
+    <dimen name="item_huge_spacing">40dp</dimen>
+    <dimen name="item_large_spacing">16dp</dimen>
+    <dimen name="item_medium_spacing">12dp</dimen>
+    <dimen name="item_spacing">8dp</dimen>
+    <dimen name="item_half_spacing">4dp</dimen>
+
+    <dimen name="appbar_parallax_max_height">220dp</dimen>
+
+    <dimen name="text_size_medium">12sp</dimen>
+    <dimen name="text_size_small">10sp</dimen>
+    <dimen name="text_size_large">14sp</dimen>
+    <dimen name="text_size_xlarge">16sp</dimen>
+
+    <dimen name="corner_radius">2dp</dimen>
+
+    <dimen name="status_bar_height">25dp</dimen>
+
+    <dimen name="navigation_drawer_width">288dp</dimen>
+    <dimen name="navigation_top_bar_size">56dp</dimen>
+    <!--<item type="dimen" name="text_size_body">@dimen/text_size_small</item>-->
+    <!--<item type="dimen" name="text_size_headline">@dimen/text_size_xlarge</item>-->
+    <!--<item type="dimen" name="text_size_subtitle">@dimen/text_size_medium</item>-->
+    <!--<item type="dimen" name="text_size_title">@dimen/text_size_large</item>-->
+
+
+</resources>

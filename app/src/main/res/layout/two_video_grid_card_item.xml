@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingBottom="@dimen/item_half_spacing"
+    android:orientation="horizontal">
+
+    <LinearLayout
+        android:id="@+id/card_layout_1"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:paddingBottom="@dimen/item_half_spacing"
+        android:layout_marginRight="@dimen/item_half_spacing"
+        android:layout_weight="1">
+
+        <include layout="@layout/video_grid_card_item"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/card_layout_2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:paddingBottom="@dimen/item_half_spacing"
+        android:layout_marginLeft="@dimen/item_half_spacing"
+        android:layout_weight="1">
+
+        <include layout="@layout/video_grid_card_item"/>
+
+    </LinearLayout>
+
+</LinearLayout>

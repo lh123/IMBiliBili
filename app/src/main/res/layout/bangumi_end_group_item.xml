@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/feedback_container"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal">
+
+    <include
+        android:id="@+id/bangumi"
+        layout="@layout/bangumi_grid_card_item"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="@dimen/item_half_spacing"
+        android:layout_weight="1"/>
+
+    <include
+        android:id="@+id/bangumi_1"
+        layout="@layout/bangumi_grid_card_item"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/item_half_spacing"
+        android:layout_marginRight="@dimen/item_half_spacing"
+        android:layout_weight="1"/>
+
+    <include
+        android:id="@+id/bangumi_2"
+        layout="@layout/bangumi_grid_card_item"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/item_half_spacing"
+        android:layout_weight="1"/>
+
+</LinearLayout>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="@dimen/item_spacing"
+                android:paddingRight="@dimen/item_spacing"
+                android:paddingTop="@dimen/item_spacing">
+
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:maxWidth="100dp"
+        android:textAppearance="@style/TextAppearance.App.Title"
+        android:textColor="?android:textColorSecondary"/>
+
+    <TextView
+        android:id="@+id/pub_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/item_half_spacing"
+        android:layout_toRightOf="@id/name"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.App.Medium"
+        android:textColor="?android:textColorTertiary"/>
+
+    <TextView
+        android:id="@+id/message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/name"
+        android:layout_marginTop="@dimen/item_half_spacing"
+        android:layout_toRightOf="@id/avatar"
+        android:paddingBottom="@dimen/item_spacing"
+        android:textAppearance="@style/TextAppearance.App.Title"
+        android:textColor="?android:textColorPrimary"/>
+
+    <View
+        android:id="@+id/divider"
+        android:layout_width="match_parent"
+        android:layout_height="1px"
+        android:layout_alignParentBottom="true"
+        android:background="@color/theme_color_dividing_line"/>
+</RelativeLayout>

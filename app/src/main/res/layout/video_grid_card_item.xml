@@ -1,0 +1,78 @@
+<?xml version="1" encoding="utf-8"?>
+<com.lh.imbilibili.widget.CardFrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <com.lh.imbilibili.widget.ForegroundRelativeLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:foreground="?selectableItemBackgroundBorderless"
+        android:paddingBottom="4dp">
+
+        <com.lh.imbilibili.widget.ScalableImageView
+            android:id="@+id/cover"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:aspectRadioHeight="10"
+            app:aspectRadioWidth="16" />
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/cover"
+            android:layout_marginBottom="4dp"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:textAppearance="@style/TextAppearance.App.Subtitle"
+            android:textColor="?android:textColorPrimary"/>
+
+        <android.support.v4.widget.Space
+            android:id="@+id/anchor"
+            android:layout_width="0dp"
+            android:layout_height="20dp"
+            android:layout_alignParentBottom="true"
+            android:layout_below="@+id/title"
+            android:layout_centerHorizontal="true"/>
+
+        <TextView
+            android:id="@+id/info_views"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/anchor"
+            android:layout_alignLeft="@+id/cover"
+            android:layout_toLeftOf="@+id/anchor"
+            android:drawableLeft="@drawable/ic_info_views"
+            android:drawablePadding="2dp"
+            android:paddingBottom="2dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="2dp"
+            android:singleLine="true"
+            android:textAppearance="@style/TextAppearance.App.Small"
+            android:textColor="@color/gray_dark"/>
+
+        <TextView
+            android:id="@+id/info_danmakus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/anchor"
+            android:layout_alignRight="@+id/cover"
+            android:layout_toRightOf="@+id/anchor"
+            android:drawableLeft="@drawable/ic_info_danmakus"
+            android:drawablePadding="2dp"
+            android:paddingBottom="2dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="2dp"
+            android:singleLine="true"
+            android:textAppearance="@style/TextAppearance.App.Small"
+            android:textColor="@color/gray_dark"/>
+    </com.lh.imbilibili.widget.ForegroundRelativeLayout>
+</com.lh.imbilibili.widget.CardFrameLayout>

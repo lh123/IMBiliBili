@@ -1,0 +1,369 @@
+<?xml version="1" encoding="utf-8"?>
+<FrameLayout
+    android:id="@+id/frame"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <android.support.v4.widget.NestedScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="visible">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <RelativeLayout
+                android:id="@+id/header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.lh.imbilibili.widget.ScalableImageView
+                    android:id="@+id/background"
+                    android:layout_width="match_parent"
+                    android:layout_height="178dp"
+                    android:background="@color/gray_light"/>
+
+                <com.lh.imbilibili.widget.ScalableImageView
+                    android:id="@+id/cover"
+                    android:layout_width="100sp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="@dimen/item_spacing"
+                    android:layout_marginTop="80dp"
+                    android:background="@drawable/ic_bangumi_cover_background"
+                    android:scaleType="fitXY"
+                    app:aspectRadioHeight="4"
+                    app:aspectRadioWidth="3"/>
+
+                <TextView
+                    android:id="@+id/title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignTop="@+id/cover"
+                    android:layout_marginLeft="@dimen/item_spacing"
+                    android:layout_marginRight="@dimen/item_spacing"
+                    android:layout_marginTop="-2dp"
+                    android:layout_toRightOf="@+id/cover"
+                    android:shadowColor="@color/black_light"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="2"
+                    android:singleLine="true"
+                    android:textAppearance="@style/TextAppearance.App.Headline"
+                    android:textColor="@color/white"/>
+
+                <TextView
+                    android:id="@+id/text1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignLeft="@+id/title"
+                    android:layout_alignRight="@+id/title"
+                    android:layout_below="@+id/title"
+                    android:layout_marginTop="4dp"
+                    android:shadowColor="@color/black_light"
+                    android:textAppearance="@style/TextAppearance.App.Subtitle"
+                    android:textColor="@color/white"/>
+
+                <TextView
+                    android:id="@+id/text2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignLeft="@+id/title"
+                    android:layout_below="@+id/text1"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/text_size_small"/>
+
+                <TextView
+                    android:id="@+id/text3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignTop="@+id/text2"
+                    android:layout_marginLeft="@dimen/item_spacing"
+                    android:layout_toRightOf="@+id/text2"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/text_size_small"/>
+
+                <include layout="@layout/bangumi_details_header_actions"/>
+            </RelativeLayout>
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/season_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:clipToPadding="false"
+                android:paddingLeft="@dimen/item_spacing"
+                android:paddingRight="@dimen/item_spacing"
+                android:visibility="gone"/>
+
+            <LinearLayout
+                android:id="@+id/content_layout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <FrameLayout
+                    android:id="@+id/season_eps_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/item_spacing"
+                    android:clickable="true"
+                    android:foreground="?selectableItemBackground"
+                    android:paddingBottom="@dimen/item_half_spacing"
+                    android:paddingLeft="@dimen/item_spacing"
+                    android:paddingRight="@dimen/item_spacing"
+                    android:paddingTop="@dimen/item_half_spacing">
+
+                    <TextView
+                        android:id="@+id/season_eps_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:text="选集"
+                        android:textAppearance="@style/TextAppearance.App.Title"/>
+                </FrameLayout>
+
+                <android.support.v7.widget.RecyclerView
+                    android:id="@+id/grid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="@dimen/item_spacing"
+                    android:paddingRight="@dimen/item_spacing"/>
+
+                <View
+                    android:id="@+id/pay_bp_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="@dimen/item_spacing"
+                    android:layout_marginRight="@dimen/item_spacing"
+                    android:layout_marginTop="@dimen/item_spacing"
+                    android:visibility="gone"/>
+
+                <!--<com.lh.imbilibili.widget.ScalableImageView-->
+                <!--android:id="@+id/activity_cover"-->
+                <!--android:layout_width="match_parent"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:layout_marginLeft="@dimen/item_spacing"-->
+                <!--android:layout_marginRight="@dimen/item_spacing"-->
+                <!--android:layout_marginTop="@dimen/item_spacing"-->
+                <!--android:visibility="gone"-->
+                <!--app:aspectRadioHeight="150"-->
+                <!--app:aspectRadioWidth="640" />-->
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginTop="@dimen/item_spacing"
+                    android:background="@color/theme_color_dividing_line"/>
+
+                <FrameLayout
+                    android:id="@+id/desc_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:foreground="?selectableItemBackground"
+                    android:orientation="horizontal"
+                    android:paddingBottom="@dimen/item_half_spacing"
+                    android:paddingLeft="@dimen/item_spacing"
+                    android:paddingRight="@dimen/item_spacing"
+                    android:paddingTop="@dimen/item_half_spacing">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:text="简介"
+                        android:textAppearance="@style/TextAppearance.App.Title"/>
+
+                    <TextView
+                        android:id="@+id/season_desc_more"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:drawablePadding="4dp"
+                        android:drawableRight="@drawable/ic_gray_arrow_right"
+                        android:focusable="false"
+                        android:padding="5dp"
+                        android:text="更多"
+                        android:textAppearance="@style/TextAppearance.App.Subtitle"
+                        android:textColor="?android:textColorSecondary"/>
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="@dimen/item_spacing"
+                    android:layout_marginRight="@dimen/item_spacing"
+                    android:background="?selectableItemBackground"
+                    android:ellipsize="end"
+                    android:maxLines="3"
+                    android:textAppearance="@style/TextAppearance.App.Subtitle"
+                    android:textColor="?android:textColorSecondary"/>
+
+                <android.support.v7.widget.RecyclerView
+                    android:id="@+id/tags"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/item_spacing"
+                    android:clipToPadding="false"
+                    android:orientation="horizontal"
+                    android:paddingLeft="@dimen/item_spacing"
+                    android:paddingRight="@dimen/item_spacing"
+                    app:layoutManager="android.support.v7.widget.LinearLayoutManager"/>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1px"
+                    android:layout_marginTop="@dimen/item_spacing"
+                    android:background="@color/theme_color_dividing_line"/>
+
+                <LinearLayout
+                    android:id="@+id/comments"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <FrameLayout
+                        android:id="@+id/season_comment_title_layout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:foreground="?selectableItemBackground"
+                        android:orientation="horizontal"
+                        android:paddingBottom="@dimen/item_half_spacing"
+                        android:paddingLeft="@dimen/item_spacing"
+                        android:paddingRight="@dimen/item_spacing"
+                        android:paddingTop="@dimen/item_half_spacing">
+
+                        <TextView
+                            android:id="@+id/season_comment_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:textAppearance="@style/TextAppearance.App.Title"/>
+
+                        <TextView
+                            android:id="@+id/season_comment_more"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end"
+                            android:drawablePadding="4dp"
+                            android:drawableRight="@drawable/ic_gray_arrow_right"
+                            android:focusable="false"
+                            android:padding="5dp"
+                            android:text="更多评论"
+                            android:textAppearance="@style/TextAppearance.App.Subtitle"
+                            android:textColor="@color/theme_color_secondary"/>
+                    </FrameLayout>
+
+                    <com.lh.imbilibili.widget.FeedbackView
+                        android:id="@+id/feedback1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:foreground="?selectableItemBackground"
+                        android:paddingBottom="@dimen/item_half_spacing"
+                        android:paddingTop="@dimen/item_half_spacing"/>
+
+                    <View
+                        android:id="@+id/divider1"
+                        android:layout_width="match_parent"
+                        android:layout_height="1px"
+                        android:background="@color/theme_color_dividing_line"/>
+
+                    <com.lh.imbilibili.widget.FeedbackView
+                        android:id="@+id/feedback2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:foreground="?selectableItemBackground"
+                        android:paddingBottom="@dimen/item_half_spacing"
+                        android:paddingTop="@dimen/item_half_spacing"/>
+
+                    <View
+                        android:id="@+id/divider2"
+                        android:layout_width="match_parent"
+                        android:layout_height="1px"
+                        android:background="@color/theme_color_dividing_line"/>
+
+                    <com.lh.imbilibili.widget.FeedbackView
+                        android:id="@+id/feedback3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:foreground="?selectableItemBackground"
+                        android:paddingBottom="@dimen/item_half_spacing"
+                        android:paddingTop="@dimen/item_half_spacing"/>
+
+                    <TextView
+                        android:id="@+id/empty_view"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:gravity="center"
+                        android:minHeight="80dp"
+                        android:text="什么都没有~"
+                        android:textColor="@color/gray_dark"
+                        android:visibility="gone"/>
+
+                    <include layout="@layout/bangumi_season_comment_footer"/>
+
+                    <TextView
+                        android:id="@+id/recommend_bangumi_header"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingBottom="@dimen/item_medium_spacing"
+                        android:paddingLeft="@dimen/item_spacing"
+                        android:paddingRight="@dimen/item_spacing"
+                        android:paddingTop="@dimen/item_spacing"
+                        android:text="番剧推荐"
+                        android:textAppearance="@style/TextAppearance.App.Title"
+                        android:visibility="gone"/>
+
+                    <android.support.v7.widget.RecyclerView
+                        android:id="@+id/recommend_bangumi_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="@dimen/item_spacing"
+                        android:paddingRight="@dimen/item_spacing"
+                        android:visibility="gone"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/loading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="36dp"/>
+        </LinearLayout>
+    </android.support.v4.widget.NestedScrollView>
+
+    <FrameLayout
+        android:id="@+id/fragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <include
+        layout="@layout/navigation_back_top_bar"/>
+
+    <TextView
+        android:id="@+id/bottom_tips"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/shape_rectangle_pink_trans_nocorner"
+        android:gravity="center"
+        android:padding="@dimen/item_spacing"
+        android:textAppearance="@style/TextAppearance.App.Title"
+        android:textColor="@color/white"
+        android:visibility="gone"/>
+
+    <include layout="@layout/download_snack"/>
+</FrameLayout>

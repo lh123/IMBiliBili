@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/snack_layout"
+              android:layout_width="fill_parent"
+              android:layout_height="wrap_content"
+              android:layout_gravity="bottom"
+              android:background="@drawable/shape_rectangle_pink_trans_nocorner"
+              android:orientation="horizontal"
+              android:padding="@dimen/item_spacing"
+              android:visibility="gone">
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="left"
+        android:text="视频离线缓存中..."
+        android:textAppearance="@style/TextAppearance.App.Title"
+        android:textColor="@color/white"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:drawablePadding="@dimen/item_half_spacing"
+        android:drawableRight="@drawable/ic_gray_arrow_right"
+        android:gravity="left"
+        android:text="查看任务"
+        android:textAppearance="@style/TextAppearance.App.Title"
+        android:textColor="@color/white"/>
+</LinearLayout>

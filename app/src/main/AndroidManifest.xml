@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest package="com.lh.imbilibili"
+          xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.READ_LOGS"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+
+    <application
+        android:name=".IMBilibiliApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity
+            android:name=".view.activity.SplashActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/FullScreen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".view.activity.MainActivity"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".view.activity.BangumiDetailActivity"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".view.activity.WebViewActivity"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".view.activity.FeedbackActivity"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".view.activity.SeasonGroupActivity"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".view.activity.BangumiIndexActivity"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".view.activity.PartitionMoreActivity"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".view.activity.SearchActivity"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".view.activity.LoginActivity"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"/>
+        <activity
+            android:name=".view.activity.FollowBangumiActivity"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".view.activity.UserCenterActivity"
+            android:screenOrientation="portrait"/>
+
+        <activity
+            android:name=".view.activity.VideoDetailActivity"
+            android:configChanges="keyboardHidden|screenSize|orientation"
+            android:screenOrientation="portrait"/>
+
+        <activity
+            android:name=".view.activity.VideoActivity"
+            android:configChanges="keyboardHidden|screenSize|orientation"
+            android:hardwareAccelerated="true"
+            android:screenOrientation="landscape"
+            android:theme="@style/FullScreen"/>
+
+        <meta-data
+            android:name="com.lh.imbilibili.utils.GlideModelConfig"
+            android:value="GlideModule"/>
+
+    </application>
+
+</manifest>
