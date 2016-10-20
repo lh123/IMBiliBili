@@ -25,7 +25,7 @@ public class BannerView extends FrameLayout implements ViewPager.OnPageChangeLis
     private LinearLayout dotContainer;
 
     private Adaper adaper;
-    private int currentPosition = 0;
+
     private boolean isLoop = false;
     private boolean isTouch = false;
 
@@ -133,8 +133,6 @@ public class BannerView extends FrameLayout implements ViewPager.OnPageChangeLis
 
     @Override
     public void onPageSelected(int position) {
-        currentPosition = position;
-//        System.out.println(position);
         if (position <= adaper.getBannerCount() && position >= 1) {
             selectDot(position - 1);
         } else if (position == 0) {
@@ -142,7 +140,6 @@ public class BannerView extends FrameLayout implements ViewPager.OnPageChangeLis
         } else if (position > adaper.getBannerCount()) {
             selectDot(0);
         }
-        //dotContainer.getChildAt(position).setEnabled(true);
     }
 
     private void selectDot(int index) {
@@ -158,9 +155,9 @@ public class BannerView extends FrameLayout implements ViewPager.OnPageChangeLis
     @Override
     public void onPageScrollStateChanged(int state) {
         if (state == ViewPager.SCROLL_STATE_IDLE) {
-            if (currentPosition == 0) {
+            if (viewPager.getCurrentItem() == 0) {
                 viewPager.setCurrentItem(adaper.getCount() - 2, false);
-            } else if (currentPosition == adaper.getCount() - 1) {
+            } else if (viewPager.getCurrentItem() == adaper.getCount() - 1) {
                 viewPager.setCurrentItem(1, false);
             }
         }
@@ -170,20 +167,9 @@ public class BannerView extends FrameLayout implements ViewPager.OnPageChangeLis
         viewPager.setCurrentItem(position, smooth);
     }
 
-    public int getCurrentPosition() {
-        return currentPosition;
-    }
-
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        if (adaper != null) {
-            if (currentPosition == 0) {
-                setCurrentItem(adaper.getCount() - 1, false);
-            } else if (currentPosition == adaper.getCount() - 1) {
-                setCurrentItem(1, false);
-            }
-        }
         startLoop(loopTime);
     }
 
@@ -231,7 +217,6 @@ public class BannerView extends FrameLayout implements ViewPager.OnPageChangeLis
         @Override
         public void run() {
             if (!isTouch) {
-                currentPosition++;
                 try {
                     Field mFirstLayout = ViewPager.class.getDeclaredField("mFirstLayout");
                     mFirstLayout.setAccessible(true);
@@ -239,7 +224,8 @@ public class BannerView extends FrameLayout implements ViewPager.OnPageChangeLis
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                viewPager.setCurrentItem(currentPosition, true);
+                int nextItem = viewPager.getCurrentItem() + 1;
+                viewPager.setCurrentItem(nextItem, true);
                 postDelayed(this, loopTime);
             }
         }
