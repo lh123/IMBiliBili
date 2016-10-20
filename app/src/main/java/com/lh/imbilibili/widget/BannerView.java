@@ -17,6 +17,7 @@ import java.lang.reflect.Field;
 
 /**
  * Created by liuhui on 2016/7/8.
+ * BannerView
  */
 public class BannerView extends FrameLayout implements ViewPager.OnPageChangeListener {
 
@@ -176,8 +177,12 @@ public class BannerView extends FrameLayout implements ViewPager.OnPageChangeLis
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        if (currentPosition == 0) {
-            setCurrentItem(1, false);
+        if (adaper != null) {
+            if (currentPosition == 0) {
+                setCurrentItem(adaper.getCount() - 1, false);
+            } else if (currentPosition == adaper.getCount() - 1) {
+                setCurrentItem(1, false);
+            }
         }
         startLoop(loopTime);
     }
