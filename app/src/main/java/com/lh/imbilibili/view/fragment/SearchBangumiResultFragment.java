@@ -49,6 +49,8 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
     private BangumiSearchAdapter mAdapter;
     private int mCurrentPage;
 
+    private boolean mIsFirstLoad;
+
     public static SearchBangumiResultFragment newInstance(String keyWord) {
         SearchBangumiResultFragment fragment = new SearchBangumiResultFragment();
         Bundle bundle = new Bundle();
@@ -63,6 +65,7 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
         mKeyWord = getArguments().getString(EXTRA_DATA);
         initRecyclerView();
         mCurrentPage = 1;
+        mIsFirstLoad = true;
         mIvLoading.setVisibility(View.VISIBLE);
     }
 
@@ -91,7 +94,7 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
     }
 
     private void loadSearchPage() {
-        if (mCurrentPage == 1) {
+        if (mIsFirstLoad) {
             LoadAnimationUtils.startLoadAnimate(mIvLoading, R.drawable.anim_search_loading);
         }
         mSearchSub = RetrofitHelper.getInstance()
@@ -112,12 +115,6 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
                 .subscribe(new Subscriber<BangumiSearchResult>() {
                     @Override
                     public void onCompleted() {
-                        mRecyclerView.setLoading(false);
-                        if (mCurrentPage == 2) {
-                            LoadAnimationUtils.stopLoadAnimate(mIvLoading, 0);
-                            mRecyclerView.setEnableLoadMore(true);
-                            mRecyclerView.setShowLoadingView(true);
-                        }
                     }
 
                     @Override
@@ -131,16 +128,22 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
                     @Override
                     public void onNext(BangumiSearchResult bangumiSearchResult) {
                         mRecyclerView.setVisibility(View.VISIBLE);
+                        mRecyclerView.setLoading(false);
+                        if (mIsFirstLoad) {
+                            mIsFirstLoad = false;
+                            LoadAnimationUtils.stopLoadAnimate(mIvLoading, 0);
+                            mRecyclerView.setEnableLoadMore(true);
+                            mRecyclerView.setShowLoadingView(true);
+                        }
                         if (bangumiSearchResult.getPages() == mCurrentPage) {
                             mRecyclerView.setEnableLoadMore(false);
                             mRecyclerView.setLoadView(R.string.no_data_tips, false);
-                        } else {
-                            mSearchResult = bangumiSearchResult;
-                            int startPosition = mAdapter.getItemCount();
-                            mAdapter.addData(mSearchResult.getItems());
-                            mAdapter.notifyItemRangeInserted(startPosition, mSearchResult.getItems().size());
-                            mCurrentPage++;
                         }
+                        mSearchResult = bangumiSearchResult;
+                        int startPosition = mAdapter.getItemCount();
+                        mAdapter.addData(mSearchResult.getItems());
+                        mAdapter.notifyItemRangeInserted(startPosition, mSearchResult.getItems().size());
+                        mCurrentPage++;
                     }
                 });
     }

@@ -101,7 +101,6 @@ public class SearchResultFragment extends LazyLoadFragment implements LoadMoreRe
                 .subscribe(new Subscriber<SearchResult>() {
                     @Override
                     public void onCompleted() {
-                        mRecyclerView.setLoading(false);
                     }
 
                     @Override
@@ -112,6 +111,7 @@ public class SearchResultFragment extends LazyLoadFragment implements LoadMoreRe
 
                     @Override
                     public void onNext(SearchResult searchResult) {
+                        mRecyclerView.setLoading(false);
                         if (searchResult.getItems().getArchive().size() != 0) {
                             mSearchResult = searchResult;
                             int startPosition = mAdapter.getItemCount();

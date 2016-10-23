@@ -48,6 +48,8 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
     private UpUserSearchAdapter mAdapter;
     private int mCurrentPage;
 
+    private boolean mIsFirstLoad;
+
     public static SearchUpFragment newInstance(String keyWord) {
         SearchUpFragment fragment = new SearchUpFragment();
         Bundle bundle = new Bundle();
@@ -61,6 +63,7 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
         ButterKnife.bind(this, view);
         mKeyWord = getArguments().getString(EXTRA_DATA);
         initRecyclerView();
+        mIsFirstLoad = true;
         mCurrentPage = 1;
         mIvLoading.setVisibility(View.VISIBLE);
     }
@@ -85,7 +88,7 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
     }
 
     private void loadSearchPage() {
-        if (mCurrentPage == 1) {
+        if (mIsFirstLoad) {
             LoadAnimationUtils.startLoadAnimate(mIvLoading, R.drawable.anim_search_loading);
         }
         mSearchSub = RetrofitHelper.getInstance()
@@ -106,12 +109,6 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
                 .subscribe(new Subscriber<UpSearchResult>() {
                     @Override
                     public void onCompleted() {
-                        mRecyclerView.setLoading(false);
-                        if (mCurrentPage == 2) {
-                            LoadAnimationUtils.stopLoadAnimate(mIvLoading, 0);
-                            mRecyclerView.setEnableLoadMore(true);
-                            mRecyclerView.setShowLoadingView(true);
-                        }
                     }
 
                     @Override
@@ -125,16 +122,22 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
                     @Override
                     public void onNext(UpSearchResult upSearchResult) {
                         mRecyclerView.setVisibility(View.VISIBLE);
+                        mRecyclerView.setLoading(false);
+                        if (mIsFirstLoad) {
+                            mIsFirstLoad = false;
+                            LoadAnimationUtils.stopLoadAnimate(mIvLoading, 0);
+                            mRecyclerView.setEnableLoadMore(true);
+                            mRecyclerView.setShowLoadingView(true);
+                        }
                         if (upSearchResult.getPages() == mCurrentPage) {
                             mRecyclerView.setEnableLoadMore(false);
                             mRecyclerView.setLoadView(R.string.no_data_tips, false);
-                        } else {
-                            mSearchResult = upSearchResult;
-                            int startPosition = mAdapter.getItemCount();
-                            mAdapter.addData(mSearchResult.getItems());
-                            mAdapter.notifyItemRangeInserted(startPosition, mSearchResult.getItems().size());
-                            mCurrentPage++;
                         }
+                        mSearchResult = upSearchResult;
+                        int startPosition = mAdapter.getItemCount();
+                        mAdapter.addData(mSearchResult.getItems());
+                        mAdapter.notifyItemRangeInserted(startPosition, mSearchResult.getItems().size());
+                        mCurrentPage++;
                     }
                 });
     }
