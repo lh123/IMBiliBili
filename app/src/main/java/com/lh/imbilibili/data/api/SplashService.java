@@ -10,6 +10,7 @@ import retrofit2.http.Query;
 
 /**
  * Created by liuhui on 2016/10/8.
+ * 闪屏Api
  */
 
 public interface SplashService {

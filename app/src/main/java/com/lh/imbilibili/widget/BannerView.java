@@ -123,6 +123,7 @@ public class BannerView extends FrameLayout implements ViewPager.OnPageChangeLis
         removeCallbacks(loopRunnable);
     }
 
+    @SuppressWarnings("unused")
     public void addOnPageChangeListener(ViewPager.OnPageChangeListener listener) {
         viewPager.addOnPageChangeListener(listener);
     }
@@ -163,6 +164,7 @@ public class BannerView extends FrameLayout implements ViewPager.OnPageChangeLis
         }
     }
 
+    @SuppressWarnings("unused")
     public void setCurrentItem(int position, boolean smooth) {
         viewPager.setCurrentItem(position, smooth);
     }

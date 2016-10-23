@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.lh.ijkplayer.widget;
+package com.lh.imbilibili.widget.media;
 
 import android.content.Context;
 
-import com.example.ijkplayer.R;
+import com.lh.imbilibili.R;
 
 import tv.danmaku.ijk.media.player.AndroidMediaPlayer;
 import tv.danmaku.ijk.media.player.IMediaPlayer;

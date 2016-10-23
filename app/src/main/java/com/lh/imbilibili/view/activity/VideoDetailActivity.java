@@ -23,23 +23,24 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.VideoDetail;
 import com.lh.imbilibili.utils.BusUtils;
-import com.lh.imbilibili.utils.CallUtils;
 import com.lh.imbilibili.utils.DisableableAppBarLayoutBehavior;
 import com.lh.imbilibili.utils.HistoryUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.videodetailactivity.ViewPagerAdapter;
 import com.lh.imbilibili.view.fragment.VideoDetailInfoFragment;
 import com.lh.imbilibili.view.fragment.VideoDetailReplyFragment;
-import com.lh.imbilibili.view.fragment.VideoFragment;
+import com.lh.imbilibili.view.fragment.VideoPlayerFragment;
 import com.lh.imbilibili.widget.EmptyView;
 
 import java.util.ArrayList;
@@ -47,15 +48,18 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/2.
  */
 
-public class VideoDetailActivity extends BaseActivity implements VideoFragment.OnVideoFragmentStateListener {
+public class VideoDetailActivity extends BaseActivity implements VideoPlayerFragment.OnVideoFragmentStateListener {
 
     private static final String EXTRA_AID = "aid";
 
@@ -91,7 +95,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoFragment.O
     private String mAid;
     private VideoDetail mVideoDetail;
     private List<BaseFragment> mFragments;
-    private VideoFragment mVideoFragment;
+    private VideoPlayerFragment mVideoPlayerFragment;
 
     private boolean mIsFabShow;
     private boolean mIsFullScreen;
@@ -99,7 +103,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoFragment.O
     private int mVideoViewHeight;
     private int mCurrentSelectVideoPage;
 
-    private Call<BilibiliDataResponse<VideoDetail>> mLoadVideoDetailCall;
+    private Subscription mVideoDetailSub;
 
     public static void startActivity(Context context, String aid) {
         Intent intent = new Intent(context, VideoDetailActivity.class);
@@ -154,41 +158,52 @@ public class VideoDetailActivity extends BaseActivity implements VideoFragment.O
     }
 
     private void loadVideoDetail() {
-        mLoadVideoDetailCall = RetrofitHelper
-                .getInstance()
-                .getVideService()
-                .getVideoDetail(mAid, Constant.PLAT, System.currentTimeMillis());
-        mLoadVideoDetailCall.enqueue(new Callback<BilibiliDataResponse<VideoDetail>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<VideoDetail>> call, Response<BilibiliDataResponse<VideoDetail>> response) {
-                if (response.body().getCode() == 0) {
-                    mVideoDetail = response.body().getData();
-                    BusUtils.getBus().post(new VideoStateChangeEvent(VideoStateChangeEvent.STATE_LOAD_FINISH, mVideoDetail));
-                    bindViewData();
-                } else {
-                    mEmptyView.setVisibility(View.VISIBLE);
-                    mEmptyView.setImgResource(R.drawable.img_tips_error_not_foud);
-                    mEmptyView.setShowRetryButton(false);
-                    mEmptyView.setText(R.string.video_load_error_404);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<VideoDetail>> call, Throwable t) {
-                ToastUtils.showToast(VideoDetailActivity.this, R.string.load_error, Toast.LENGTH_SHORT);
-                mEmptyView.setVisibility(View.VISIBLE);
-                mEmptyView.setImgResource(R.drawable.img_tips_error_load_error);
-                mEmptyView.setText(R.string.video_load_error_failed);
-                mEmptyView.setShowRetryButton(true);
-                mEmptyView.setOnRetryListener(new View.OnClickListener() {
+        mVideoDetailSub = RetrofitHelper.getInstance()
+                .getVideoPlayService()
+                .getVideoDetail(mAid, Constant.PLAT, System.currentTimeMillis())
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<BilibiliDataResponse<VideoDetail>, Observable<VideoDetail>>() {
                     @Override
-                    public void onClick(View v) {
-                        mEmptyView.setVisibility(View.GONE);
-                        loadVideoDetail();
+                    public Observable<VideoDetail> call(BilibiliDataResponse<VideoDetail> videoDetailBilibiliDataResponse) {
+                        if (videoDetailBilibiliDataResponse.isSuccess()) {
+                            return Observable.just(videoDetailBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(videoDetailBilibiliDataResponse.getCode()));
+                        }
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<VideoDetail>() {
+                    @Override
+                    public void call(VideoDetail videoDetail) {
+                        mVideoDetail = videoDetail;
+                        BusUtils.getBus().post(new VideoStateChangeEvent(VideoStateChangeEvent.STATE_LOAD_FINISH, mVideoDetail));
+                        bindViewData();
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        if (throwable instanceof ApiException) {
+                            mEmptyView.setVisibility(View.VISIBLE);
+                            mEmptyView.setImgResource(R.drawable.img_tips_error_not_foud);
+                            mEmptyView.setShowRetryButton(false);
+                            mEmptyView.setText(R.string.video_load_error_404);
+                        } else {
+                            ToastUtils.showToast(VideoDetailActivity.this, R.string.load_error, Toast.LENGTH_SHORT);
+                            mEmptyView.setVisibility(View.VISIBLE);
+                            mEmptyView.setImgResource(R.drawable.img_tips_error_load_error);
+                            mEmptyView.setText(R.string.video_load_error_failed);
+                            mEmptyView.setShowRetryButton(true);
+                            mEmptyView.setOnRetryListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    mEmptyView.setVisibility(View.GONE);
+                                    loadVideoDetail();
+                                }
+                            });
+                        }
                     }
                 });
-            }
-        });
     }
 
     private void bindViewData() {
@@ -206,12 +221,12 @@ public class VideoDetailActivity extends BaseActivity implements VideoFragment.O
     }
 
     public void changeVideoPage(int page) {
-        if (mCurrentSelectVideoPage != page || mVideoFragment == null) {
+        if (mCurrentSelectVideoPage != page || mVideoPlayerFragment == null) {
             mCurrentSelectVideoPage = page;
-            if (mVideoFragment == null) {
+            if (mVideoPlayerFragment == null) {
                 initVideoView(mCurrentSelectVideoPage);
             } else {
-                mVideoFragment.changeVideo(mAid, mVideoDetail.getPages().get(page).getCid() + "", mVideoDetail.getTitle());
+                mVideoPlayerFragment.changeVideo(mAid, mVideoDetail.getPages().get(page).getCid() + "", mVideoDetail.getTitle());
             }
         }
     }
@@ -219,10 +234,10 @@ public class VideoDetailActivity extends BaseActivity implements VideoFragment.O
     private void initVideoView(final int page) {
         initPlayerLayout();
         HistoryUtils.addHistory(mAid);
-        mVideoFragment = VideoFragment.newInstance(mAid, mVideoDetail.getPages().get(page).getCid() + "", mVideoDetail.getTitle());
+        mVideoPlayerFragment = VideoPlayerFragment.newInstance(mAid, mVideoDetail.getPages().get(page).getCid() + "", mVideoDetail.getTitle());
         mVideoContainer.setVisibility(View.VISIBLE);
-        mVideoFragment.setOnFullScreemButtonClick(VideoDetailActivity.this);
-        getSupportFragmentManager().beginTransaction().replace(R.id.video_view_container, mVideoFragment).commit();
+        mVideoPlayerFragment.setOnFullScreemButtonClick(VideoDetailActivity.this);
+        getSupportFragmentManager().beginTransaction().replace(R.id.video_view_container, mVideoPlayerFragment).commit();
     }
 
     private void initPlayerLayout() {
@@ -257,7 +272,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoFragment.O
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mLoadVideoDetailCall);
+        SubscriptionUtils.unsubscribe(mVideoDetailSub);
     }
 
     @Override

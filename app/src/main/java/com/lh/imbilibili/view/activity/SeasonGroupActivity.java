@@ -14,11 +14,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.SeasonGroup;
-import com.lh.imbilibili.utils.CallUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.adapter.GridLayoutItemDecoration;
 import com.lh.imbilibili.view.adapter.seasongroupactivity.SeasonGroupAdapter;
@@ -30,9 +31,12 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by home on 2016/8/8.
@@ -60,7 +64,7 @@ public class SeasonGroupActivity extends BaseActivity implements SeasonYearAdapt
     private List<SeasonGroup> mSeasonGroups;
     private List<Integer> mYears;
 
-    private Call<BiliBiliResultResponse<List<SeasonGroup>>> mSeasonGroupCall;
+    private Subscription mSeasonGroupSub;
 
     public static void startActivity(Context context) {
         Intent intent = new Intent(context, SeasonGroupActivity.class);
@@ -126,29 +130,33 @@ public class SeasonGroupActivity extends BaseActivity implements SeasonYearAdapt
     }
 
     private void loadData() {
-        mSeasonGroupCall = RetrofitHelper
-                .getInstance()
+        mSeasonGroupSub = RetrofitHelper.getInstance()
                 .getBangumiService()
-                .getSeasonGroup(System.currentTimeMillis());
-        mSeasonGroupCall.enqueue(new Callback<BiliBiliResultResponse<List<SeasonGroup>>>() {
-            @Override
-            public void onResponse(Call<BiliBiliResultResponse<List<SeasonGroup>>> call, Response<BiliBiliResultResponse<List<SeasonGroup>>> response) {
-                if (response.body().getCode() == 0) {
-                    mSeasonGroups = response.body().getResult();
-                    mYears = canculateYear(mSeasonGroups);
-                    mTvYear.setText(String.valueOf(mYears.get(0)));
-                    mSeasonGroupAdapter.setSeasonGroups(mSeasonGroups);
-                    mSeasonGroupAdapter.notifyDataSetChanged();
-                    mSeasonYearAdapter.setYears(mYears);
-                    mSeasonYearAdapter.notifyDataSetChanged();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BiliBiliResultResponse<List<SeasonGroup>>> call, Throwable t) {
-
-            }
-        });
+                .getSeasonGroup(System.currentTimeMillis())
+                .flatMap(new Func1<BiliBiliResultResponse<List<SeasonGroup>>, Observable<List<SeasonGroup>>>() {
+                    @Override
+                    public Observable<List<SeasonGroup>> call(BiliBiliResultResponse<List<SeasonGroup>> listBiliBiliResultResponse) {
+                        if (listBiliBiliResultResponse.isSuccess()) {
+                            return Observable.just(listBiliBiliResultResponse.getResult());
+                        } else {
+                            return Observable.error(new ApiException(listBiliBiliResultResponse.getCode()));
+                        }
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<List<SeasonGroup>>() {
+                    @Override
+                    public void call(List<SeasonGroup> seasonGroups) {
+                        mSeasonGroups = seasonGroups;
+                        mYears = canculateYear(mSeasonGroups);
+                        mTvYear.setText(String.valueOf(mYears.get(0)));
+                        mSeasonGroupAdapter.setSeasonGroups(mSeasonGroups);
+                        mSeasonGroupAdapter.notifyDataSetChanged();
+                        mSeasonYearAdapter.setYears(mYears);
+                        mSeasonYearAdapter.notifyDataSetChanged();
+                    }
+                });
     }
 
     private List<Integer> canculateYear(List<SeasonGroup> seasonGroups) {
@@ -176,7 +184,7 @@ public class SeasonGroupActivity extends BaseActivity implements SeasonYearAdapt
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mSeasonGroupCall);
+        SubscriptionUtils.unsubscribe(mSeasonGroupSub);
     }
 
     @Override

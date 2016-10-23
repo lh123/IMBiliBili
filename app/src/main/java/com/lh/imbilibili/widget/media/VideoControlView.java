@@ -1,4 +1,4 @@
-package com.lh.imbilibili.widget;
+package com.lh.imbilibili.widget.media;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -24,20 +24,17 @@ import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.lh.ijkplayer.widget.IjkVideoView;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.utils.StringUtils;
 
 import java.lang.ref.WeakReference;
-
-import tv.danmaku.ijk.media.player.IMediaPlayer;
 
 /**
  * Created by lh on 2016/8/6.
  * 视频播放界面
  */
 @SuppressWarnings("FieldCanBeLocal")
-public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarChangeListener, IMediaPlayer.OnBufferingUpdateListener, View.OnClickListener {
+public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarChangeListener, View.OnClickListener {
 
     public static final int MSG_HIDE_UI = 1;
     public static final int MSG_HIDE_VOLUME_BAR = 2;
@@ -49,7 +46,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     private static final long TIME_OUT = 2000;
     private static final long MEDIA_CONTROL_TIME_OUT = 3000;
 
-    private IjkVideoView mIjkVideoView;
+    private MediaPlayerControl mMediaControl;
 
     private LinearLayout mVolumeBar;
     private ProgressBar mPbVolumeLevel;
@@ -74,12 +71,8 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     private TextView mGestureInfoText;
     private TextView mGestureInfoText1;
 
-//    private LinearLayout mBufferingGroup;
-
     private AudioManager mAudioManager;
     private ControlHandler mHandler;
-
-//    private AndroidMediaController mMediaController;
 
     private GestureDetector mGestureDetector;
     private GestureType mGestureType = GestureType.None;
@@ -91,7 +84,6 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     private int mVolume;
     private int mMaxVolume;
     private int mCurrentPosition;
-    private int mCurrentBufferPercentage;
 
     private float mTotalVolumeOffset;
     private float mTotalBrightnessOffset;
@@ -116,7 +108,6 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         super(context, attrs, defStyleAttr);
         mShowing = false;
         mCurrentPosition = -1;
-        mCurrentBufferPercentage = 0;
         setClickable(true);
         LayoutInflater inflater = LayoutInflater.from(context);
         initMediaControlView(inflater);
@@ -184,9 +175,8 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         mGestureDetector = new GestureDetector(context, new MyVideoViewGestureListener());
     }
 
-    public void setVideoView(IjkVideoView videoView) {
-        mIjkVideoView = videoView;
-        mIjkVideoView.setOnBufferingUpdateListener(this);
+    public void setVideoView(MediaPlayerControl videoView) {
+        mMediaControl = videoView;
     }
 
     public void setVideoTitle(String title) {
@@ -230,7 +220,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
                 mHandler.sendEmptyMessageDelayed(MSG_HIDE_BRIGHTNESS_BAR, TIME_OUT);
                 mHandler.sendEmptyMessageDelayed(MSG_HIDE_GESTUREINFO_VIEW, TIME_OUT);
             } else if (mGestureType == GestureType.FastBackwardOrForward) {
-                mIjkVideoView.seekTo(mCurrentPosition);
+                mMediaControl.seekTo(mCurrentPosition);
                 mCurrentPosition = -1;
                 mBeforeScrollPosition = -1;
                 mHandler.sendEmptyMessageDelayed(MSG_HIDE_GESTUREINFO_VIEW, TIME_OUT);
@@ -270,36 +260,32 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         mGestureInfoGroup.setVisibility(GONE);
     }
 
-    public IjkVideoView getIjkVideoView() {
-        return mIjkVideoView;
-    }
-
     public boolean isShowing() {
         return mShowing;
     }
 
     private void updateMediaControlView() {
-        mIvPlayPause.setImageLevel(mIjkVideoView.isPlaying() ? 1 : 0);
-        int total = mIjkVideoView.getDuration();
-        int currentPosition = mIjkVideoView.getCurrentPosition();
+        mIvPlayPause.setImageLevel(mMediaControl.isPlaying() ? 1 : 0);
+        int total = mMediaControl.getDuration();
+        int currentPosition = mMediaControl.getCurrentPosition();
         mTvCurrentTime.setText(stringForTime(currentPosition));
         mTvTotalTime.setText(stringForTime(total));
         mSeekBar.setProgress(currentPosition);
         mSeekBar.setMax(total);
-        int secondProgress = mCurrentBufferPercentage * total / 100;
+        int secondProgress = mMediaControl.getBufferPercentage() * total / 100;
         mSeekBar.setSecondaryProgress(secondProgress);
     }
 
     private void playOrPause() {
-        if (mIjkVideoView.isPlaying()) {
+        if (mMediaControl.isPlaying()) {
             mIvPlayPause.setImageLevel(0);
-            mIjkVideoView.pause();
+            mMediaControl.pause();
             if (mOnPlayControlListener != null) {
                 mOnPlayControlListener.onVideoPause();
             }
         } else {
             mIvPlayPause.setImageLevel(1);
-            mIjkVideoView.start();
+            mMediaControl.start();
             if (mOnPlayControlListener != null) {
                 mOnPlayControlListener.onVideoStart();
             }
@@ -423,8 +409,8 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        if (mIjkVideoView != null && mScrollingSeekBar) {
-            int totalTime = mIjkVideoView.getDuration();
+        if (mMediaControl != null && mScrollingSeekBar) {
+            int totalTime = mMediaControl.getDuration();
             setFastBackwardForwardGestureInfo(progress, mBeforeScrollPosition, totalTime);
         }
     }
@@ -435,7 +421,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         mHandler.removeMessages(MSG_HIDE_GESTUREINFO_VIEW);
         mHandler.removeMessages(MSG_UPDATE_MEDIA_CONTROL_VIEW);
         mHandler.removeMessages(MSG_HIDE_MEDIA_CONTROL);
-        mBeforeScrollPosition = mIjkVideoView.getCurrentPosition();
+        mBeforeScrollPosition = mMediaControl.getCurrentPosition();
     }
 
     @Override
@@ -446,9 +432,9 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
             mHandler.sendEmptyMessage(MSG_UPDATE_MEDIA_CONTROL_VIEW);
             mHandler.sendEmptyMessageDelayed(MSG_HIDE_MEDIA_CONTROL, MEDIA_CONTROL_TIME_OUT);
         }
-        if (mIjkVideoView != null) {
+        if (mMediaControl != null) {
             int pos = seekBar.getProgress();
-            mIjkVideoView.seekTo(pos);
+            mMediaControl.seekTo(pos);
         }
     }
 
@@ -476,8 +462,8 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
                 ((Activity) getContext()).finish();
                 break;
             case R.id.video_info:
-                if (mIjkVideoView != null) {
-                    mIjkVideoView.showMediaInfo();
+                if (mMediaControl != null) {
+                    mMediaControl.showMediaInfo();
                 }
                 break;
             case R.id.quality_select:
@@ -489,11 +475,6 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
                     mOnPlayControlListener.onDanamkuShowOrHideClick();
                 }
         }
-    }
-
-    @Override
-    public void onBufferingUpdate(IMediaPlayer mp, int percent) {
-        mCurrentBufferPercentage = percent;
     }
 
     private enum GestureType {
@@ -547,7 +528,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
                         break;
                     case MSG_UPDATE_MEDIA_CONTROL_VIEW:
                         mVideoControlView.get().updateMediaControlView();
-                        if (mVideoControlView.get().getIjkVideoView().isPlaying() && mVideoControlView.get().isShowing()) {
+                        if (mVideoControlView.get().mMediaControl.isPlaying() && mVideoControlView.get().isShowing()) {
                             sendEmptyMessageDelayed(MSG_UPDATE_MEDIA_CONTROL_VIEW, 1000);
                         }
                         break;
@@ -608,7 +589,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
                 setBrightness(distanceY / getHeight());
             } else if (mGestureType == GestureType.FastBackwardOrForward) {
                 if (mCurrentPosition < 0) {
-                    mCurrentPosition = mIjkVideoView.getCurrentPosition();
+                    mCurrentPosition = mMediaControl.getCurrentPosition();
                     mBeforeScrollPosition = mCurrentPosition;
                 }
                 float percent = distanceX / getWidth();
@@ -620,12 +601,12 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
                     mCurrentPosition -= 1000 * Math.ceil(mTotalPlayPositionOffset);
                     mTotalPlayPositionOffset -= Math.ceil(mTotalPlayPositionOffset);
                 }
-                if (mCurrentPosition > mIjkVideoView.getDuration()) {
-                    mCurrentPosition = mIjkVideoView.getDuration();
+                if (mCurrentPosition > mMediaControl.getDuration()) {
+                    mCurrentPosition = mMediaControl.getDuration();
                 } else if (mCurrentPosition < 0) {
                     mCurrentPosition = 0;
                 }
-                setFastBackwardForwardGestureInfo(mCurrentPosition, mBeforeScrollPosition, mIjkVideoView.getDuration());
+                setFastBackwardForwardGestureInfo(mCurrentPosition, mBeforeScrollPosition, mMediaControl.getDuration());
             }
             return true;
         }

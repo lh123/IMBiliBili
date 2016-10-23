@@ -6,11 +6,12 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.PartionHome;
 import com.lh.imbilibili.model.PartionVideo;
-import com.lh.imbilibili.utils.CallUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.LazyLoadFragment;
 import com.lh.imbilibili.view.activity.VideoDetailActivity;
@@ -23,9 +24,13 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/1.
@@ -46,10 +51,12 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
 
     private int mCurrentPage;
 
-    private Call<BilibiliDataResponse<PartionHome>> mPartionDataCall;
-    private Call<BilibiliDataResponse<List<PartionVideo>>> mNewVideoDataCall;
+    private Subscription mPartionAllDataCall;
+    private Subscription mNewVideoDataCall;
 
-    private boolean mNeedRefresh;
+    private List<PartionVideo> mPartionVideos;
+    private PartionHome mPartionHome;
+
 
     public static PartionListFragment newInstance(PartionModel.Partion partion) {
         PartionListFragment fragment = new PartionListFragment();
@@ -69,7 +76,6 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
         mPartion = getArguments().getParcelable(EXTRA_DATA);
         ButterKnife.bind(this, view);
         mCurrentPage = 1;
-        mNeedRefresh = true;
         initRecyclerView();
     }
 
@@ -82,7 +88,7 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
     @Override
     public void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mPartionDataCall, mNewVideoDataCall);
+        SubscriptionUtils.unsubscribe(mPartionAllDataCall, mNewVideoDataCall);
     }
 
     private void initRecyclerView() {
@@ -98,60 +104,90 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
         mAdapter.setOnVideoItemClickListener(this);
     }
 
-    private void loadNewData() {
-        mNewVideoDataCall = RetrofitHelper.getInstance().getPartionService().getPartionChildList(mPartion.getId(), mCurrentPage, PAGE_SIZE, "senddate");
-        mNewVideoDataCall.enqueue(new Callback<BilibiliDataResponse<List<PartionVideo>>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<List<PartionVideo>>> call, Response<BilibiliDataResponse<List<PartionVideo>>> response) {
-                mRecyclerView.setLoading(false);
-                if (response.body().isSuccess()) {
-                    if (response.body().getData().size() == 0) {
-                        mRecyclerView.setEnableLoadMore(false);
-                        mRecyclerView.setLoadView(R.string.no_data_tips, false);
-                    } else {
-                        if (mNeedRefresh) {
-                            mNeedRefresh = false;
-                            mAdapter.addNewVideos(response.body().getData());
-                            mAdapter.notifyDataSetChanged();
+    private Observable<List<PartionVideo>> loadNewData() {
+        return RetrofitHelper.getInstance()
+                .getPartionService()
+                .getPartionChildList(mPartion.getId(), mCurrentPage, PAGE_SIZE, "senddate")
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<BilibiliDataResponse<List<PartionVideo>>, Observable<List<PartionVideo>>>() {
+                    @Override
+                    public Observable<List<PartionVideo>> call(BilibiliDataResponse<List<PartionVideo>> listBilibiliDataResponse) {
+                        if (listBilibiliDataResponse.isSuccess()) {
+                            mPartionVideos = listBilibiliDataResponse.getData();
+                            return Observable.just(listBilibiliDataResponse.getData());
                         } else {
-                            int startPosition = mAdapter.getItemCount();
-                            mAdapter.addNewVideos(response.body().getData());
-                            mAdapter.notifyItemRangeInserted(startPosition, response.body().getData().size());
+                            return Observable.error(new ApiException(listBilibiliDataResponse.getCode()));
                         }
-                        mCurrentPage++;
                     }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<List<PartionVideo>>> call, Throwable t) {
-                mRecyclerView.setLoading(false);
-                ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
-            }
-        });
+                });
     }
 
     private void loadData() {
-        mPartionDataCall = RetrofitHelper.getInstance().getPartionService().getPartionChild(mPartion.getId(), "*");
-        mPartionDataCall.enqueue(new Callback<BilibiliDataResponse<PartionHome>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<PartionHome>> call, Response<BilibiliDataResponse<PartionHome>> response) {
-                if (response.body().isSuccess()) {
-                    mAdapter.setPartionHomeData(response.body().getData());
-                    mAdapter.notifyDataSetChanged();
-                }
-            }
+        mPartionAllDataCall = Observable.merge(RetrofitHelper.getInstance()
+                .getPartionService()
+                .getPartionChild(mPartion.getId(), "*")
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<BilibiliDataResponse<PartionHome>, Observable<PartionHome>>() {
+                    @Override
+                    public Observable<PartionHome> call(BilibiliDataResponse<PartionHome> partionHomeBilibiliDataResponse) {
+                        if (partionHomeBilibiliDataResponse.isSuccess()) {
+                            mPartionHome = partionHomeBilibiliDataResponse.getData();
+                            return Observable.just(partionHomeBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(partionHomeBilibiliDataResponse.getCode()));
+                        }
+                    }
+                }), loadNewData())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<Object>() {
+                    @Override
+                    public void onCompleted() {
+                        if (mPartionHome != null) {
+                            mAdapter.setPartionHomeData(mPartionHome);
+                        }
+                        if (mPartionVideos != null) {
+                            mAdapter.addNewVideos(mPartionVideos);
+                        }
+                        mAdapter.notifyDataSetChanged();
+                    }
 
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<PartionHome>> call, Throwable t) {
-                ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
-            }
-        });
+                    @Override
+                    public void onError(Throwable e) {
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+                    }
+                });
     }
 
     @Override
     public void onLoadMore() {
-        loadNewData();
+        mNewVideoDataCall = loadNewData().subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<List<PartionVideo>>() {
+                    @Override
+                    public void call(List<PartionVideo> partionVideos) {
+                        mRecyclerView.setLoading(false);
+                        if (partionVideos.size() == 0) {
+                            mRecyclerView.setEnableLoadMore(false);
+                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                        } else {
+                            int startPosition = mAdapter.getItemCount();
+                            mAdapter.addNewVideos(partionVideos);
+                            mAdapter.notifyItemRangeInserted(startPosition, partionVideos.size());
+                            mCurrentPage++;
+                        }
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        mRecyclerView.setLoading(false);
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+                });
     }
 
     @Override

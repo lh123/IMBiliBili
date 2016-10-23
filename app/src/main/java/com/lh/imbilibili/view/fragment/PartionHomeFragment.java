@@ -4,14 +4,17 @@ import android.os.Bundle;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.view.View;
+import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.PartionHome;
 import com.lh.imbilibili.model.PartionVideo;
 import com.lh.imbilibili.utils.BusUtils;
-import com.lh.imbilibili.utils.CallUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.LazyLoadFragment;
 import com.lh.imbilibili.view.activity.VideoDetailActivity;
 import com.lh.imbilibili.view.adapter.categoryfragment.PartionHomeRecyclerViewAdapter;
@@ -23,9 +26,13 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/9/29.
@@ -42,14 +49,14 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
     LoadMoreRecyclerView mRecyclerView;
 
     private PartionHome mPartionHomeData;
+    private List<PartionVideo> mPartionVideos;
+
     private PartionHomeRecyclerViewAdapter mAdapter;
     private PartionModel mPartionModel;
-    private Call<BilibiliDataResponse<PartionHome>> mPartionHomeDataCall;
-    private Call<BilibiliDataResponse<List<PartionVideo>>> mPartionDynamicCall;
+    private Subscription mPartionAllDataSub;
+    private Subscription mPartionLoadMoreSub;
 
     private int mCurrentPage = 1;
-
-    private boolean mNeedRefresh;
 
     public static PartionHomeFragment newInstance(PartionModel partionModel) {
         PartionHomeFragment fragment = new PartionHomeFragment();
@@ -64,7 +71,6 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
         mPartionModel = getArguments().getParcelable(EXTRA_DATA);
         ButterKnife.bind(this, view);
         mCurrentPage = 1;
-        mNeedRefresh = true;
         initRecyclerView();
         mSwipeRefreshLayout.setOnRefreshListener(this);
     }
@@ -74,62 +80,74 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
         return R.layout.fragment_partion_home;
     }
 
-    private void loadData() {
-        mPartionHomeDataCall = RetrofitHelper.getInstance().getPartionService().getPartionInfo(mPartionModel.getId(), "*");
-        mPartionHomeDataCall.enqueue(new Callback<BilibiliDataResponse<PartionHome>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<PartionHome>> call, Response<BilibiliDataResponse<PartionHome>> response) {
-                mSwipeRefreshLayout.setRefreshing(false);
-                if (response.body().getCode() == 0) {
-                    mPartionHomeData = response.body().getData();
-                    mAdapter.setPartionData(mPartionHomeData);
-                    mAdapter.notifyDataSetChanged();
-                }
-            }
+    private void loadAllData() {
+        mPartionAllDataSub = Observable.merge(RetrofitHelper.getInstance()
+                .getPartionService()
+                .getPartionInfo(mPartionModel.getId(), "*")
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<BilibiliDataResponse<PartionHome>, Observable<PartionHome>>() {
+                    @Override
+                    public Observable<PartionHome> call(BilibiliDataResponse<PartionHome> partionHomeBilibiliDataResponse) {
+                        if (partionHomeBilibiliDataResponse.isSuccess()) {
+                            mPartionHomeData = partionHomeBilibiliDataResponse.getData();
+                            return Observable.just(partionHomeBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(partionHomeBilibiliDataResponse.getCode()));
+                        }
+                    }
+                }), loadDynamicData())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<Object>() {
+                    @Override
+                    public void onCompleted() {
+                        mSwipeRefreshLayout.setRefreshing(false);
+                        if (mPartionHomeData != null) {
+                            mAdapter.setPartionData(mPartionHomeData);
+                        }
+                        if (mPartionVideos != null) {
+                            mAdapter.clearDynamicVideo();
+                            mAdapter.addDynamicVideo(mPartionVideos);
+                            mCurrentPage++;
+                        }
+                        mAdapter.notifyDataSetChanged();
+                    }
 
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<PartionHome>> call, Throwable t) {
-                mSwipeRefreshLayout.setRefreshing(false);
-            }
-        });
+                    @Override
+                    public void onError(Throwable e) {
+                        mSwipeRefreshLayout.setRefreshing(false);
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+
+                    }
+                });
+
     }
 
-    private void loadDynamicData() {
-        mPartionDynamicCall = RetrofitHelper.getInstance().getPartionService().getPartionDynamic(mPartionModel.getId(), mCurrentPage, PAGE_SIZE);
-        mPartionDynamicCall.enqueue(new Callback<BilibiliDataResponse<List<PartionVideo>>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<List<PartionVideo>>> call, Response<BilibiliDataResponse<List<PartionVideo>>> response) {
-                mRecyclerView.setLoading(false);
-                if (response.body().isSuccess()) {
-                    if (response.body().getData().size() == 0) {
-                        mRecyclerView.setLoadView(R.string.no_data_tips, false);
-                        mRecyclerView.setEnableLoadMore(false);
+    private Observable<List<PartionVideo>> loadDynamicData() {
+        return RetrofitHelper.getInstance()
+                .getPartionService()
+                .getPartionDynamic(mPartionModel.getId(), mCurrentPage, PAGE_SIZE)
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<BilibiliDataResponse<List<PartionVideo>>, Observable<List<PartionVideo>>>() {
+                    @Override
+                    public Observable<List<PartionVideo>> call(BilibiliDataResponse<List<PartionVideo>> listBilibiliDataResponse) {
+                        if (listBilibiliDataResponse.isSuccess()) {
+                            mPartionVideos = listBilibiliDataResponse.getData();
+                            return Observable.just(listBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(listBilibiliDataResponse.getCode()));
+                        }
                     }
-                    if (mNeedRefresh) {//需要全部刷新
-                        mNeedRefresh = false;
-                        mAdapter.clearDynamicVideo();
-                        mAdapter.addDynamicVideo(response.body().getData());
-                        mAdapter.notifyDataSetChanged();
-                    } else {//加载更多
-                        int startPosition = mAdapter.getItemCount();
-                        mAdapter.addDynamicVideo(response.body().getData());
-                        mAdapter.notifyItemRangeInserted(startPosition, response.body().getData().size());
-                    }
-                    mCurrentPage++;
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<List<PartionVideo>>> call, Throwable t) {
-                mRecyclerView.setLoading(false);
-            }
-        });
+                });
     }
 
     @Override
     protected void fetchData() {
-        loadData();
-        loadDynamicData();
+        loadAllData();
     }
 
     private void initRecyclerView() {
@@ -168,23 +186,42 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
 
     @Override
     public void onLoadMore() {
-        loadDynamicData();
+        mPartionLoadMoreSub = loadDynamicData().subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<List<PartionVideo>>() {
+                    @Override
+                    public void call(List<PartionVideo> partionVideos) {
+                        mRecyclerView.setLoading(false);
+                        if (partionVideos.size() == 0) {
+                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setEnableLoadMore(false);
+                        } else {
+                            int startPosition = mAdapter.getItemCount();
+                            mAdapter.addDynamicVideo(partionVideos);
+                            mAdapter.notifyItemRangeInserted(startPosition, partionVideos.size());
+                        }
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        mRecyclerView.setLoading(false);
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+                });
     }
 
     @Override
     public void onRefresh() {
         mCurrentPage = 1;
-        mNeedRefresh = true;
         mRecyclerView.setEnableLoadMore(true);
         mRecyclerView.setLoadView(R.string.loading, true);
-        loadData();
-        loadDynamicData();
+        loadAllData();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mPartionDynamicCall, mPartionHomeDataCall);
+        SubscriptionUtils.unsubscribe(mPartionAllDataSub, mPartionLoadMoreSub);
     }
 
     @Override

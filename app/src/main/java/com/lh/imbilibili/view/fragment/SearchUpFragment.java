@@ -7,11 +7,12 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.search.UpSearchResult;
-import com.lh.imbilibili.utils.CallUtils;
 import com.lh.imbilibili.utils.LoadAnimationUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.LazyLoadFragment;
 import com.lh.imbilibili.view.activity.UserCenterActivity;
@@ -21,9 +22,12 @@ import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/6.
@@ -39,7 +43,7 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
     ImageView mIvLoading;
 
     private String mKeyWord;
-    private Call<BilibiliDataResponse<UpSearchResult>> mSearchCall;
+    private Subscription mSearchSub;
     private UpSearchResult mSearchResult;
     private UpUserSearchAdapter mAdapter;
     private int mCurrentPage;
@@ -84,49 +88,60 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
         if (mCurrentPage == 1) {
             LoadAnimationUtils.startLoadAnimate(mIvLoading, R.drawable.anim_search_loading);
         }
-        mSearchCall = RetrofitHelper.getInstance().getSearchService().getUpSearchResult(mKeyWord, page, 20, 2);
-        mSearchCall.enqueue(new Callback<BilibiliDataResponse<UpSearchResult>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<UpSearchResult>> call, Response<BilibiliDataResponse<UpSearchResult>> response) {
-                mRecyclerView.setLoading(false);
-                if (response.body().isSuccess()) {
-                    if (response.body().getData().getItems() != null) {
-                        if (response.body().getData().getPages() == mCurrentPage) {
-                            mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+        mSearchSub = RetrofitHelper.getInstance()
+                .getSearchService()
+                .getUpSearchResult(mKeyWord, page, 20, 2)
+                .flatMap(new Func1<BilibiliDataResponse<UpSearchResult>, Observable<UpSearchResult>>() {
+                    @Override
+                    public Observable<UpSearchResult> call(BilibiliDataResponse<UpSearchResult> upSearchResultBilibiliDataResponse) {
+                        if (upSearchResultBilibiliDataResponse.isSuccess() && upSearchResultBilibiliDataResponse.getData().getItems() != null) {
+                            return Observable.just(upSearchResultBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(upSearchResultBilibiliDataResponse.getCode()));
                         }
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<UpSearchResult>() {
+                    @Override
+                    public void onCompleted() {
+                        mRecyclerView.setLoading(false);
                         if (mCurrentPage == 1) {
                             LoadAnimationUtils.stopLoadAnimate(mIvLoading, 0);
                             mRecyclerView.setEnableLoadMore(true);
                             mRecyclerView.setShowLoadingView(true);
                         }
-                        mSearchResult = response.body().getData();
-                        int startPosition = mAdapter.getItemCount();
-                        mAdapter.addData(mSearchResult.getItems());
-                        mAdapter.notifyItemRangeInserted(startPosition, mSearchResult.getItems().size());
-                        mCurrentPage++;
-                    } else {
-                        if (mCurrentPage == 1) {
-                            LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        mRecyclerView.setLoading(false);
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                        LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
+                        mRecyclerView.setVisibility(View.GONE);
+                    }
+
+                    @Override
+                    public void onNext(UpSearchResult upSearchResult) {
+                        if (upSearchResult.getPages() == mCurrentPage) {
+                            mRecyclerView.setEnableLoadMore(false);
+                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                        } else {
+                            mSearchResult = upSearchResult;
+                            int startPosition = mAdapter.getItemCount();
+                            mAdapter.addData(mSearchResult.getItems());
+                            mAdapter.notifyItemRangeInserted(startPosition, mSearchResult.getItems().size());
+                            mCurrentPage++;
                         }
                     }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<UpSearchResult>> call, Throwable t) {
-                mRecyclerView.setLoading(false);
-                ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
-                LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
-                mRecyclerView.setVisibility(View.GONE);
-            }
-        });
+                });
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mSearchCall);
+        SubscriptionUtils.unsubscribe(mSearchSub);
     }
 
     @Override

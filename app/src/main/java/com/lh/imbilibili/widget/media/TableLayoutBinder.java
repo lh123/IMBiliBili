@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.lh.ijkplayer.widget;
+package com.lh.imbilibili.widget.media;
 
 import android.content.Context;
 import android.support.v7.app.AlertDialog;
@@ -24,7 +24,7 @@ import android.view.ViewGroup;
 import android.widget.TableLayout;
 import android.widget.TextView;
 
-import com.example.ijkplayer.R;
+import com.lh.imbilibili.R;
 
 public class TableLayoutBinder {
     private Context mContext;

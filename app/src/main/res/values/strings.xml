@@ -1,5 +1,9 @@
 <resources>
+
     <string name="app_name">IMBiliBili</string>
+
+    <string name="search_hint">搜索视频、番剧、up主或av号</string>
+
     <string name="splash_skip">跳过 %ss</string>
 
     <string name="login_pls">请先登录</string>

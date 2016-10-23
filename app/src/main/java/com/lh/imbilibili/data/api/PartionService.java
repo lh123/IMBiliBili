@@ -7,31 +7,32 @@ import com.lh.imbilibili.model.PartionVideo;
 
 import java.util.List;
 
-import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
+import rx.Observable;
 
 /**
  * Created by liuhui on 2016/10/8.
+ * 分区Api
  */
 
 public interface PartionService {
     @GET(Constant.APP_URL + Constant.PARTION_INFO)
-    Call<BilibiliDataResponse<PartionHome>> getPartionInfo(@Query("rid") int rid,
-                                                           @Query("channel") String channel);
+    Observable<BilibiliDataResponse<PartionHome>> getPartionInfo(@Query("rid") int rid,
+                                                                 @Query("channel") String channel);
 
     @GET(Constant.APP_URL + Constant.PARTION_DYNAMIC)
-    Call<BilibiliDataResponse<List<PartionVideo>>> getPartionDynamic(@Query("rid") int rid,
-                                                                     @Query("pn") int pn,
-                                                                     @Query("ps") int ps);
+    Observable<BilibiliDataResponse<List<PartionVideo>>> getPartionDynamic(@Query("rid") int rid,
+                                                                           @Query("pn") int pn,
+                                                                           @Query("ps") int ps);
 
     @GET(Constant.APP_URL + Constant.PARTION_CHILD)
-    Call<BilibiliDataResponse<PartionHome>> getPartionChild(@Query("rid") int rid,
-                                                            @Query("channel") String channel);
+    Observable<BilibiliDataResponse<PartionHome>> getPartionChild(@Query("rid") int rid,
+                                                                  @Query("channel") String channel);
 
     @GET(Constant.APP_URL + Constant.PARTION_CHILD_LIST)
-    Call<BilibiliDataResponse<List<PartionVideo>>> getPartionChildList(@Query("rid") int rid,
-                                                                       @Query("pn") int pn,
-                                                                       @Query("ps") int ps,
-                                                                       @Query("order") String order);
+    Observable<BilibiliDataResponse<List<PartionVideo>>> getPartionChildList(@Query("rid") int rid,
+                                                                             @Query("pn") int pn,
+                                                                             @Query("ps") int ps,
+                                                                             @Query("order") String order);
 }

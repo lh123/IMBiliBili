@@ -15,21 +15,10 @@ import okhttp3.Response;
 public class BiliSignInterceptor implements Interceptor {
     @Override
     public Response intercept(Chain chain) throws IOException {
-        Request finalRequest = null;
+        Request finalRequest;
         Request oldlRequest = chain.request();
         HttpUrl.Builder urlBuilder = chain.request().url().newBuilder();
-        String sign;
-        switch (oldlRequest.url().host()) {
-            case "interface.bilibili.com":
-                sign = BiliBilliSignUtils.getSign(oldlRequest.url().query(), Constant.PLAYER_SECRETKEY);
-                break;
-            case "account.bilibili.com":
-                sign = BiliBilliSignUtils.getSign(oldlRequest.url().query(), Constant.LOGIN_SECRETKEY);
-                break;
-            default:
-                sign = BiliBilliSignUtils.getSign(oldlRequest.url().query(), Constant.SECRETKEY);
-                break;
-        }
+        String sign = BiliBilliSignUtils.getSign(oldlRequest.url().query(), Constant.SECRETKEY);
         urlBuilder.addQueryParameter(Constant.QUERY_SIGN, sign);
         finalRequest = oldlRequest.newBuilder().url(urlBuilder.build()).build();
         return chain.proceed(finalRequest);

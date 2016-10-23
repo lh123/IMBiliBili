@@ -16,6 +16,7 @@ import retrofit2.http.Query;
 
 /**
  * Created by liuhui on 2016/10/8.
+ * 历史Api
  */
 
 public interface HistoryService {

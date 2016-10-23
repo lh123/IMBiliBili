@@ -3,6 +3,7 @@ package com.lh.imbilibili;
 import android.app.Application;
 import android.os.Handler;
 
+import com.facebook.stetho.Stetho;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.squareup.leakcanary.LeakCanary;
 
@@ -24,6 +25,7 @@ public class IMBilibiliApplication extends Application {
         super.onCreate();
         application = this;
         LeakCanary.install(this);
+        Stetho.initializeWithDefaults(this);
         mHandler = new Handler();
         UserManagerUtils.getInstance().readUserInfo(this);
     }

@@ -5,8 +5,8 @@ package com.lh.imbilibili.data;
  */
 public class Constant {
 
-    //public static final String APPKEY="f3bb208b3d081dc8";
-    //public static final String SECRETKEY ="ea85624dfcf12d7cc7b2b3a94fac1f2c";
+//    public static final String APPKEY="f3bb208b3d081dc8";
+//    public static final String SECRETKEY ="ea85624dfcf12d7cc7b2b3a94fac1f2c";
 
 //    public static final String APPKEY = "27eb53fc9058f8c3";
 //    public static final String SECRETKEY = "c2ed53a74eeefe3cf99fbd01d8c9c375";
@@ -17,14 +17,17 @@ public class Constant {
 //    public static final String APPKEY = "85eb6835b0a1034e";
 //    public static final String SECRETKEY = "2ad42749773c441109bdc0191257a664";
 
-    static final String APPKEY = "9326043312df4201";
-    static final String SECRETKEY = "af97f9c667f1bbb47752d4fedbe27842";
+//    static final String APPKEY = "9326043312df4201";
+//    static final String SECRETKEY = "af97f9c667f1bbb47752d4fedbe27842";
 
-    static final String PLAYER_APPKEY = "6f90a59ac58a4123";
-    static final String PLAYER_SECRETKEY = "0bfd84cc3940035173f35e6777508326";
+    //    static final String PLAYER_APPKEY = "6f90a59ac58a4123";
+//    static final String PLAYER_SECRETKEY = "0bfd84cc3940035173f35e6777508326";
+//
+    static final String SECRETKEY = "c2ed53a74eeefe3cf99fbd01d8c9c375";
+    static final String APPKEY = "27eb53fc9058f8c3";
 
-    static final String LOGIN_SECRETKEY = "c2ed53a74eeefe3cf99fbd01d8c9c375";
-    static final String LOGIN_APPKEY = "27eb53fc9058f8c3";
+//    public static final String APPKEY = "c1b107428d337928";
+//    public static final String SECRETKEY = "ea85624dfcf12d7cc7b2b3a94fac1f2c";
 
     public static final String BASE_URL = "http://bangumi.bilibili.com";
     public static final String API_URL = "http://api.bilibili.com";
@@ -84,9 +87,10 @@ public class Constant {
 
     public static final String SPLASH_FILE = "splash.json";
 
+    public static final String UA = "Android Client/beta (1585086582@qq.com)";
+
     public static final int PLAT = 0;
     public static final String BUILD = "421000";
-    public static final String CHANNEL = "xiaomi";
     public static final String MOBI_APP = "android";
     public static final String PLATFORM = "android";
     public static final String TYPE_BANGUMI = "bangumi";
@@ -101,8 +105,4 @@ public class Constant {
     public static final String QUERY_SEASON_ID = "season_id";
     public static final String QUERY_TYPE = "type";
     public static final String QUERY_EPISODE_ID = "episode_id";
-
-    public static final String SEASONID_EXTRA = "seasonid";
-    public static final String EPISODES_EXTRA = "episodes";
-
 }

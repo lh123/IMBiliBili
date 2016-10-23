@@ -3,13 +3,16 @@ package com.lh.imbilibili.view.fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.view.View;
+import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.IndexBangumiRecommend;
 import com.lh.imbilibili.model.IndexPage;
-import com.lh.imbilibili.utils.CallUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.activity.BangumiDetailActivity;
 import com.lh.imbilibili.view.activity.FollowBangumiActivity;
@@ -24,9 +27,13 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/7/6.
@@ -34,21 +41,22 @@ import retrofit2.Response;
  */
 public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.OnRefreshListener, LoadMoreRecyclerView.OnLoadMoreLinstener, BangumiAdapter.OnItemClickListener {
 
+    private static final int PAGE_SIZE = 10;
+
     @BindView(R.id.swiperefresh_layout)
     SwipeRefreshLayout swipeRefreshLayout;
     @BindView(R.id.recycler_view)
     LoadMoreRecyclerView recyclerView;
 
-    private IndexPage indexData;
+    private IndexPage mIndexData;
+    private List<IndexBangumiRecommend> mBangumiRecommends;
 
     private BangumiAdapter adapter;
 
     private String mCursor;
 
-    private Call<BiliBiliResultResponse<IndexPage>> indexCall;
-    private Call<BiliBiliResultResponse<List<IndexBangumiRecommend>>> recommendCall;
-
-    private boolean mNeedRefresh; //是否需要全部刷新
+    private Subscription mAllDataSub;
+    private Subscription mRecommendSub;
 
     public static BangumiFragment newInstance() {
         return new BangumiFragment();
@@ -62,15 +70,40 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
     @Override
     protected void initView(View view) {
         ButterKnife.bind(this, view);
-        mNeedRefresh = true;
         initRecyclerView();
         loadAllData();
     }
 
     private void loadAllData() {
         mCursor = "-1";
-        loadIndexData();
-        loadBangumiRecommendData(mCursor, 10);
+        mAllDataSub = Observable.merge(loadIndexData(), loadBangumiRecommendData(mCursor, PAGE_SIZE))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<Object>() {
+                    @Override
+                    public void onCompleted() {
+                        swipeRefreshLayout.setRefreshing(false);
+                        if (mIndexData != null) {
+                            Collections.sort(mIndexData.getSerializing());
+                            adapter.setmIndexPage(mIndexData);
+                        }
+                        if (mBangumiRecommends != null) {
+                            adapter.clearRecommend();
+                            adapter.addBangumis(mBangumiRecommends);
+                        }
+                        adapter.notifyDataSetChanged();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        swipeRefreshLayout.setRefreshing(false);
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+                    }
+                });
     }
 
     private void initRecyclerView() {
@@ -102,60 +135,40 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
         recyclerView.setOnLoadMoreLinstener(this);
     }
 
-    private void loadIndexData() {
-        indexCall = RetrofitHelper.getInstance().getBangumiService()
-                .getIndexPage(System.currentTimeMillis());
-        indexCall.enqueue(new Callback<BiliBiliResultResponse<IndexPage>>() {
-            @Override
-            public void onResponse(Call<BiliBiliResultResponse<IndexPage>> call, Response<BiliBiliResultResponse<IndexPage>> response) {
-                swipeRefreshLayout.setRefreshing(false);
-                if (response.isSuccessful() && response.body().getCode() == 0) {
-                    indexData = response.body().getResult();
-                    Collections.sort(indexData.getSerializing());
-                    adapter.setmIndexPage(indexData);
-                    adapter.notifyDataSetChanged();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BiliBiliResultResponse<IndexPage>> call, Throwable t) {
-                swipeRefreshLayout.setRefreshing(false);
-            }
-        });
+    //加载主页数据
+    private Observable<IndexPage> loadIndexData() {
+        return RetrofitHelper.getInstance()
+                .getBangumiService()
+                .getIndexPage(System.currentTimeMillis())
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<BiliBiliResultResponse<IndexPage>, Observable<IndexPage>>() {
+                    @Override
+                    public Observable<IndexPage> call(BiliBiliResultResponse<IndexPage> indexPageBiliBiliResultResponse) {
+                        if (indexPageBiliBiliResultResponse.isSuccess()) {
+                            mIndexData = indexPageBiliBiliResultResponse.getResult();
+                            return Observable.just(indexPageBiliBiliResultResponse.getResult());
+                        } else {
+                            return Observable.error(new ApiException(indexPageBiliBiliResultResponse.getCode()));
+                        }
+                    }
+                });
     }
 
-    private void loadBangumiRecommendData(String cursor, int pageSize) {
-        recommendCall = RetrofitHelper.getInstance().getBangumiService()
-                .getBangumiRecommend(cursor, pageSize, System.currentTimeMillis());
-        recommendCall.enqueue(new Callback<BiliBiliResultResponse<List<IndexBangumiRecommend>>>() {
-            @Override
-            public void onResponse(Call<BiliBiliResultResponse<List<IndexBangumiRecommend>>> call, Response<BiliBiliResultResponse<List<IndexBangumiRecommend>>> response) {
-                recyclerView.setLoading(false);
-                if (response.isSuccessful() && response.body().getCode() == 0) {
-                    if (response.body().getResult().size() == 0) {
-                        recyclerView.setLoadView(R.string.no_data_tips, false);
-                        recyclerView.setEnableLoadMore(false);
-                        return;
+    private Observable<List<IndexBangumiRecommend>> loadBangumiRecommendData(String cursor, int pageSize) {
+        return RetrofitHelper.getInstance()
+                .getBangumiService()
+                .getBangumiRecommend(cursor, pageSize, System.currentTimeMillis())
+                .flatMap(new Func1<BiliBiliResultResponse<List<IndexBangumiRecommend>>, Observable<List<IndexBangumiRecommend>>>() {
+                    @Override
+                    public Observable<List<IndexBangumiRecommend>> call(BiliBiliResultResponse<List<IndexBangumiRecommend>> listBiliBiliResultResponse) {
+                        if (listBiliBiliResultResponse.isSuccess()) {
+                            mBangumiRecommends = listBiliBiliResultResponse.getResult();
+                            return Observable.just(listBiliBiliResultResponse.getResult());
+                        } else {
+                            return Observable.error(new ApiException(listBiliBiliResultResponse.getCode()));
+                        }
                     }
-                    if (mNeedRefresh) {//需要全部刷新
-                        mNeedRefresh = false;
-                        adapter.clearRecommend();
-                        adapter.addBangumis(response.body().getResult());
-                        adapter.notifyDataSetChanged();
-                    } else {//加载更多
-                        int startPosition = adapter.getItemCount();
-                        adapter.addBangumis(response.body().getResult());
-                        adapter.notifyItemRangeInserted(startPosition, response.body().getResult().size());
-                    }
-                    mCursor = response.body().getResult().get(response.body().getResult().size() - 1).getCursor();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BiliBiliResultResponse<List<IndexBangumiRecommend>>> call, Throwable t) {
-                recyclerView.setLoading(false);
-            }
-        });
+                });
     }
 
     @Override
@@ -165,7 +178,6 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
 
     @Override
     public void onRefresh() {
-        mNeedRefresh = true;
         recyclerView.setEnableLoadMore(true);
         recyclerView.setLoadView(R.string.loading, true);
         loadAllData();
@@ -173,7 +185,30 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
 
     @Override
     public void onLoadMore() {
-        loadBangumiRecommendData(mCursor, 10);
+        mRecommendSub = loadBangumiRecommendData(mCursor, 10)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<List<IndexBangumiRecommend>>() {
+                    @Override
+                    public void call(List<IndexBangumiRecommend> indexBangumiRecommends) {
+                        recyclerView.setLoading(false);
+                        if (indexBangumiRecommends.size() == 0) {
+                            recyclerView.setLoadView(R.string.no_data_tips, false);
+                            recyclerView.setEnableLoadMore(false);
+                        } else {
+                            int startPosition = adapter.getItemCount();
+                            adapter.addBangumis(indexBangumiRecommends);
+                            adapter.notifyItemRangeInserted(startPosition, indexBangumiRecommends.size());
+                            mCursor = indexBangumiRecommends.get(indexBangumiRecommends.size() - 1).getCursor();
+                        }
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        recyclerView.setLoading(false);
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+                });
     }
 
     @Override
@@ -200,7 +235,7 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
 
     @Override
     public void onDestroy() {
-        CallUtils.cancelCall(indexCall, recommendCall);
         super.onDestroy();
+        SubscriptionUtils.unsubscribe(mAllDataSub, mRecommendSub);
     }
 }

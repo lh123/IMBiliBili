@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest package="com.lh.imbilibili"
-          xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
@@ -11,6 +12,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+
+    <uses-sdk tools:overrideLibrary="tv.danmaku.ijk.media.player_arm64,com.example.ijkplayer_x86_64" />
 
     <application
         android:name=".IMBilibiliApplication"
@@ -70,7 +73,7 @@
             android:screenOrientation="portrait"/>
 
         <activity
-            android:name=".view.activity.VideoActivity"
+            android:name=".view.activity.VideoPlayActivity"
             android:configChanges="keyboardHidden|screenSize|orientation"
             android:hardwareAccelerated="true"
             android:screenOrientation="landscape"

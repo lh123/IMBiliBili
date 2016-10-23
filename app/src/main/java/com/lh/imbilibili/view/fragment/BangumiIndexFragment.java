@@ -17,12 +17,13 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BangumiIndex;
 import com.lh.imbilibili.model.BangumiIndexCond;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
-import com.lh.imbilibili.utils.CallUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.activity.BangumiDetailActivity;
 import com.lh.imbilibili.view.adapter.GridLayoutItemDecoration;
@@ -36,9 +37,12 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by home on 2016/8/11.
@@ -97,8 +101,8 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
 
     private List<Integer> mYears;
 
-    private Call<BiliBiliResultResponse<BangumiIndex>> mBangumiIndexCall;
-    private Call<BiliBiliResultResponse<BangumiIndexCond>> mBangumiIndexCondCall;
+    private Subscription mBangumiIndexSub;
+    private Subscription mBangumiIndexCondSub;
 
     private int mCurrentPage;
     private int mYear;
@@ -311,54 +315,67 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
      * @param version      类型：0全部 1Tv版 2OVA·OAD 3剧场版 4其他
      */
     private void loadData(int indexSort, int indexType, String isFinish, int page, int pageSize, int quarter, final int startYear, final String tagId, int updatePeriod, String version) {
-        mBangumiIndexCall = RetrofitHelper.getInstance().getBangumiService().getBangumiIndex(
-                indexSort, indexType, "", isFinish, page, pageSize,
-                quarter, startYear, tagId, System.currentTimeMillis(), updatePeriod, version);
-        mBangumiIndexCall.enqueue(new Callback<BiliBiliResultResponse<BangumiIndex>>() {
-            @Override
-            public void onResponse(Call<BiliBiliResultResponse<BangumiIndex>> call, Response<BiliBiliResultResponse<BangumiIndex>> response) {
-                if (response.body().getCode() == 0) {
-                    mBangumiIndex = response.body().getResult();
-                    mAdapter.addBangumis(mBangumiIndex.getList());
-                    mAdapter.notifyDataSetChanged();
-                    mLoadMoreRecyclerView.setLoading(false);
-                    if (mBangumiIndex.getPages().equals(mCurrentPage + "") || mBangumiIndex.getList().size() == 0) {
-                        mLoadMoreRecyclerView.setEnableLoadMore(false);
-                        mLoadMoreRecyclerView.setLoadView(R.string.no_data_tips, false);
-                    } else {
-                        mLoadMoreRecyclerView.setEnableLoadMore(true);
-                        mLoadMoreRecyclerView.setLoadView(R.string.loading, true);
+        mBangumiIndexSub = RetrofitHelper.getInstance()
+                .getBangumiService().getBangumiIndex(
+                        indexSort, indexType, "", isFinish, page, pageSize,
+                        quarter, startYear, tagId, System.currentTimeMillis(), updatePeriod, version)
+                .flatMap(new Func1<BiliBiliResultResponse<BangumiIndex>, Observable<BangumiIndex>>() {
+                    @Override
+                    public Observable<BangumiIndex> call(BiliBiliResultResponse<BangumiIndex> bangumiIndexBiliBiliResultResponse) {
+                        if (bangumiIndexBiliBiliResultResponse.isSuccess()) {
+                            return Observable.just(bangumiIndexBiliBiliResultResponse.getResult());
+                        } else {
+                            return Observable.error(new ApiException(bangumiIndexBiliBiliResultResponse.getCode()));
+                        }
                     }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BiliBiliResultResponse<BangumiIndex>> call, Throwable t) {
-
-            }
-        });
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<BangumiIndex>() {
+                    @Override
+                    public void call(BangumiIndex bangumiIndex) {
+                        mBangumiIndex = bangumiIndex;
+                        mAdapter.addBangumis(mBangumiIndex.getList());
+                        mAdapter.notifyDataSetChanged();
+                        mLoadMoreRecyclerView.setLoading(false);
+                        if (mBangumiIndex.getPages().equals(mCurrentPage + "") || mBangumiIndex.getList().size() == 0) {
+                            mLoadMoreRecyclerView.setEnableLoadMore(false);
+                            mLoadMoreRecyclerView.setLoadView(R.string.no_data_tips, false);
+                        } else {
+                            mLoadMoreRecyclerView.setEnableLoadMore(true);
+                            mLoadMoreRecyclerView.setLoadView(R.string.loading, true);
+                        }
+                    }
+                });
     }
 
     private void loadBangumiIndexCond(int type) {
-        mBangumiIndexCondCall = RetrofitHelper.getInstance().getBangumiService().getBangumiIndexCond(System.currentTimeMillis(), type);
-        mBangumiIndexCondCall.enqueue(new Callback<BiliBiliResultResponse<BangumiIndexCond>>() {
-            @Override
-            public void onResponse(Call<BiliBiliResultResponse<BangumiIndexCond>> call, Response<BiliBiliResultResponse<BangumiIndexCond>> response) {
-                if (response.body().getResult() != null) {
-                    mBangumiIndexCond = response.body().getResult();
-                    BangumiIndexCond.Category defaultCategory = new BangumiIndexCond.Category();
-                    defaultCategory.setTagName("全部");
-                    defaultCategory.setTagId("0");
-                    mBangumiIndexCond.getCategory().add(0, defaultCategory);
-                    mDrawerViewHolder.setStyleTags(mBangumiIndexCond.getCategory(), true);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BiliBiliResultResponse<BangumiIndexCond>> call, Throwable t) {
-
-            }
-        });
+        mBangumiIndexCondSub = RetrofitHelper.getInstance()
+                .getBangumiService()
+                .getBangumiIndexCond(System.currentTimeMillis(), type)
+                .flatMap(new Func1<BiliBiliResultResponse<BangumiIndexCond>, Observable<BangumiIndexCond>>() {
+                    @Override
+                    public Observable<BangumiIndexCond> call(BiliBiliResultResponse<BangumiIndexCond> bangumiIndexCondBiliBiliResultResponse) {
+                        if (bangumiIndexCondBiliBiliResultResponse.isSuccess()) {
+                            return Observable.just(bangumiIndexCondBiliBiliResultResponse.getResult());
+                        } else {
+                            return Observable.error(new ApiException(bangumiIndexCondBiliBiliResultResponse.getCode()));
+                        }
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<BangumiIndexCond>() {
+                    @Override
+                    public void call(BangumiIndexCond bangumiIndexCond) {
+                        mBangumiIndexCond = bangumiIndexCond;
+                        BangumiIndexCond.Category defaultCategory = new BangumiIndexCond.Category();
+                        defaultCategory.setTagName("全部");
+                        defaultCategory.setTagId("0");
+                        mBangumiIndexCond.getCategory().add(0, defaultCategory);
+                        mDrawerViewHolder.setStyleTags(mBangumiIndexCond.getCategory(), true);
+                    }
+                });
     }
 
     @Override
@@ -370,7 +387,7 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
     @Override
     public void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mBangumiIndexCall);
+        SubscriptionUtils.unsubscribe(mBangumiIndexCondSub, mBangumiIndexSub);
     }
 
     @Override

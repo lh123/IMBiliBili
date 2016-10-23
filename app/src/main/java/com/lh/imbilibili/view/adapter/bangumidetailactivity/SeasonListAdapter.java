@@ -48,8 +48,8 @@ public class SeasonListAdapter extends RecyclerView.Adapter<SeasonListAdapter.Se
 
     @Override
     public void onBindViewHolder(SeasonViewHold holder, int position) {
-        Drawable foreDrawable = null;
-        Drawable backDrawable = null;
+        Drawable foreDrawable;
+        Drawable backDrawable;
         if (position == 0) {
             backDrawable = ContextCompat.getDrawable(context, R.drawable.bangumi_season_title_background_first);
             foreDrawable = ContextCompat.getDrawable(context, R.drawable.selector_bangumi_season_indicator_first);
@@ -123,7 +123,7 @@ public class SeasonListAdapter extends RecyclerView.Adapter<SeasonListAdapter.Se
                 public void onClick(View v) {
                     selectItem(getAdapterPosition());
                     if (listener != null) {
-                        listener.onSeasonItemClick(getAdapterPosition());
+                        listener.onSeasonItemClick(SeasonViewHold.this.getAdapterPosition());
                     }
                 }
             });

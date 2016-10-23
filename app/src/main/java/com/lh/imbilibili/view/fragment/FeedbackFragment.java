@@ -8,13 +8,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BangumiDetail;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.FeedbackData;
 import com.lh.imbilibili.model.ReplyCount;
-import com.lh.imbilibili.utils.CallUtils;
 import com.lh.imbilibili.utils.StringUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.feedbackfragment.FeedbackAdapter;
@@ -23,9 +24,12 @@ import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by home on 2016/8/2.
@@ -47,8 +51,8 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
     private int mCurrentPage;
     private FeedbackAdapter mAdapter;
 
-    private Call<BilibiliDataResponse<FeedbackData>> mFeedbackCall;
-    private Call<BilibiliDataResponse<ReplyCount>> mReplyCountCall;
+    private Subscription mFeedbackSub;
+    private Subscription mReplyCountSub;
 
     private int mSelectPosition;
     private boolean mNeedRefresh;
@@ -80,51 +84,73 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
     }
 
     private void loadReplyCount(String id) {
-        mReplyCountCall = RetrofitHelper.getInstance().getReplyService().getReplyCount(id, 1);
-        mReplyCountCall.enqueue(new Callback<BilibiliDataResponse<ReplyCount>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<ReplyCount>> call, Response<BilibiliDataResponse<ReplyCount>> response) {
-                if (response.body().getCode() == 0) {
-                    mTvCommentCount.setText(StringUtils.format("%d楼", response.body().getData().getCount()));
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<ReplyCount>> call, Throwable t) {
-                ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
-            }
-        });
+        mReplyCountSub = RetrofitHelper.getInstance()
+                .getReplyService()
+                .getReplyCount(id, 1)
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<BilibiliDataResponse<ReplyCount>, Observable<ReplyCount>>() {
+                    @Override
+                    public Observable<ReplyCount> call(BilibiliDataResponse<ReplyCount> replyCountBilibiliDataResponse) {
+                        if (replyCountBilibiliDataResponse.isSuccess()) {
+                            return Observable.just(replyCountBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(replyCountBilibiliDataResponse.getCode()));
+                        }
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<ReplyCount>() {
+                    @Override
+                    public void call(ReplyCount replyCount) {
+                        mTvCommentCount.setText(StringUtils.format("%d楼", replyCount.getCount()));
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+                });
     }
 
     private void loadFeedbackData(String id, int page) {
-        mFeedbackCall = RetrofitHelper.getInstance().getReplyService().getFeedback(0, id, page, PAGE_SIZE, 0, 1);
-        mFeedbackCall.enqueue(new Callback<BilibiliDataResponse<FeedbackData>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<FeedbackData>> call, Response<BilibiliDataResponse<FeedbackData>> response) {
-                mRecyclerView.setLoading(false);
-                if (response.body().isSuccess()) {
-                    if (mNeedRefresh) {
-                        mNeedRefresh = false;
-                        mAdapter.clear();
-                        mAdapter.addFeedbackData(response.body().getData());
-                        mAdapter.notifyDataSetChanged();
-                    } else {
-                        int startPosition = mAdapter.getItemCount();
-                        FeedbackData feedbackData = response.body().getData();
-                        mAdapter.addFeedbackData(feedbackData);
-                        mAdapter.notifyItemRangeInserted(startPosition, feedbackData.getReplies().size());
+        RetrofitHelper.getInstance()
+                .getReplyService()
+                .getFeedback(0, id, page, PAGE_SIZE, 0, 1)
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<BilibiliDataResponse<FeedbackData>, Observable<FeedbackData>>() {
+                    @Override
+                    public Observable<FeedbackData> call(BilibiliDataResponse<FeedbackData> feedbackDataBilibiliDataResponse) {
+                        if (feedbackDataBilibiliDataResponse.isSuccess()) {
+                            return Observable.just(feedbackDataBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(feedbackDataBilibiliDataResponse.getCode()));
+                        }
                     }
-                    mCurrentPage++;
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<FeedbackData>> call, Throwable t) {
-                mRecyclerView.setEnableLoadMore(false);
-                mRecyclerView.setLoadView(R.string.load_failed_with_click, false);
-                mRecyclerView.setOnLoadMoreViewClickListener(FeedbackFragment.this);
-            }
-        });
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<FeedbackData>() {
+                    @Override
+                    public void call(FeedbackData feedbackData) {
+                        if (mNeedRefresh) {
+                            mNeedRefresh = false;
+                            mAdapter.clear();
+                            mAdapter.addFeedbackData(feedbackData);
+                            mAdapter.notifyDataSetChanged();
+                        } else {
+                            int startPosition = mAdapter.getItemCount();
+                            mAdapter.addFeedbackData(feedbackData);
+                            mAdapter.notifyItemRangeInserted(startPosition, feedbackData.getReplies().size());
+                        }
+                        mCurrentPage++;
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        mRecyclerView.setEnableLoadMore(false);
+                        mRecyclerView.setLoadView(R.string.load_failed_with_click, false);
+                        mRecyclerView.setOnLoadMoreViewClickListener(FeedbackFragment.this);
+                    }
+                });
     }
 
     private void initView() {
@@ -147,8 +173,8 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
 
     @Override
     public void onDestroy() {
-        CallUtils.cancelCall(mFeedbackCall, mReplyCountCall);
         super.onDestroy();
+        SubscriptionUtils.unsubscribe(mFeedbackSub, mReplyCountSub);
     }
 
     @Override

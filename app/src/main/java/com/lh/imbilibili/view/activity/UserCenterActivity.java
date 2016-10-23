@@ -19,11 +19,11 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.BiliBiliDataFunc;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.UserCenter;
 import com.lh.imbilibili.utils.BusUtils;
-import com.lh.imbilibili.utils.CallUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
 import com.lh.imbilibili.utils.ToastUtils;
@@ -42,9 +42,11 @@ import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/15.
@@ -102,11 +104,12 @@ public class UserCenterActivity extends BaseActivity {
             R.drawable.ic_lv8_large,
             R.drawable.ic_lv9_large};
 
-    private Call<BilibiliDataResponse<UserCenter>> mUserInfoCall;
+    private Observable<BilibiliDataResponse<UserCenter>> mUserInfoCall;
 
     private UserCenter mUserCenter;
     private String[] mtitles;
     private int mDefaultPage;
+    private Subscription mUserInfoSubscription;
 
     /**
      * @param context Context
@@ -166,21 +169,24 @@ public class UserCenterActivity extends BaseActivity {
     }
 
     private void loadUserInfo() {
-        mUserInfoCall = RetrofitHelper.getInstance().getUserService().getUserSpaceInfo(PAGE_SIZE, System.currentTimeMillis(), mId);
-        mUserInfoCall.enqueue(new Callback<BilibiliDataResponse<UserCenter>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<UserCenter>> call, Response<BilibiliDataResponse<UserCenter>> response) {
-                if (response.body().isSuccess()) {
-                    mUserCenter = response.body().getData();
+        mUserInfoSubscription = RetrofitHelper.getInstance()
+                .getUserService()
+                .getUserSpaceInfo(PAGE_SIZE, System.currentTimeMillis(), mId)
+                .subscribeOn(Schedulers.io())
+                .map(new BiliBiliDataFunc<UserCenter>())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<UserCenter>() {
+                    @Override
+                    public void call(UserCenter userCenter) {
+                        mUserCenter = userCenter;
                     bindViewData(mUserCenter);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<UserCenter>> call, Throwable t) {
-                ToastUtils.showToast(UserCenterActivity.this, "加载失败", Toast.LENGTH_SHORT);
-            }
-        });
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        ToastUtils.showToast(UserCenterActivity.this, "加载失败", Toast.LENGTH_SHORT);
+                    }
+                });
     }
 
     private void bindViewData(UserCenter userCenter) {
@@ -260,6 +266,8 @@ public class UserCenterActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mUserInfoCall);
+        if (mUserInfoSubscription != null && !mUserInfoSubscription.isUnsubscribed()) {
+            mUserInfoSubscription.unsubscribe();
+        }
     }
 }

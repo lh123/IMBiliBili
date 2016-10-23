@@ -14,13 +14,14 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.user.UserDetailInfo;
 import com.lh.imbilibili.model.user.UserResponse;
 import com.lh.imbilibili.utils.BusUtils;
-import com.lh.imbilibili.utils.CallUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.lh.imbilibili.utils.transformation.CircleTransformation;
@@ -31,9 +32,11 @@ import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 public class MainActivity extends BaseActivity implements IDrawerLayoutActivity, View.OnClickListener {
 
@@ -50,9 +53,9 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
     private TextView mTvMemberState;
     private TextView mTvCoinCount;
 
-    private Call<UserDetailInfo> mUserInfoCall;
     private UserDetailInfo mUserDetailInfo;
     private boolean isShowHome;
+    private Subscription mUserInfoSub;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,23 +155,34 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
 
     @Subscribe
     public void loadUserInfo(UserResponse response) {
-        mUserInfoCall = RetrofitHelper.getInstance().getUserService().getUserDetailInfo();
-        mUserInfoCall.enqueue(new Callback<UserDetailInfo>() {
-            @Override
-            public void onResponse(Call<UserDetailInfo> call, Response<UserDetailInfo> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    mUserDetailInfo = response.body();
-                    UserManagerUtils.getInstance().setUserDetailInfo(mUserDetailInfo);
-                    BusUtils.getBus().post(mUserDetailInfo);
-                    bindUserInfoViewWithData();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<UserDetailInfo> call, Throwable t) {
-                ToastUtils.showToast(getApplicationContext(), "加载用户信息失败", Toast.LENGTH_SHORT);
-            }
-        });
+        mUserInfoSub = RetrofitHelper.getInstance()
+                .getUserService()
+                .getUserDetailInfo()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .map(new Func1<UserDetailInfo, UserDetailInfo>() {
+                    @Override
+                    public UserDetailInfo call(UserDetailInfo userDetailInfo) {
+                        if (userDetailInfo == null) {
+                            throw new ApiException(1);
+                        }
+                        return userDetailInfo;
+                    }
+                })
+                .subscribe(new Action1<UserDetailInfo>() {
+                    @Override
+                    public void call(UserDetailInfo userDetailInfo) {
+                        mUserDetailInfo = userDetailInfo;
+                        UserManagerUtils.getInstance().setUserDetailInfo(mUserDetailInfo);
+                        BusUtils.getBus().post(mUserDetailInfo);
+                        bindUserInfoViewWithData();
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        ToastUtils.showToast(getApplicationContext(), "加载用户信息失败", Toast.LENGTH_SHORT);
+                    }
+                });
     }
 
     private void bindUserInfoViewWithData() {
@@ -201,7 +215,7 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mUserInfoCall);
+        SubscriptionUtils.unsubscribe(mUserInfoSub);
         BusUtils.getBus().unregister(this);
     }
 }

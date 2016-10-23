@@ -5,11 +5,12 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.UserCenter;
 import com.lh.imbilibili.utils.BusUtils;
-import com.lh.imbilibili.utils.CallUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.activity.BangumiDetailActivity;
@@ -21,9 +22,12 @@ import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/17.
@@ -44,7 +48,7 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
 
     private FollowBangumiRecyclerViewAdapter mAdapter;
 
-    private Call<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Season>>> mBangumiCall;
+    private Subscription mUserBangumiSub;
 
     public static UserCenterFollowBangumiFragment newInstance() {
         return new UserCenterFollowBangumiFragment();
@@ -124,30 +128,42 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
     }
 
     private void loadBangumiData() {
-        mBangumiCall = RetrofitHelper.getInstance().getUserService().getUserBangumi(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()));
-        mBangumiCall.enqueue(new Callback<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Season>>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Season>>> call, Response<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Season>>> response) {
-                mRecyclerView.setLoading(false);
-                if (response.body().isSuccess()) {
-                    if (response.body().getData().getCount() < PAGE_SIZE) {
-                        mRecyclerView.setEnableLoadMore(false);
-                        mRecyclerView.setLoadView(R.string.no_data_tips, false);
-                    } else {
-                        int startPosition = mAdapter.getItemCount();
-                        mAdapter.addSeasons(response.body().getData().getItem());
-                        mAdapter.notifyItemRangeInserted(startPosition, response.body().getData().getItem().size());
-                        mCurrentPage++;
+        mUserBangumiSub = RetrofitHelper.getInstance()
+                .getUserService()
+                .getUserBangumi(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()))
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Season>>, Observable<UserCenter.CenterList<UserCenter.Season>>>() {
+                    @Override
+                    public Observable<UserCenter.CenterList<UserCenter.Season>> call(BilibiliDataResponse<UserCenter.CenterList<UserCenter.Season>> centerListBilibiliDataResponse) {
+                        if (centerListBilibiliDataResponse.isSuccess()) {
+                            return Observable.just(centerListBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(centerListBilibiliDataResponse.getCode()));
+                        }
                     }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Season>>> call, Throwable t) {
-                mRecyclerView.setLoading(false);
-                ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
-            }
-        });
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<UserCenter.CenterList<UserCenter.Season>>() {
+                    @Override
+                    public void call(UserCenter.CenterList<UserCenter.Season> seasonCenterList) {
+                        mRecyclerView.setLoading(false);
+                        if (seasonCenterList.getCount() < PAGE_SIZE) {
+                            mRecyclerView.setEnableLoadMore(false);
+                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                        } else {
+                            int startPosition = mAdapter.getItemCount();
+                            mAdapter.addSeasons(seasonCenterList.getItem());
+                            mAdapter.notifyItemRangeInserted(startPosition, seasonCenterList.getItem().size());
+                            mCurrentPage++;
+                        }
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        mRecyclerView.setLoading(false);
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+                });
     }
 
     @Override
@@ -163,7 +179,7 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
     @Override
     public void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mBangumiCall);
+        SubscriptionUtils.unsubscribe(mUserBangumiSub);
     }
 
     @Override

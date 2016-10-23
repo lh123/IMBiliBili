@@ -7,6 +7,7 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.attention.DynamicVideo;
@@ -14,7 +15,7 @@ import com.lh.imbilibili.model.attention.FollowBangumi;
 import com.lh.imbilibili.model.attention.FollowBangumiResponse;
 import com.lh.imbilibili.model.user.UserResponse;
 import com.lh.imbilibili.utils.BusUtils;
-import com.lh.imbilibili.utils.CallUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.lh.imbilibili.view.BaseFragment;
@@ -31,9 +32,13 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/10.
@@ -50,12 +55,14 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     @BindView(R.id.btn_login)
     Button mBtnLogin;
 
-    private Call<FollowBangumiResponse<List<FollowBangumi>>> mFollowBangumiCall;
-    private Call<BilibiliDataResponse<DynamicVideo>> mDynamicVideoCall;
+    private List<FollowBangumi> mFollowBangumis;
+    private DynamicVideo mDynamicVideo;
 
     private AttentionRecyclerViewAdapter mAdapter;
     private int mCurrentPage;
-    private boolean mNeedRefresh;
+    private Subscription mAllDataSub;
+    private Subscription mDynamicDataSub;
+
 
     public static AttentionFragment newInstance() {
         return new AttentionFragment();
@@ -66,7 +73,6 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
         ButterKnife.bind(this, view);
         initRecyclerView();
         mCurrentPage = 1;
-        mNeedRefresh = true;
         if (UserManagerUtils.getInstance().getCurrentUser() == null) {
             mBtnLogin.setVisibility(View.VISIBLE);
             mSwipeRefreshLayout.setVisibility(View.GONE);
@@ -79,8 +85,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
         } else {
             mBtnLogin.setVisibility(View.GONE);
             mSwipeRefreshLayout.setVisibility(View.VISIBLE);
-            loadAttentionBangumiData();
-            loadDynamicVideoData();
+            loadAllData();
         }
     }
 
@@ -126,59 +131,99 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
         return R.layout.fragment_attention;
     }
 
-    private void loadAttentionBangumiData() {
-        mFollowBangumiCall = RetrofitHelper.getInstance().getAttentionService().getFollowBangumi(UserManagerUtils.getInstance().getCurrentUser().getMid(), System.currentTimeMillis());
-        mFollowBangumiCall.enqueue(new Callback<FollowBangumiResponse<List<FollowBangumi>>>() {
-            @Override
-            public void onResponse(Call<FollowBangumiResponse<List<FollowBangumi>>> call, Response<FollowBangumiResponse<List<FollowBangumi>>> response) {
-                mSwipeRefreshLayout.setRefreshing(false);
-                if (response.body().getCode() == 0) {
-                    mAdapter.setFollowBangumiData(response.body().getResult());
-                    mAdapter.notifyDataSetChanged();
-                }
-            }
+    private void loadAllData() {
+        mAllDataSub = Observable.merge(loadAttentionBangumiData(), loadDynamicVideoData())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<Object>() {
+                    @Override
+                    public void onCompleted() {
+                        System.out.println("onCompleted");
+                        mSwipeRefreshLayout.setRefreshing(false);
+                        if (mFollowBangumis != null) {
+                            mSwipeRefreshLayout.setRefreshing(false);
+                            mAdapter.setFollowBangumiData(mFollowBangumis);
+                        }
+                        if (mDynamicVideo != null) {
+                            mAdapter.clearFeeds();
+                            mAdapter.addFeeds(mDynamicVideo.getFeeds());
+                            mCurrentPage++;
+                        }
+                        mAdapter.notifyDataSetChanged();
+                    }
 
-            @Override
-            public void onFailure(Call<FollowBangumiResponse<List<FollowBangumi>>> call, Throwable t) {
-                mSwipeRefreshLayout.setRefreshing(false);
-                ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
-            }
-        });
+                    @Override
+                    public void onError(Throwable e) {
+                        mSwipeRefreshLayout.setRefreshing(false);
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+                    }
+                });
     }
 
-    private void loadDynamicVideoData() {
-        mDynamicVideoCall = RetrofitHelper.getInstance().getAttentionService().getDynamicVideo(mCurrentPage, PAGE_SIZE, 0);
-        mDynamicVideoCall.enqueue(new Callback<BilibiliDataResponse<DynamicVideo>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<DynamicVideo>> call, Response<BilibiliDataResponse<DynamicVideo>> response) {
-                if (response.body().isSuccess()) {
-                    mRecyclerView.setLoading(false);
-                    if (response.body().getData().getFeeds().size() == 0) {
-                        mRecyclerView.setEnableLoadMore(false);
-                        mRecyclerView.setLoadView(R.string.no_data_tips, false);
-                    } else {
-                        if (mNeedRefresh) {
-                            mNeedRefresh = false;
-                            mAdapter.clearFeeds();
-                            mAdapter.addFeeds(response.body().getData().getFeeds());
-                            mAdapter.notifyDataSetChanged();
+    private void loadDynamicData() {
+        mDynamicDataSub = loadDynamicVideoData().subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<DynamicVideo>() {
+                    @Override
+                    public void call(DynamicVideo dynamicVideo) {
+                        mRecyclerView.setLoading(false);
+                        if (dynamicVideo.getFeeds().size() == 0) {
+                            mRecyclerView.setEnableLoadMore(false);
+                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
                         } else {
                             int startPosition = mAdapter.getItemCount();
-                            List<DynamicVideo.Feed> feeds = response.body().getData().getFeeds();
+                            List<DynamicVideo.Feed> feeds = dynamicVideo.getFeeds();
                             mAdapter.addFeeds(feeds);
                             mAdapter.notifyItemRangeInserted(startPosition, feeds.size());
+                            mCurrentPage++;
                         }
-                        mCurrentPage++;
                     }
-                }
-            }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        mRecyclerView.setLoading(false);
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+                });
+    }
 
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<DynamicVideo>> call, Throwable t) {
-                mRecyclerView.setLoading(false);
-                ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
-            }
-        });
+    private Observable<List<FollowBangumi>> loadAttentionBangumiData() {
+        return RetrofitHelper.getInstance()
+                .getAttentionService()
+                .getFollowBangumi(UserManagerUtils.getInstance().getCurrentUser().getMid(), System.currentTimeMillis())
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<FollowBangumiResponse<List<FollowBangumi>>, Observable<List<FollowBangumi>>>() {
+                    @Override
+                    public Observable<List<FollowBangumi>> call(FollowBangumiResponse<List<FollowBangumi>> listFollowBangumiResponse) {
+                        if (listFollowBangumiResponse.isSuccess()) {
+                            mFollowBangumis = listFollowBangumiResponse.getResult();
+                            return Observable.just(listFollowBangumiResponse.getResult());
+                        } else {
+                            return Observable.error(new ApiException(listFollowBangumiResponse.getCode()));
+                        }
+                    }
+                });
+    }
+
+    private Observable<DynamicVideo> loadDynamicVideoData() {
+        return RetrofitHelper.getInstance()
+                .getAttentionService()
+                .getDynamicVideo(mCurrentPage, PAGE_SIZE, 0)
+                .flatMap(new Func1<BilibiliDataResponse<DynamicVideo>, Observable<DynamicVideo>>() {
+                    @Override
+                    public Observable<DynamicVideo> call(BilibiliDataResponse<DynamicVideo> dynamicVideoBilibiliDataResponse) {
+                        if (dynamicVideoBilibiliDataResponse.isSuccess()) {
+                            mDynamicVideo = dynamicVideoBilibiliDataResponse.getData();
+                            return Observable.just(dynamicVideoBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(dynamicVideoBilibiliDataResponse.getCode()));
+                        }
+                    }
+                });
     }
 
     @SuppressWarnings("unused")
@@ -186,14 +231,13 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     public void onLoginSuccess(UserResponse user) {
         mBtnLogin.setVisibility(View.GONE);
         mSwipeRefreshLayout.setVisibility(View.VISIBLE);
-        loadAttentionBangumiData();
-        loadDynamicVideoData();
+        loadAllData();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mFollowBangumiCall, mDynamicVideoCall);
+        SubscriptionUtils.unsubscribe(mAllDataSub, mDynamicDataSub);
     }
 
     @Override
@@ -203,17 +247,15 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
 
     @Override
     public void onLoadMore() {
-        loadDynamicVideoData();
+        loadDynamicData();
     }
 
     @Override
     public void onRefresh() {
         mCurrentPage = 1;
-        mNeedRefresh = true;
         mRecyclerView.setEnableLoadMore(true);
         mRecyclerView.setLoadView(R.string.loading, true);
-        loadAttentionBangumiData();
-        loadDynamicVideoData();
+        loadAllData();
     }
 
     @Override

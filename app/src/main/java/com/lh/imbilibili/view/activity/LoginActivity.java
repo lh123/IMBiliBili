@@ -19,18 +19,21 @@ import com.lh.imbilibili.model.user.UserResponse;
 import com.lh.imbilibili.utils.BusUtils;
 import com.lh.imbilibili.utils.DrawableTintUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.lh.imbilibili.view.BaseActivity;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/7.
+ * 登陆界面
  */
 
 public class LoginActivity extends BaseActivity implements View.OnFocusChangeListener, View.OnClickListener {
@@ -49,7 +52,7 @@ public class LoginActivity extends BaseActivity implements View.OnFocusChangeLis
     EditText mEdPassword;
     @BindView(R.id.login)
     TextView mBtnLogin;
-    private Call<UserResponse> mLoginCall;
+    private Subscription mLoginSub;
 
     public static void startActivity(Context context) {
         Intent intent = new Intent(context, LoginActivity.class);
@@ -92,27 +95,29 @@ public class LoginActivity extends BaseActivity implements View.OnFocusChangeLis
     }
 
     private void login(final String username, String password) {
-        mLoginCall = RetrofitHelper.getInstance().getLoginService().doLogin(password, "jsonp", username);
-        mLoginCall.enqueue(new Callback<UserResponse>() {
-            @Override
-            public void onResponse(Call<UserResponse> call, Response<UserResponse> response) {
-                if (!TextUtils.isEmpty(response.body().getAccess_key())) {
-                    UserResponse userResponse = response.body();
-                    UserManagerUtils.getInstance().saveUserInfo(getApplicationContext(), userResponse);
-                    UserManagerUtils.getInstance().readUserInfo(getApplicationContext());
-                    BusUtils.getBus().post(userResponse);
-                    finish();
-                } else {
-                    ToastUtils.showToast(LoginActivity.this, response.body().getCode() + "", Toast.LENGTH_SHORT);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<UserResponse> call, Throwable t) {
-                ToastUtils.showToast(LoginActivity.this, "网络异常", Toast.LENGTH_SHORT);
-            }
-        });
-
+        mLoginSub = RetrofitHelper.getInstance()
+                .getLoginService()
+                .doLogin(password, "jsonp", username)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<UserResponse>() {
+                    @Override
+                    public void call(UserResponse userResponse) {
+                        if (!TextUtils.isEmpty(userResponse.getAccess_key())) {
+                            UserManagerUtils.getInstance().saveUserInfo(getApplicationContext(), userResponse);
+                            UserManagerUtils.getInstance().readUserInfo(getApplicationContext());
+                            BusUtils.getBus().post(userResponse);
+                            finish();
+                        } else {
+                            ToastUtils.showToast(LoginActivity.this, userResponse.getCode() + "", Toast.LENGTH_SHORT);
+                        }
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        ToastUtils.showToast(LoginActivity.this, "网络异常", Toast.LENGTH_SHORT);
+                    }
+                });
     }
 
     @Override
@@ -141,5 +146,11 @@ public class LoginActivity extends BaseActivity implements View.OnFocusChangeLis
         if (v.getId() == R.id.login) {
             login(mEdUserName.getText().toString(), mEdPassword.getText().toString());
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        SubscriptionUtils.unsubscribe(mLoginSub);
     }
 }

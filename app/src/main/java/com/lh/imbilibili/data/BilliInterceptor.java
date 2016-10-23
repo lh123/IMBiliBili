@@ -23,7 +23,6 @@ public class BilliInterceptor implements Interceptor {
 
     @Override
     public Response intercept(Chain chain) throws IOException {
-        Request request;
         Request oldRequest = chain.request();
         HttpUrl.Builder builder = chain.request().url().newBuilder();
         HashMap<String, String> map = new HashMap<>();
@@ -36,24 +35,16 @@ public class BilliInterceptor implements Interceptor {
         if (user != null && !TextUtils.isEmpty(user.getAccessKey())) {
             builder.addQueryParameter(Constant.QUERY_ACCESS_KEY, user.getAccessKey());
         }
-        switch (oldRequest.url().host()) {
-            case "account.bilibili.com":
-                builder.addQueryParameter(Constant.QUERY_APP_KEY, Constant.LOGIN_APPKEY);
-                break;
-            case "interface.bilibili.com":
-                builder.addQueryParameter(Constant.QUERY_APP_KEY, Constant.PLAYER_APPKEY);
-                break;
-            default:
-                builder.addQueryParameter(Constant.QUERY_APP_KEY, Constant.APPKEY);
-                break;
-        }
+        builder.addQueryParameter(Constant.QUERY_APP_KEY, Constant.APPKEY);
         builder.addQueryParameter(Constant.QUERY_BUILD, Constant.BUILD);
         builder.addQueryParameter(Constant.QUERY_MOBI_APP, Constant.MOBI_APP);
         builder.addQueryParameter(Constant.QUERY_PLATFORM, Constant.PLATFORM);
         for (Map.Entry<String, String> entry : map.entrySet()) {
             builder.addQueryParameter(entry.getKey(), entry.getValue());
         }
-        request = chain.request().newBuilder().url(builder.build()).build();
-        return chain.proceed(request);
+        Request.Builder requestBuilder = chain.request().newBuilder().url(builder.build());
+        requestBuilder.removeHeader("User-Agent");
+        requestBuilder.addHeader("User-Agent", Constant.UA);
+        return chain.proceed(requestBuilder.build());
     }
 }

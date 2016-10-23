@@ -11,11 +11,12 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.attention.FollowBangumi;
 import com.lh.imbilibili.model.attention.FollowBangumiResponse;
-import com.lh.imbilibili.utils.CallUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.adapter.attention.AttentionBangumiRecyclerViewAdapter;
@@ -26,9 +27,12 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/14.
@@ -47,8 +51,7 @@ public class FollowBangumiActivity extends BaseActivity implements LoadMoreRecyc
     private int mCurrentPage;
     private AttentionBangumiRecyclerViewAdapter mAdapter;
 
-
-    private Call<FollowBangumiResponse<List<FollowBangumi>>> mConcernedBangumiCall;
+    private Subscription mConcernedBangumiSub;
 
     public static void startActivity(Context context) {
         Intent intent = new Intent(context, FollowBangumiActivity.class);
@@ -84,34 +87,46 @@ public class FollowBangumiActivity extends BaseActivity implements LoadMoreRecyc
     }
 
     private void loadConcernedBangumi() {
-        mConcernedBangumiCall = RetrofitHelper.getInstance().getAttentionService().getConcernedBangumi(mCurrentPage, PAGE_SIZE, System.currentTimeMillis());
-        mConcernedBangumiCall.enqueue(new Callback<FollowBangumiResponse<List<FollowBangumi>>>() {
-            @Override
-            public void onResponse(Call<FollowBangumiResponse<List<FollowBangumi>>> call, Response<FollowBangumiResponse<List<FollowBangumi>>> response) {
-                mRecyclerView.setLoading(false);
-                if (response.body().isSuccess()) {
-                    if (response.body().getResult().isEmpty()) {
-                        mRecyclerView.setEnableLoadMore(false);
-                        mRecyclerView.setLoadView(R.string.no_data_tips, false);
-                    } else {
-                        int startPosition = mAdapter.getItemCount();
-                        mAdapter.addBangumi(response.body().getResult());
-                        if (mCurrentPage == 1) {
-                            mAdapter.notifyDataSetChanged();
+        mConcernedBangumiSub = RetrofitHelper.getInstance()
+                .getAttentionService()
+                .getConcernedBangumi(mCurrentPage, PAGE_SIZE, System.currentTimeMillis())
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<FollowBangumiResponse<List<FollowBangumi>>, Observable<List<FollowBangumi>>>() {
+                    @Override
+                    public Observable<List<FollowBangumi>> call(FollowBangumiResponse<List<FollowBangumi>> listFollowBangumiResponse) {
+                        if (listFollowBangumiResponse.isSuccess()) {
+                            return Observable.just(listFollowBangumiResponse.getResult());
                         } else {
-                            mAdapter.notifyItemRangeInserted(startPosition, response.body().getResult().size());
+                            return Observable.error(new ApiException(listFollowBangumiResponse.getCode()));
                         }
-                        mCurrentPage++;
                     }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<FollowBangumiResponse<List<FollowBangumi>>> call, Throwable t) {
-                mRecyclerView.setLoading(false);
-                ToastUtils.showToast(FollowBangumiActivity.this, R.string.load_error, Toast.LENGTH_SHORT);
-            }
-        });
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<List<FollowBangumi>>() {
+                    @Override
+                    public void call(List<FollowBangumi> followBangumis) {
+                        mRecyclerView.setLoading(false);
+                        if (followBangumis.isEmpty()) {
+                            mRecyclerView.setEnableLoadMore(false);
+                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                        } else {
+                            int startPosition = mAdapter.getItemCount();
+                            mAdapter.addBangumi(followBangumis);
+                            if (mCurrentPage == 1) {
+                                mAdapter.notifyDataSetChanged();
+                            } else {
+                                mAdapter.notifyItemRangeInserted(startPosition, followBangumis.size());
+                            }
+                            mCurrentPage++;
+                        }
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        mRecyclerView.setLoading(false);
+                        ToastUtils.showToast(FollowBangumiActivity.this, R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+                });
     }
 
     @Override
@@ -122,7 +137,7 @@ public class FollowBangumiActivity extends BaseActivity implements LoadMoreRecyc
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mConcernedBangumiCall);
+        SubscriptionUtils.unsubscribe(mConcernedBangumiSub);
     }
 
     @Override

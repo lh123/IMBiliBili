@@ -107,7 +107,7 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
             mIvAccountBadge.setVisibility(View.GONE);
         }
         mSearchView = BiliBiliSearchView.newInstance();
-        mSearchView.setHint("搜索视频、番剧、up主或av号");
+        mSearchView.setHint(getResources().getString(R.string.search_hint));
         mSearchView.setOnSearchListener(this);
         mDrawHome.setOnClickListener(new View.OnClickListener() {
             @Override

@@ -7,11 +7,12 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.search.BangumiSearchResult;
-import com.lh.imbilibili.utils.CallUtils;
 import com.lh.imbilibili.utils.LoadAnimationUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.LazyLoadFragment;
 import com.lh.imbilibili.view.activity.BangumiDetailActivity;
@@ -21,9 +22,12 @@ import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/6.
@@ -40,7 +44,7 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
     ImageView mIvLoading;
 
     private String mKeyWord;
-    private Call<BilibiliDataResponse<BangumiSearchResult>> mSearchCall;
+    private Subscription mSearchSub;
     private BangumiSearchResult mSearchResult;
     private BangumiSearchAdapter mAdapter;
     private int mCurrentPage;
@@ -90,53 +94,60 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
         if (mCurrentPage == 1) {
             LoadAnimationUtils.startLoadAnimate(mIvLoading, R.drawable.anim_search_loading);
         }
-        mSearchCall = RetrofitHelper.getInstance().getSearchService().getBangumiSearchResult(mKeyWord, page, 20, 1);
-        mSearchCall.enqueue(new Callback<BilibiliDataResponse<BangumiSearchResult>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<BangumiSearchResult>> call, Response<BilibiliDataResponse<BangumiSearchResult>> response) {
-                mRecyclerView.setLoading(false);
-                if (response.body().isSuccess()) {
-                    if (response.body().getData().getItems() != null && response.body().getData().getItems().size() > 0) {
-                        if (response.body().getData().getPages() == 1) {
-                            mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+        mSearchSub = RetrofitHelper.getInstance()
+                .getSearchService()
+                .getBangumiSearchResult(mKeyWord, page, 20, 1)
+                .flatMap(new Func1<BilibiliDataResponse<BangumiSearchResult>, Observable<BangumiSearchResult>>() {
+                    @Override
+                    public Observable<BangumiSearchResult> call(BilibiliDataResponse<BangumiSearchResult> bangumiSearchResultBilibiliDataResponse) {
+                        if (bangumiSearchResultBilibiliDataResponse.isSuccess()) {
+                            return Observable.just(bangumiSearchResultBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(bangumiSearchResultBilibiliDataResponse.getCode()));
                         }
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<BangumiSearchResult>() {
+                    @Override
+                    public void onCompleted() {
+                        mRecyclerView.setLoading(false);
                         if (mCurrentPage == 1) {
                             LoadAnimationUtils.stopLoadAnimate(mIvLoading, 0);
                             mRecyclerView.setEnableLoadMore(true);
                             mRecyclerView.setShowLoadingView(true);
                         }
-                        mSearchResult = response.body().getData();
-                        int startPosition = mAdapter.getItemCount();
-                        mAdapter.addData(mSearchResult.getItems());
-                        mAdapter.notifyItemRangeInserted(startPosition, mSearchResult.getItems().size());
-                        mCurrentPage++;
-                    } else {
-                        if (mCurrentPage == 1) {//first
-                            LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
-                        } else {
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        mRecyclerView.setLoading(false);
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                        LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
+                        mRecyclerView.setVisibility(View.GONE);
+                    }
+
+                    @Override
+                    public void onNext(BangumiSearchResult bangumiSearchResult) {
+                        if (bangumiSearchResult.getPages() == 1) {
                             mRecyclerView.setEnableLoadMore(false);
                             mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                        } else {
+                            mSearchResult = bangumiSearchResult;
+                            int startPosition = mAdapter.getItemCount();
+                            mAdapter.addData(mSearchResult.getItems());
+                            mAdapter.notifyItemRangeInserted(startPosition, mSearchResult.getItems().size());
+                            mCurrentPage++;
                         }
                     }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<BangumiSearchResult>> call, Throwable t) {
-                mCurrentPage--;
-                mRecyclerView.setLoading(false);
-                ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
-                LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
-                mRecyclerView.setVisibility(View.GONE);
-            }
-        });
+                });
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mSearchCall);
+        SubscriptionUtils.unsubscribe(mSearchSub);
     }
 
     @Override

@@ -5,11 +5,12 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.UserCenter;
 import com.lh.imbilibili.utils.BusUtils;
-import com.lh.imbilibili.utils.CallUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.LinearLayoutItemDecoration;
@@ -20,9 +21,12 @@ import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/17.
@@ -41,9 +45,8 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
 
     private CommunityRecyclerViewAdapter mAdapter;
 
-    private Call<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Community>>> mCommunityCall;
-
     private int mCurrentPage;
+    private Subscription mUserCommunitySub;
 
     public static UserCenterCommunityFragment newInstance() {
         return new UserCenterCommunityFragment();
@@ -112,30 +115,42 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
     }
 
     private void loadCommunity() {
-        mCommunityCall = RetrofitHelper.getInstance().getUserService().getUserCommunity(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()));
-        mCommunityCall.enqueue(new Callback<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Community>>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Community>>> call, Response<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Community>>> response) {
-                mRecyclerView.setLoading(false);
-                if (response.body().isSuccess()) {
-                    if (response.body().getData().getCount() < PAGE_SIZE) {
-                        mRecyclerView.setEnableLoadMore(false);
-                        mRecyclerView.setLoadView(R.string.no_data_tips, false);
-                    } else {
-                        int startPosition = mAdapter.getItemCount();
-                        mAdapter.addCommunities(response.body().getData().getItem());
-                        mAdapter.notifyItemRangeInserted(startPosition, response.body().getData().getItem().size());
-                        mCurrentPage++;
+        mUserCommunitySub = RetrofitHelper.getInstance()
+                .getUserService()
+                .getUserCommunity(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()))
+                .subscribeOn(Schedulers.io())
+                .flatMap(new Func1<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Community>>, Observable<UserCenter.CenterList<UserCenter.Community>>>() {
+                    @Override
+                    public Observable<UserCenter.CenterList<UserCenter.Community>> call(BilibiliDataResponse<UserCenter.CenterList<UserCenter.Community>> centerListBilibiliDataResponse) {
+                        if (centerListBilibiliDataResponse.isSuccess()) {
+                            return Observable.just(centerListBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(centerListBilibiliDataResponse.getCode()));
+                        }
                     }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Community>>> call, Throwable t) {
-                mRecyclerView.setLoading(false);
-                ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
-            }
-        });
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<UserCenter.CenterList<UserCenter.Community>>() {
+                    @Override
+                    public void call(UserCenter.CenterList<UserCenter.Community> communityCenterList) {
+                        mRecyclerView.setLoading(false);
+                        if (communityCenterList.getCount() < PAGE_SIZE) {
+                            mRecyclerView.setEnableLoadMore(false);
+                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                        } else {
+                            int startPosition = mAdapter.getItemCount();
+                            mAdapter.addCommunities(communityCenterList.getItem());
+                            mAdapter.notifyItemRangeInserted(startPosition, communityCenterList.getItem().size());
+                            mCurrentPage++;
+                        }
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        mRecyclerView.setLoading(false);
+                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                    }
+                });
     }
 
     @Override
@@ -146,7 +161,7 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
     @Override
     public void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mCommunityCall);
+        SubscriptionUtils.unsubscribe(mUserCommunitySub);
     }
 
     @Override

@@ -13,14 +13,15 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.search.Nav;
 import com.lh.imbilibili.model.search.SearchResult;
-import com.lh.imbilibili.utils.CallUtils;
 import com.lh.imbilibili.utils.LoadAnimationUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.search.SearchViewPagerAdapter;
@@ -34,9 +35,12 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import rx.Observable;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/5.
@@ -66,7 +70,7 @@ public class SearchActivity extends BaseActivity implements BiliBiliSearchView.O
     private BiliBiliSearchView mSearchView;
 
     private SearchResult mSearchResult;
-    private Call<BilibiliDataResponse<SearchResult>> mSearchCall;
+    private Subscription mSearchSub;
     private SearchViewPagerAdapter mAdapter;
 
     public static void startActivity(Context context, String keyWord) {
@@ -107,36 +111,43 @@ public class SearchActivity extends BaseActivity implements BiliBiliSearchView.O
     private void search(String keyWord) {
         mContainer.setVisibility(View.GONE);
         LoadAnimationUtils.startLoadAnimate(mIvLoading, R.drawable.anim_search_loading);
-        mSearchCall = RetrofitHelper
-                .getInstance()
+        mSearchSub = RetrofitHelper.getInstance()
                 .getSearchService()
-                .getSearchResult(0, keyWord, 1, 20);
-        mSearchCall.enqueue(new Callback<BilibiliDataResponse<SearchResult>>() {
-            @Override
-            public void onResponse(Call<BilibiliDataResponse<SearchResult>> call, Response<BilibiliDataResponse<SearchResult>> response) {
-                if (response.body().isSuccess()) {
-                    mSearchResult = response.body().getData();
-                    if (mSearchResult.getItems().getArchive().isEmpty()
-                            && mSearchResult.getItems().getMovie().isEmpty()
-                            && mSearchResult.getItems().getSeason().isEmpty()) {
-                        LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
-                    } else {
-                        mContainer.setVisibility(View.VISIBLE);
-                        LoadAnimationUtils.stopLoadAnimate(mIvLoading, 0);
-                        bindViewData();
-                        mIvLoading.setVisibility(View.GONE);
+                .getSearchResult(0, keyWord, 1, 20)
+                .flatMap(new Func1<BilibiliDataResponse<SearchResult>, Observable<SearchResult>>() {
+                    @Override
+                    public Observable<SearchResult> call(BilibiliDataResponse<SearchResult> searchResultBilibiliDataResponse) {
+                        if (searchResultBilibiliDataResponse.isSuccess()) {
+                            return Observable.just(searchResultBilibiliDataResponse.getData());
+                        } else {
+                            return Observable.error(new ApiException(searchResultBilibiliDataResponse.getCode()));
+                        }
                     }
-                } else {
-                    LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<BilibiliDataResponse<SearchResult>> call, Throwable t) {
-                LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
-                mContainer.setVisibility(View.GONE);
-            }
-        });
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<SearchResult>() {
+                    @Override
+                    public void call(SearchResult searchResult) {
+                        mSearchResult = searchResult;
+                        if (mSearchResult.getItems().getArchive().isEmpty()
+                                && mSearchResult.getItems().getMovie().isEmpty()
+                                && mSearchResult.getItems().getSeason().isEmpty()) {
+                            LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
+                        } else {
+                            mContainer.setVisibility(View.VISIBLE);
+                            LoadAnimationUtils.stopLoadAnimate(mIvLoading, 0);
+                            bindViewData();
+                            mIvLoading.setVisibility(View.GONE);
+                        }
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
+                        mContainer.setVisibility(View.GONE);
+                    }
+                });
     }
 
     private void bindViewData() {
@@ -186,6 +197,6 @@ public class SearchActivity extends BaseActivity implements BiliBiliSearchView.O
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mSearchCall);
+        SubscriptionUtils.unsubscribe(mSearchSub);
     }
 }

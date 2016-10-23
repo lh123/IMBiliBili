@@ -86,7 +86,7 @@ public class BangumiRecommendAdapter extends RecyclerView.Adapter<BangumiRecomme
                 @Override
                 public void onClick(View v) {
                     if (itemClickListener != null) {
-                        itemClickListener.onBangumiRecommendItemClick(getAdapterPosition());
+                        itemClickListener.onBangumiRecommendItemClick(BangumiHolder.this.getAdapterPosition());
                     }
                 }
             });
