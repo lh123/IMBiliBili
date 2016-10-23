@@ -67,7 +67,7 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
 
     @Override
     protected void fetchData() {
-        loadSearchPage(mCurrentPage);
+        loadSearchPage();
     }
 
     private void initRecyclerView() {
@@ -84,13 +84,13 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
         mAdapter.setOnItemClickListener(this);
     }
 
-    private void loadSearchPage(int page) {
+    private void loadSearchPage() {
         if (mCurrentPage == 1) {
             LoadAnimationUtils.startLoadAnimate(mIvLoading, R.drawable.anim_search_loading);
         }
         mSearchSub = RetrofitHelper.getInstance()
                 .getSearchService()
-                .getUpSearchResult(mKeyWord, page, 20, 2)
+                .getUpSearchResult(mKeyWord, mCurrentPage, 20, 2)
                 .flatMap(new Func1<BilibiliDataResponse<UpSearchResult>, Observable<UpSearchResult>>() {
                     @Override
                     public Observable<UpSearchResult> call(BilibiliDataResponse<UpSearchResult> upSearchResultBilibiliDataResponse) {
@@ -107,7 +107,7 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
                     @Override
                     public void onCompleted() {
                         mRecyclerView.setLoading(false);
-                        if (mCurrentPage == 1) {
+                        if (mCurrentPage == 2) {
                             LoadAnimationUtils.stopLoadAnimate(mIvLoading, 0);
                             mRecyclerView.setEnableLoadMore(true);
                             mRecyclerView.setShowLoadingView(true);
@@ -124,6 +124,7 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
 
                     @Override
                     public void onNext(UpSearchResult upSearchResult) {
+                        mRecyclerView.setVisibility(View.VISIBLE);
                         if (upSearchResult.getPages() == mCurrentPage) {
                             mRecyclerView.setEnableLoadMore(false);
                             mRecyclerView.setLoadView(R.string.no_data_tips, false);
@@ -151,7 +152,7 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
 
     @Override
     public void onLoadMore() {
-        loadSearchPage(mCurrentPage);
+        loadSearchPage();
     }
 
     @Override

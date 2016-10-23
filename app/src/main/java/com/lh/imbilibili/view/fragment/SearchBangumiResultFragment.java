@@ -68,7 +68,7 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
 
     @Override
     protected void fetchData() {
-        loadSearchPage(mCurrentPage);
+        loadSearchPage();
     }
 
     private void initRecyclerView() {
@@ -90,13 +90,13 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
         });
     }
 
-    private void loadSearchPage(int page) {
+    private void loadSearchPage() {
         if (mCurrentPage == 1) {
             LoadAnimationUtils.startLoadAnimate(mIvLoading, R.drawable.anim_search_loading);
         }
         mSearchSub = RetrofitHelper.getInstance()
                 .getSearchService()
-                .getBangumiSearchResult(mKeyWord, page, 20, 1)
+                .getBangumiSearchResult(mKeyWord, mCurrentPage, 20, 1)
                 .flatMap(new Func1<BilibiliDataResponse<BangumiSearchResult>, Observable<BangumiSearchResult>>() {
                     @Override
                     public Observable<BangumiSearchResult> call(BilibiliDataResponse<BangumiSearchResult> bangumiSearchResultBilibiliDataResponse) {
@@ -113,7 +113,7 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
                     @Override
                     public void onCompleted() {
                         mRecyclerView.setLoading(false);
-                        if (mCurrentPage == 1) {
+                        if (mCurrentPage == 2) {
                             LoadAnimationUtils.stopLoadAnimate(mIvLoading, 0);
                             mRecyclerView.setEnableLoadMore(true);
                             mRecyclerView.setShowLoadingView(true);
@@ -130,7 +130,8 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
 
                     @Override
                     public void onNext(BangumiSearchResult bangumiSearchResult) {
-                        if (bangumiSearchResult.getPages() == 1) {
+                        mRecyclerView.setVisibility(View.VISIBLE);
+                        if (bangumiSearchResult.getPages() == mCurrentPage) {
                             mRecyclerView.setEnableLoadMore(false);
                             mRecyclerView.setLoadView(R.string.no_data_tips, false);
                         } else {
@@ -157,7 +158,6 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
 
     @Override
     public void onLoadMore() {
-        mCurrentPage++;
-        loadSearchPage(mCurrentPage);
+        loadSearchPage();
     }
 }
