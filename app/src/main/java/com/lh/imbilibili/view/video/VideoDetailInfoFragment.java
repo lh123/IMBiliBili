@@ -12,8 +12,9 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.model.video.VideoDetail;
-import com.lh.imbilibili.utils.BusUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StringUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.transformation.CircleTransformation;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.videodetail.RelatesVideoItemDecoration;
@@ -22,13 +23,15 @@ import com.lh.imbilibili.view.adapter.videodetail.VideoRelatesRecyclerViewAdapte
 import com.lh.imbilibili.view.search.SearchActivity;
 import com.lh.imbilibili.view.usercenter.UserCenterActivity;
 import com.lh.imbilibili.widget.FlowLayout;
-import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import rx.Subscription;
+import rx.functions.Action1;
 
 /**
  * Created by liuhui on 2016/10/2.
+ * 视频介绍界面
  */
 
 public class VideoDetailInfoFragment extends BaseFragment implements FlowLayout.OnItemClickListener, VideoPageRecyclerViewAdapter.OnPageClickListener, VideoRelatesRecyclerViewAdapter.OnVideoItemClickListener {
@@ -67,6 +70,7 @@ public class VideoDetailInfoFragment extends BaseFragment implements FlowLayout.
     private VideoDetail mVideoDetail;
     private VideoRelatesRecyclerViewAdapter mAdapter;
     private VideoPageRecyclerViewAdapter mVideoPageAdapter;
+    private Subscription mBusSub;
 
     public static VideoDetailInfoFragment newInstance() {
         return new VideoDetailInfoFragment();
@@ -82,13 +86,28 @@ public class VideoDetailInfoFragment extends BaseFragment implements FlowLayout.
     @Override
     public void onStart() {
         super.onStart();
-        BusUtils.getBus().register(this);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(VideoStateChangeEvent.class)
+                .subscribe(new Action1<VideoStateChangeEvent>() {
+                    @Override
+                    public void call(VideoStateChangeEvent videoStateChangeEvent) {
+                        switch (videoStateChangeEvent.state) {
+                            case VideoStateChangeEvent.STATE_LOAD_FINISH:
+                                mVideoDetail = videoStateChangeEvent.videoDetail;
+                                bindViewWithData();
+                                break;
+                            case VideoStateChangeEvent.STATE_PLAY:
+                                mScrollView.setNestedScrollingEnabled(false);
+                                break;
+                        }
+                    }
+                });
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mBusSub);
     }
 
     private void initRecyclerView() {
@@ -177,18 +196,5 @@ public class VideoDetailInfoFragment extends BaseFragment implements FlowLayout.
     @Override
     public void onItemClick(int position) {
         VideoDetailActivity.startActivity(getContext(), mVideoDetail.getRelates().get(position).getAid());
-    }
-
-    @Subscribe
-    public void onVideoDetailLoadFinish(VideoDetailActivity.VideoStateChangeEvent event) {
-        switch (event.state) {
-            case VideoDetailActivity.VideoStateChangeEvent.STATE_LOAD_FINISH:
-                mVideoDetail = event.videoDetail;
-                bindViewWithData();
-                break;
-            case VideoDetailActivity.VideoStateChangeEvent.STATE_PLAY:
-                mScrollView.setNestedScrollingEnabled(false);
-                break;
-        }
     }
 }

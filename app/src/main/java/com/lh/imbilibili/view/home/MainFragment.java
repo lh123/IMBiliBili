@@ -12,8 +12,9 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.model.user.UserDetailInfo;
-import com.lh.imbilibili.utils.BusUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.lh.imbilibili.utils.transformation.CircleTransformation;
 import com.lh.imbilibili.view.BaseFragment;
@@ -21,16 +22,18 @@ import com.lh.imbilibili.view.adapter.MainViewPagerAdapter;
 import com.lh.imbilibili.view.search.SearchActivity;
 import com.lh.imbilibili.view.video.VideoDetailActivity;
 import com.lh.imbilibili.widget.BiliBiliSearchView;
-import com.squareup.otto.Subscribe;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import rx.Subscription;
+import rx.functions.Action1;
 
 /**
  * Created by liuhui on 2016/7/6.
+ * 主Fragment
  */
 public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClickListener, BiliBiliSearchView.OnSearchListener {
 
@@ -55,9 +58,9 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
     @BindView(R.id.navigation)
     View mDrawHome;
 
-    private List<BaseFragment> fragments;
-    private MainViewPagerAdapter adapter;
     private BiliBiliSearchView mSearchView;
+
+    private Subscription mBusSub;
 
     public static MainFragment newInstance() {
         return new MainFragment();
@@ -66,13 +69,20 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
     @Override
     public void onStart() {
         super.onStart();
-        BusUtils.getBus().register(this);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(UserDetailInfo.class)
+                .subscribe(new Action1<UserDetailInfo>() {
+                    @Override
+                    public void call(UserDetailInfo userDetailInfo) {
+                        bindUserInfoView(userDetailInfo);
+                    }
+                });
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mBusSub);
     }
 
     @Override
@@ -81,11 +91,11 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
         mToolbar.inflateMenu(R.menu.main_menu);
         mToolbar.setOnMenuItemClickListener(this);
         StatusBarUtils.setDrawerToolbarTabLayout(getActivity(), mCoordinatorLayout);
-        fragments = new ArrayList<>();
+        List<BaseFragment> fragments = new ArrayList<>();
         fragments.add(BangumiFragment.newInstance());
         fragments.add(CategoryFragment.newInstance());
         fragments.add(AttentionFragment.newInstance());
-        adapter = new MainViewPagerAdapter(getChildFragmentManager(), fragments);
+        MainViewPagerAdapter adapter = new MainViewPagerAdapter(getChildFragmentManager(), fragments);
         mViewPager.setAdapter(adapter);
         mTabs.setupWithViewPager(mViewPager);
         initToolbar();
@@ -118,7 +128,6 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
         });
     }
 
-    @Subscribe
     public void bindUserInfoView(UserDetailInfo detailInfo) {
         Glide.with(this).load(detailInfo.getFace()).transform(new CircleTransformation(getContext().getApplicationContext())).into(mIvAvatar);
         mTvNickName.setText(detailInfo.getUname());

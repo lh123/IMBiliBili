@@ -9,7 +9,7 @@ import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.BusUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
@@ -18,7 +18,6 @@ import com.lh.imbilibili.view.adapter.usercenter.FollowBangumiRecyclerViewAdapte
 import com.lh.imbilibili.view.bangumi.BangumiDetailActivity;
 import com.lh.imbilibili.widget.EmptyView;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
-import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -50,6 +49,12 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
 
     private Subscription mUserBangumiSub;
 
+    private Subscription mBusSub;
+
+    private UserCenterDataProvider mUserCenterProvider;
+
+    private boolean mIsInitData;
+
     public static UserCenterFollowBangumiFragment newInstance() {
         return new UserCenterFollowBangumiFragment();
     }
@@ -58,6 +63,10 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
     protected void initView(View view) {
         ButterKnife.bind(this, view);
         mCurrentPage = 2;
+        mIsInitData = false;
+        if (getActivity() instanceof UserCenterDataProvider) {
+            mUserCenterProvider = (UserCenterDataProvider) getActivity();
+        }
         initRecyclerView();
     }
 
@@ -84,22 +93,35 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
     @Override
     public void onStart() {
         super.onStart();
-        BusUtils.getBus().register(this);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(UserCenter.class)
+                .subscribe(new Action1<UserCenter>() {
+                    @Override
+                    public void call(UserCenter userCenter) {
+                        if (mUserCenter == null) {
+                            mUserCenter = userCenter;
+                            initData();
+                        }
+                    }
+                });
+        if (mUserCenterProvider != null && mUserCenter == null) {
+            mUserCenter = mUserCenterProvider.getUserCenter();
+            initData();
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mBusSub);
     }
 
-    @Subscribe
-    public void onUserCenterDataLoadFinish(UserCenter userCenter) {
-        if (mUserCenter != null) {
+    public void initData() {
+        if (mUserCenter == null || mIsInitData) {
             return;
         }
-        mUserCenter = userCenter;
-        if (userCenter.getSetting().getBangumi() == 0) {
+        mIsInitData = true;
+        if (mUserCenter.getSetting().getBangumi() == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
             mEmptyView.setVisibility(View.VISIBLE);
@@ -107,7 +129,7 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
             mEmptyView.setText(R.string.space_tips_no_permission);
             return;
         }
-        if (userCenter.getSeason().getCount() == 0) {
+        if (mUserCenter.getSeason().getCount() == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
             mEmptyView.setVisibility(View.VISIBLE);
@@ -115,13 +137,13 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
             mEmptyView.setText(R.string.no_data_tips);
         } else {
             mRecyclerView.setShowLoadingView(true);
-            if (userCenter.getSeason().getCount() <= PAGE_SIZE) {
+            if (mUserCenter.getSeason().getCount() <= PAGE_SIZE) {
                 mRecyclerView.setLoadView(R.string.no_data_tips, false);
                 mRecyclerView.setEnableLoadMore(false);
             } else {
                 mRecyclerView.setEnableLoadMore(true);
             }
-            mAdapter.addSeasons(userCenter.getSeason().getItem());
+            mAdapter.addSeasons(mUserCenter.getSeason().getItem());
             mAdapter.notifyDataSetChanged();
         }
     }

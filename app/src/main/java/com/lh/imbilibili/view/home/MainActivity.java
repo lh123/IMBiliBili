@@ -18,7 +18,7 @@ import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.user.UserDetailInfo;
 import com.lh.imbilibili.model.user.UserResponse;
-import com.lh.imbilibili.utils.BusUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
@@ -29,7 +29,6 @@ import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.common.LoginActivity;
 import com.lh.imbilibili.view.history.HistoryRecordFragment;
 import com.lh.imbilibili.view.usercenter.UserCenterActivity;
-import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -57,13 +56,13 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
     private UserDetailInfo mUserDetailInfo;
     private boolean isShowHome;
     private Subscription mUserInfoSub;
+    private Subscription mBusSub;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
-        BusUtils.getBus().register(this);
         View headView = mDrawer.getHeaderView(0);
         mDrawerProfileLayout = headView.findViewById(R.id.drawer_profile_layout);
         mIvAvatar = (ImageView) headView.findViewById(R.id.user_avatar);
@@ -73,6 +72,14 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
         mTvCoinCount = (TextView) headView.findViewById(R.id.user_coin_count);
         initView();
         switchFragment(0);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(UserResponse.class)
+                .subscribe(new Action1<UserResponse>() {
+                    @Override
+                    public void call(UserResponse userResponse) {
+                        loadUserInfo();
+                    }
+                });
     }
 
     private void initView() {
@@ -82,7 +89,7 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
         mIvAvatar.setOnClickListener(this);
         mTvNickName.setOnClickListener(this);
         if (UserManagerUtils.getInstance().getCurrentUser() != null) {
-            loadUserInfo(null);
+            loadUserInfo();
         } else {
             mIvAvatar.setImageResource(R.drawable.bili_default_avatar);
             mTvNickName.setText("点击头像登陆");
@@ -154,8 +161,7 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
         }
     }
 
-    @Subscribe
-    public void loadUserInfo(UserResponse response) {
+    public void loadUserInfo() {
         mUserInfoSub = RetrofitHelper.getInstance()
                 .getUserService()
                 .getUserDetailInfo()
@@ -175,7 +181,7 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
                     public void call(UserDetailInfo userDetailInfo) {
                         mUserDetailInfo = userDetailInfo;
                         UserManagerUtils.getInstance().setUserDetailInfo(mUserDetailInfo);
-                        BusUtils.getBus().post(mUserDetailInfo);
+                        RxBus.getInstance().send(mUserDetailInfo);
                         bindUserInfoViewWithData();
                     }
                 }, new Action1<Throwable>() {
@@ -216,7 +222,6 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mUserInfoSub);
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mUserInfoSub, mBusSub);
     }
 }

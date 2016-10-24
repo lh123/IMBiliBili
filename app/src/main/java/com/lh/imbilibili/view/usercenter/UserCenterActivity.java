@@ -21,21 +21,19 @@ import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.BiliBiliDataFunc;
 import com.lh.imbilibili.data.RetrofitHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.BusUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.transformation.CircleTransformation;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.usercenter.ViewPagerAdapter;
-import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
@@ -46,7 +44,7 @@ import rx.schedulers.Schedulers;
  * 用户中心Activity
  */
 
-public class UserCenterActivity extends BaseActivity {
+public class UserCenterActivity extends BaseActivity implements UserCenterDataProvider {
 
     private static final String EXTRA_ID = "id";
     private static final String EXTRA_PAGE = "page";
@@ -97,12 +95,12 @@ public class UserCenterActivity extends BaseActivity {
             R.drawable.ic_lv8_large,
             R.drawable.ic_lv9_large};
 
-    private Observable<BilibiliDataResponse<UserCenter>> mUserInfoCall;
-
     private UserCenter mUserCenter;
     private String[] mtitles;
     private int mDefaultPage;
     private Subscription mUserInfoSubscription;
+
+    private Subscription mBusSub;
 
     /**
      * @param context Context
@@ -138,13 +136,22 @@ public class UserCenterActivity extends BaseActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        BusUtils.getBus().register(this);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(UserCenterHomeFragment.ItemClickEvent.class)
+                .subscribe(new Action1<UserCenterHomeFragment.ItemClickEvent>() {
+                    @Override
+                    public void call(UserCenterHomeFragment.ItemClickEvent itemClickEvent) {
+                        if (itemClickEvent.position >= 0 && itemClickEvent.position < mtitles.length) {
+                            mViewPager.setCurrentItem(itemClickEvent.position);
+                        }
+                    }
+                });
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mBusSub);
     }
 
     private void initViewPager() {
@@ -183,7 +190,7 @@ public class UserCenterActivity extends BaseActivity {
     }
 
     private void bindViewData(UserCenter userCenter) {
-        BusUtils.getBus().post(userCenter);
+        RxBus.getInstance().send(userCenter);
         modifyTabsTitle(userCenter);
         mToolbar.setTitle(userCenter.getCard().getName());
         if (!TextUtils.isEmpty(userCenter.getImages().getImgUrl())) {
@@ -240,21 +247,16 @@ public class UserCenterActivity extends BaseActivity {
         mTabs.setupWithViewPager(mViewPager);
     }
 
-    /**
-     * @param event UserCenterHomeFragment产生的Item点击事件
-     */
-    @Subscribe
-    public void onHomeItemClickEvent(UserCenterHomeFragment.ItemClickEvent event) {
-        if (event.position >= 0 && event.position < mtitles.length) {
-            mViewPager.setCurrentItem(event.position);
-        }
-    }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
         if (mUserInfoSubscription != null && !mUserInfoSubscription.isUnsubscribed()) {
             mUserInfoSubscription.unsubscribe();
         }
+    }
+
+    @Override
+    public UserCenter getUserCenter() {
+        return mUserCenter;
     }
 }

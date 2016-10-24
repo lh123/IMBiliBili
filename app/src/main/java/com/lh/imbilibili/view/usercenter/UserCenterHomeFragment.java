@@ -6,19 +6,22 @@ import android.view.View;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.BusUtils;
+import com.lh.imbilibili.utils.RxBus;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.usercenter.HomeItemDecoration;
 import com.lh.imbilibili.view.adapter.usercenter.HomeRecyclerViewAdapter;
 import com.lh.imbilibili.view.bangumi.BangumiDetailActivity;
 import com.lh.imbilibili.view.video.VideoDetailActivity;
-import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import rx.Subscription;
+import rx.functions.Action1;
 
 /**
  * Created by liuhui on 2016/10/16.
+ * 用户中心主页
  */
 
 public class UserCenterHomeFragment extends BaseFragment implements HomeRecyclerViewAdapter.OnItemClickListener {
@@ -27,7 +30,11 @@ public class UserCenterHomeFragment extends BaseFragment implements HomeRecycler
     RecyclerView mRecyclerView;
 
     private HomeRecyclerViewAdapter mAdapter;
-    private boolean mHaveReceiverEvent;
+
+    private UserCenter mUserCenter;
+    private Subscription mBusSub;
+    private UserCenterDataProvider mUserCenterProvider;
+    private boolean mIsInitData;
 
     public static UserCenterHomeFragment newInstance() {
         return new UserCenterHomeFragment();
@@ -36,19 +43,34 @@ public class UserCenterHomeFragment extends BaseFragment implements HomeRecycler
     @Override
     public void onStart() {
         super.onStart();
-        BusUtils.getBus().register(this);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(UserCenter.class)
+                .subscribe(new Action1<UserCenter>() {
+                    @Override
+                    public void call(UserCenter userCenter) {
+                        mUserCenter = userCenter;
+                        initData();
+                    }
+                });
+        if (mUserCenterProvider != null) {
+            mUserCenter = mUserCenterProvider.getUserCenter();
+            initData();
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mBusSub);
     }
 
     @Override
     protected void initView(View view) {
         ButterKnife.bind(this, view);
-        mHaveReceiverEvent = false;
+        mIsInitData = false;
+        if (getActivity() instanceof UserCenterDataProvider) {
+            mUserCenterProvider = (UserCenterDataProvider) getActivity();
+        }
         initRecyclerView();
     }
 
@@ -82,13 +104,12 @@ public class UserCenterHomeFragment extends BaseFragment implements HomeRecycler
         mAdapter.setOnItemClickListener(this);
     }
 
-    @Subscribe
-    public void onUserCenterDataLoadFinish(UserCenter userCenter) {
-        if (mHaveReceiverEvent) {
+    public void initData() {
+        if (mUserCenter == null || mIsInitData) {
             return;
         }
-        mHaveReceiverEvent = true;
-        mAdapter.setUserCenter(userCenter);
+        mIsInitData = true;
+        mAdapter.setUserCenter(mUserCenter);
         mAdapter.notifyDataSetChanged();
     }
 
@@ -101,22 +122,22 @@ public class UserCenterHomeFragment extends BaseFragment implements HomeRecycler
     public void onItemClick(int type, String data) {
         switch (type) {
             case HomeRecyclerViewAdapter.TYPE_ARCHIVE_HEAD:
-                BusUtils.getBus().post(new ItemClickEvent(1));
+                RxBus.getInstance().send(new ItemClickEvent(1));
                 break;
             case HomeRecyclerViewAdapter.TYPE_FAVOURITE_HEAD:
-                BusUtils.getBus().post(new ItemClickEvent(2));
+                RxBus.getInstance().send(new ItemClickEvent(2));
                 break;
             case HomeRecyclerViewAdapter.TYPE_FOLLOW_BANGUMI_HEAD:
-                BusUtils.getBus().post(new ItemClickEvent(3));
+                RxBus.getInstance().send(new ItemClickEvent(3));
                 break;
             case HomeRecyclerViewAdapter.TYPE_COMMUNITY_HEAD:
-                BusUtils.getBus().post(new ItemClickEvent(4));
+                RxBus.getInstance().send(new ItemClickEvent(4));
                 break;
             case HomeRecyclerViewAdapter.TYPE_COIN_ARCHIVE_HEAD:
-                BusUtils.getBus().post(new ItemClickEvent(5));
+                RxBus.getInstance().send(new ItemClickEvent(5));
                 break;
             case HomeRecyclerViewAdapter.TYPE_GAME_HEAD:
-                BusUtils.getBus().post(new ItemClickEvent(6));
+                RxBus.getInstance().send(new ItemClickEvent(6));
                 break;
             case HomeRecyclerViewAdapter.TYPE_FOLLOW_BANGUMI_ITEM:
                 BangumiDetailActivity.startActivity(getContext(), data);

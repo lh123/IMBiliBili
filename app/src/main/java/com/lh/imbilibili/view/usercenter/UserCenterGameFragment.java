@@ -4,20 +4,19 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.view.View;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.BusUtils;
-import com.lh.imbilibili.utils.CallUtils;
+import com.lh.imbilibili.utils.RxBus;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.LinearLayoutItemDecoration;
 import com.lh.imbilibili.view.adapter.usercenter.GameRecyclerViewAdapter;
 import com.lh.imbilibili.widget.EmptyView;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
-import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import retrofit2.Call;
+import rx.Subscription;
+import rx.functions.Action1;
 
 /**
  * Created by liuhui on 2016/10/17.
@@ -37,9 +36,13 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
 
     private GameRecyclerViewAdapter mAdapter;
 
-    private int mCurrentPage;
+//    private int mCurrentPage;
 
-    private Call<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Game>>> mGameCall;
+    private Subscription mBusSub;
+
+    private UserCenterDataProvider mUserCenterProvider;
+
+    private boolean mIsInitData;
 
     public static UserCenterGameFragment newInstance() {
         return new UserCenterGameFragment();
@@ -48,7 +51,11 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
     @Override
     protected void initView(View view) {
         ButterKnife.bind(this, view);
-        mCurrentPage = 2;
+//        mCurrentPage = 2;
+        mIsInitData = false;
+        if (getActivity() instanceof UserCenterDataProvider) {
+            mUserCenterProvider = (UserCenterDataProvider) getActivity();
+        }
         initRecyclerView();
     }
 
@@ -64,22 +71,35 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
     @Override
     public void onStart() {
         super.onStart();
-        BusUtils.getBus().register(this);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(UserCenter.class)
+                .subscribe(new Action1<UserCenter>() {
+                    @Override
+                    public void call(UserCenter userCenter) {
+                        if (mUserCenter == null) {
+                            mUserCenter = userCenter;
+                            initData();
+                        }
+                    }
+                });
+        if (mUserCenterProvider != null && mUserCenter == null) {
+            mUserCenter = mUserCenterProvider.getUserCenter();
+            initData();
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mBusSub);
     }
 
-    @Subscribe
-    public void onUserCenterDataLoadFinish(UserCenter userCenter) {
-        if (mUserCenter != null) {
+    public void initData() {
+        if (mUserCenter == null || mIsInitData) {
             return;
         }
-        mUserCenter = userCenter;
-        if (userCenter.getSetting().getPlayedGame() == 0) {
+        mIsInitData = true;
+        if (mUserCenter.getSetting().getPlayedGame() == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
             mEmptyView.setVisibility(View.VISIBLE);
@@ -87,7 +107,7 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
             mEmptyView.setText(R.string.space_tips_no_permission);
             return;
         }
-        if (userCenter.getGame().getCount() == 0) {
+        if (mUserCenter.getGame().getCount() == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
             mEmptyView.setVisibility(View.VISIBLE);
@@ -95,14 +115,14 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
             mEmptyView.setText(R.string.no_data_tips);
         } else {
             mRecyclerView.setShowLoadingView(true);
-            if (userCenter.getGame().getCount() <= PAGE_SIZE) {
+            if (mUserCenter.getGame().getCount() <= PAGE_SIZE) {
                 mRecyclerView.setEnableLoadMore(false);
                 mRecyclerView.setLoadView(R.string.no_data_tips, false);
             } else {
                 mRecyclerView.setEnableLoadMore(true);
             }
             mEmptyView.setVisibility(View.GONE);
-            mAdapter.addGames(userCenter.getGame().getItem());
+            mAdapter.addGames(mUserCenter.getGame().getItem());
             mAdapter.notifyDataSetChanged();
         }
     }
@@ -143,7 +163,6 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
     @Override
     public void onDestroy() {
         super.onDestroy();
-        CallUtils.cancelCall(mGameCall);
     }
 
     @Override

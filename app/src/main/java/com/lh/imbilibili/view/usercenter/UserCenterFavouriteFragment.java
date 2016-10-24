@@ -5,19 +5,22 @@ import android.view.View;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.BusUtils;
+import com.lh.imbilibili.utils.RxBus;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.GridLayoutItemDecoration;
 import com.lh.imbilibili.view.adapter.usercenter.FavouriteRecyclerViewAdapter;
 import com.lh.imbilibili.widget.EmptyView;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
-import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import rx.Subscription;
+import rx.functions.Action1;
 
 /**
  * Created by liuhui on 2016/10/17.
+ * 用户收藏界面
  */
 
 public class UserCenterFavouriteFragment extends BaseFragment {
@@ -28,7 +31,12 @@ public class UserCenterFavouriteFragment extends BaseFragment {
     EmptyView mEmptyView;
 
     private FavouriteRecyclerViewAdapter mAdapter;
-    private boolean mHaveReceiverEvent;
+
+    private UserCenter mUserCenter;
+    private boolean mIsInitData;
+    private Subscription mBusSub;
+
+    private UserCenterDataProvider mUserCenterProvider;
 
     public static UserCenterFavouriteFragment newInstance() {
         return new UserCenterFavouriteFragment();
@@ -37,20 +45,37 @@ public class UserCenterFavouriteFragment extends BaseFragment {
     @Override
     protected void initView(View view) {
         ButterKnife.bind(this, view);
-        mHaveReceiverEvent = false;
+        mIsInitData = false;
+        if (getActivity() instanceof UserCenterDataProvider) {
+            mUserCenterProvider = (UserCenterDataProvider) getActivity();
+        }
         initRecyclerView();
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        BusUtils.getBus().register(this);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(UserCenter.class)
+                .subscribe(new Action1<UserCenter>() {
+                    @Override
+                    public void call(UserCenter userCenter) {
+                        if (mUserCenter == null) {
+                            mUserCenter = userCenter;
+                            initData();
+                        }
+                    }
+                });
+        if (mUserCenterProvider != null && mUserCenter == null) {
+            mUserCenter = mUserCenterProvider.getUserCenter();
+            initData();
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mBusSub);
     }
 
 
@@ -72,14 +97,12 @@ public class UserCenterFavouriteFragment extends BaseFragment {
         mRecyclerView.setAdapter(mAdapter);
     }
 
-    @SuppressWarnings("unused")
-    @Subscribe
-    public void onUserCenterDataLoadFinish(UserCenter userCenter) {
-        if (mHaveReceiverEvent) {
+    public void initData() {
+        if (mUserCenter == null || mIsInitData) {
             return;
         }
-        mHaveReceiverEvent = true;
-        if (userCenter.getSetting().getFavVideo() == 0) {
+        mIsInitData = true;
+        if (mUserCenter.getSetting().getFavVideo() == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
             mEmptyView.setVisibility(View.VISIBLE);
@@ -87,7 +110,7 @@ public class UserCenterFavouriteFragment extends BaseFragment {
             mEmptyView.setText(R.string.space_tips_no_permission);
             return;
         }
-        if (userCenter.getFavourite().getCount() == 0) {
+        if (mUserCenter.getFavourite().getCount() == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
             mEmptyView.setVisibility(View.VISIBLE);
@@ -96,7 +119,7 @@ public class UserCenterFavouriteFragment extends BaseFragment {
         } else {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
-            mAdapter.addFavourites(userCenter.getFavourite().getItem());
+            mAdapter.addFavourites(mUserCenter.getFavourite().getItem());
             mAdapter.notifyDataSetChanged();
         }
     }

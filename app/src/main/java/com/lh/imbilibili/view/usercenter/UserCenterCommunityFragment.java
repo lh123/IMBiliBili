@@ -9,7 +9,7 @@ import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.BusUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
@@ -30,6 +30,7 @@ import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/17.
+ * 兴趣圈界面
  */
 
 public class UserCenterCommunityFragment extends BaseFragment implements LoadMoreRecyclerView.OnLoadMoreLinstener {
@@ -48,6 +49,12 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
     private int mCurrentPage;
     private Subscription mUserCommunitySub;
 
+    private UserCenterDataProvider mUserCenterProvider;
+
+    private Subscription mBusSub;
+
+    private boolean mIsInitData;
+
     public static UserCenterCommunityFragment newInstance() {
         return new UserCenterCommunityFragment();
     }
@@ -56,6 +63,10 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
     protected void initView(View view) {
         ButterKnife.bind(this, view);
         mCurrentPage = 2;
+        mIsInitData = false;
+        if (getActivity() instanceof UserCenterDataProvider) {
+            mUserCenterProvider = (UserCenterDataProvider) getActivity();
+        }
         initRecyclerView();
     }
 
@@ -71,22 +82,34 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
     @Override
     public void onStart() {
         super.onStart();
-        BusUtils.getBus().register(this);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(UserCenter.class)
+                .subscribe(new Action1<UserCenter>() {
+                    @Override
+                    public void call(UserCenter userCenter) {
+                        mUserCenter = userCenter;
+                        initData();
+                    }
+                });
+        if (mUserCenterProvider != null) {
+            mUserCenter = mUserCenterProvider.getUserCenter();
+            initData();
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mBusSub);
     }
 
     @Subscribe
-    public void onUserCenterDataLoadFinish(UserCenter userCenter) {
-        if (mUserCenter != null) {
+    public void initData() {
+        if (mUserCenter == null || mIsInitData) {
             return;
         }
-        mUserCenter = userCenter;
-        if (userCenter.getSetting().getGroups() == 0) {
+        mIsInitData = true;
+        if (mUserCenter.getSetting().getGroups() == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
             mEmptyView.setVisibility(View.VISIBLE);
@@ -94,7 +117,7 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
             mEmptyView.setText(R.string.space_tips_no_permission);
             return;
         }
-        if (userCenter.getCommunity().getCount() == 0) {
+        if (mUserCenter.getCommunity().getCount() == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
             mEmptyView.setVisibility(View.VISIBLE);
@@ -102,14 +125,14 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
             mEmptyView.setText(R.string.no_data_tips);
         } else {
             mRecyclerView.setShowLoadingView(true);
-            if (userCenter.getCommunity().getCount() <= PAGE_SIZE) {
+            if (mUserCenter.getCommunity().getCount() <= PAGE_SIZE) {
                 mRecyclerView.setEnableLoadMore(false);
                 mRecyclerView.setLoadView(R.string.no_data_tips, false);
             } else {
                 mRecyclerView.setEnableLoadMore(true);
             }
             mEmptyView.setVisibility(View.GONE);
-            mAdapter.addCommunities(userCenter.getCommunity().getItem());
+            mAdapter.addCommunities(mUserCenter.getCommunity().getItem());
             mAdapter.notifyDataSetChanged();
         }
     }

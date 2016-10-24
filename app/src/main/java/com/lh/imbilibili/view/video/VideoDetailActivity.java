@@ -28,9 +28,9 @@ import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.video.VideoDetail;
-import com.lh.imbilibili.utils.BusUtils;
 import com.lh.imbilibili.utils.DisableableAppBarLayoutBehavior;
 import com.lh.imbilibili.utils.HistoryUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
@@ -174,7 +174,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
                     @Override
                     public void call(VideoDetail videoDetail) {
                         mVideoDetail = videoDetail;
-                        BusUtils.getBus().post(new VideoStateChangeEvent(VideoStateChangeEvent.STATE_LOAD_FINISH, mVideoDetail));
+                        RxBus.getInstance().send(new VideoStateChangeEvent(VideoStateChangeEvent.STATE_LOAD_FINISH, mVideoDetail));
                         bindViewData();
                     }
                 }, new Action1<Throwable>() {
@@ -246,7 +246,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
         hidFab();
         mPreViewLayout.setVisibility(View.INVISIBLE);
         mToolbar.setVisibility(View.INVISIBLE);
-        BusUtils.getBus().post(new VideoStateChangeEvent(VideoStateChangeEvent.STATE_PLAY, mVideoDetail));
+        RxBus.getInstance().send(new VideoStateChangeEvent(VideoStateChangeEvent.STATE_PLAY, mVideoDetail));
         CoordinatorLayout.LayoutParams params = (CoordinatorLayout.LayoutParams) mAppBarLayout.getLayoutParams();
         DisableableAppBarLayoutBehavior behavior = (DisableableAppBarLayoutBehavior) params.getBehavior();
         if (behavior != null) {
@@ -341,21 +341,6 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
             exitFullScreen();
         } else {
             super.onBackPressed();
-        }
-    }
-
-    public static class VideoStateChangeEvent {
-
-        public static final int STATE_PLAY = 1;
-        public static final int STATE_STOP = 2;
-        public static final int STATE_LOAD_FINISH = 3;
-
-        public int state;
-        public VideoDetail videoDetail;
-
-        VideoStateChangeEvent(int state, VideoDetail videoDetail) {
-            this.state = state;
-            this.videoDetail = videoDetail;
         }
     }
 }

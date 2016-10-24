@@ -10,7 +10,7 @@ import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.BusUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
@@ -19,7 +19,6 @@ import com.lh.imbilibili.view.adapter.usercenter.ArchiveRecyclerViewAdapter;
 import com.lh.imbilibili.view.video.VideoDetailActivity;
 import com.lh.imbilibili.widget.EmptyView;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
-import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -27,6 +26,7 @@ import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -51,6 +51,11 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
 
     private int mCurrentPage;
     private Subscription mArchiveSub;
+    private UserCenterDataProvider mUserCenterProvider;
+
+    private Subscription mBusSub;
+
+    private boolean mIsInitData;
 
     public static UserCenterArchiveFragment newInstance(boolean isCoin) {
         UserCenterArchiveFragment fragment = new UserCenterArchiveFragment();
@@ -63,13 +68,25 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
     @Override
     public void onStart() {
         super.onStart();
-        BusUtils.getBus().register(this);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(UserCenter.class)
+                .subscribe(new Action1<UserCenter>() {
+                    @Override
+                    public void call(UserCenter userCenter) {
+                        mUserCenter = userCenter;
+                        initData();
+                    }
+                });
+        if (mUserCenterProvider != null) {
+            mUserCenter = mUserCenterProvider.getUserCenter();
+            initData();
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mBusSub);
     }
 
     @Override
@@ -77,6 +94,10 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
         ButterKnife.bind(this, view);
         mIsCoin = getArguments().getBoolean(EXTRA_DATA);
         mCurrentPage = 2;
+        mIsInitData = false;
+        if (getActivity() instanceof UserCenterDataProvider) {
+            mUserCenterProvider = (UserCenterDataProvider) getActivity();
+        }
         initRecyclerView();
     }
 
@@ -91,14 +112,12 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
         mAdapter.setOnVideoItemClickListener(this);
     }
 
-    @SuppressWarnings("unused")
-    @Subscribe
-    public void onUserCenterDataLoadFinish(UserCenter userCenter) {
-        if (mUserCenter != null) {
+    public void initData() {
+        if (mUserCenter == null || mIsInitData) {
             return;
         }
-        mUserCenter = userCenter;
-        if (mIsCoin && userCenter.getSetting().getCoinsVideo() == 0) {
+        mIsInitData = true;
+        if (mIsCoin && mUserCenter.getSetting().getCoinsVideo() == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
             mEmptyView.setVisibility(View.VISIBLE);
@@ -106,7 +125,7 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
             mEmptyView.setText(R.string.space_tips_no_permission);
             return;
         }
-        int count = !mIsCoin ? userCenter.getArchive().getCount() : userCenter.getCoinArchive().getCount();
+        int count = !mIsCoin ? mUserCenter.getArchive().getCount() : mUserCenter.getCoinArchive().getCount();
         if (count == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
@@ -123,9 +142,9 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
             }
             mEmptyView.setVisibility(View.GONE);
             if (mIsCoin) {
-                mAdapter.addVideos(userCenter.getCoinArchive().getItem());
+                mAdapter.addVideos(mUserCenter.getCoinArchive().getItem());
             } else {
-                mAdapter.addVideos(userCenter.getArchive().getItem());
+                mAdapter.addVideos(mUserCenter.getArchive().getItem());
             }
             mAdapter.notifyDataSetChanged();
         }

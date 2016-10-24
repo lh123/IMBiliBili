@@ -11,22 +11,25 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.utils.BusUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
+import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.partion.PartionViewPagerAdapter;
 import com.lh.imbilibili.view.adapter.partion.model.PartionModel;
-import com.squareup.otto.Subscribe;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import rx.Subscription;
+import rx.functions.Action1;
 
 /**
  * Created by liuhui on 2016/9/29.
+ * 分区Activity
  */
 
 public class PartitionMoreActivity extends BaseActivity {
@@ -42,8 +45,9 @@ public class PartitionMoreActivity extends BaseActivity {
     @BindView(R.id.viewpager)
     ViewPager mViewPager;
 
-    private List<BaseFragment> mFragments;
     private PartionModel mPartionModel;
+
+    private Subscription mBusSub;
 
     public static void startActivity(Context context, PartionModel partionModel) {
         Intent intent = new Intent(context, PartitionMoreActivity.class);
@@ -64,19 +68,24 @@ public class PartitionMoreActivity extends BaseActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        System.out.println("onStart");
-        BusUtils.getBus().register(this);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(SubPartionClickEvent.class)
+                .subscribe(new Action1<SubPartionClickEvent>() {
+                    @Override
+                    public void call(SubPartionClickEvent subPartionClickEvent) {
+                        mViewPager.setCurrentItem(subPartionClickEvent.position + 1);
+                    }
+                });
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        System.out.println("onStop");
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mBusSub);
     }
 
     private void initView() {
-        mFragments = new ArrayList<>();
+        List<BaseFragment> mFragments = new ArrayList<>();
         mFragments.add(PartionHomeFragment.newInstance(mPartionModel));
         for (int i = 0; i < mPartionModel.getPartions().size(); i++) {
             PartionModel.Partion partion = mPartionModel.getPartions().get(i);
@@ -92,10 +101,5 @@ public class PartitionMoreActivity extends BaseActivity {
                 finish();
             }
         });
-    }
-
-    @Subscribe
-    public void onSubPartionItemClick(PartionHomeFragment.SubPartionClickEvent event) {
-        mViewPager.setCurrentItem(event.position + 1);
     }
 }

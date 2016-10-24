@@ -13,8 +13,6 @@ import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.attention.DynamicVideo;
 import com.lh.imbilibili.model.attention.FollowBangumi;
 import com.lh.imbilibili.model.attention.FollowBangumiResponse;
-import com.lh.imbilibili.model.user.UserResponse;
-import com.lh.imbilibili.utils.BusUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
@@ -26,7 +24,6 @@ import com.lh.imbilibili.view.bangumi.FollowBangumiActivity;
 import com.lh.imbilibili.view.common.LoginActivity;
 import com.lh.imbilibili.view.video.VideoDetailActivity;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
-import com.squareup.otto.Subscribe;
 
 import java.util.List;
 
@@ -63,6 +60,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     private Subscription mAllDataSub;
     private Subscription mDynamicDataSub;
 
+    private boolean mNeedLoadData;
 
     public static AttentionFragment newInstance() {
         return new AttentionFragment();
@@ -73,12 +71,14 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
         ButterKnife.bind(this, view);
         initRecyclerView();
         mCurrentPage = 1;
+        mNeedLoadData = false;
         if (UserManagerUtils.getInstance().getCurrentUser() == null) {
             mBtnLogin.setVisibility(View.VISIBLE);
             mSwipeRefreshLayout.setVisibility(View.GONE);
             mBtnLogin.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    mNeedLoadData = true;
                     LoginActivity.startActivity(getContext());
                 }
             });
@@ -92,13 +92,12 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     @Override
     public void onStart() {
         super.onStart();
-        BusUtils.getBus().register(this);
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        BusUtils.getBus().unregister(this);
+        if (mNeedLoadData && UserManagerUtils.getInstance().getCurrentUser() != null) {
+            mNeedLoadData = false;
+            mBtnLogin.setVisibility(View.GONE);
+            mSwipeRefreshLayout.setVisibility(View.VISIBLE);
+            loadAllData();
+        }
     }
 
     private void initRecyclerView() {
@@ -224,14 +223,6 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
                         }
                     }
                 });
-    }
-
-    @SuppressWarnings("unused")
-    @Subscribe
-    public void onLoginSuccess(UserResponse user) {
-        mBtnLogin.setVisibility(View.GONE);
-        mSwipeRefreshLayout.setVisibility(View.VISIBLE);
-        loadAllData();
     }
 
     @Override

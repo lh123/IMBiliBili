@@ -24,7 +24,9 @@ public class IMBilibiliApplication extends Application {
     public void onCreate() {
         super.onCreate();
         application = this;
-        LeakCanary.install(this);
+        if (LeakCanary.isInAnalyzerProcess(this)) {
+            return;
+        }
         Stetho.initializeWithDefaults(this);
         mHandler = new Handler();
         UserManagerUtils.getInstance().readUserInfo(this);

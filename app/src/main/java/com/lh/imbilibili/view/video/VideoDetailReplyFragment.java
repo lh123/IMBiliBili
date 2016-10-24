@@ -9,13 +9,12 @@ import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.feedback.FeedbackData;
-import com.lh.imbilibili.utils.BusUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.feedbackfragment.FeedbackAdapter;
 import com.lh.imbilibili.view.adapter.feedbackfragment.FeedbackItemDecoration;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
-import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -40,6 +39,8 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
 
     private int mCurrentPage;
     private Subscription mFeedbackSub;
+    private Subscription mBusSub;
+
     private FeedbackAdapter mFeedbackAdapter;
 
     private String mId;
@@ -67,13 +68,30 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
     @Override
     public void onStart() {
         super.onStart();
-        BusUtils.getBus().register(this);
+        mBusSub = RxBus.getInstance()
+                .toObserverable(VideoStateChangeEvent.class)
+                .subscribe(new Action1<VideoStateChangeEvent>() {
+                    @Override
+                    public void call(VideoStateChangeEvent videoStateChangeEvent) {
+                        switch (videoStateChangeEvent.state) {
+                            case VideoStateChangeEvent.STATE_LOAD_FINISH:
+                                mId = videoStateChangeEvent.videoDetail.getAid();
+                                if (mIsFirstLoad) {
+                                    loadFeedbackData();
+                                }
+                                break;
+                            case VideoStateChangeEvent.STATE_PLAY:
+                                mRecyclerView.setNestedScrollingEnabled(false);
+                                break;
+                        }
+                    }
+                });
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        BusUtils.getBus().unregister(this);
+        SubscriptionUtils.unsubscribe(mBusSub);
     }
 
     private void loadFeedbackData() {
@@ -147,20 +165,5 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
     @Override
     public void onLoadMore() {
         loadFeedbackData();
-    }
-
-    @Subscribe
-    public void onVideoDetailLoadFinish(VideoDetailActivity.VideoStateChangeEvent event) {
-        switch (event.state) {
-            case VideoDetailActivity.VideoStateChangeEvent.STATE_LOAD_FINISH:
-                mId = event.videoDetail.getAid();
-                if (mIsFirstLoad) {
-                    loadFeedbackData();
-                }
-                break;
-            case VideoDetailActivity.VideoStateChangeEvent.STATE_PLAY:
-                mRecyclerView.setNestedScrollingEnabled(false);
-                break;
-        }
     }
 }

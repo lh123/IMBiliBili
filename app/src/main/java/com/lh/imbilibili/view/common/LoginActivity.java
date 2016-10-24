@@ -16,8 +16,8 @@ import android.widget.Toast;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.user.UserResponse;
-import com.lh.imbilibili.utils.BusUtils;
 import com.lh.imbilibili.utils.DrawableTintUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
@@ -106,7 +106,7 @@ public class LoginActivity extends BaseActivity implements View.OnFocusChangeLis
                         if (!TextUtils.isEmpty(userResponse.getAccess_key())) {
                             UserManagerUtils.getInstance().saveUserInfo(getApplicationContext(), userResponse);
                             UserManagerUtils.getInstance().readUserInfo(getApplicationContext());
-                            BusUtils.getBus().post(userResponse);
+                            RxBus.getInstance().send(userResponse);
                             finish();
                         } else {
                             ToastUtils.showToast(LoginActivity.this, userResponse.getCode() + "", Toast.LENGTH_SHORT);
