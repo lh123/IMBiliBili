@@ -11,7 +11,7 @@ import android.view.ViewGroup;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.model.bangumi.BangumiDetail;
-import com.lh.imbilibili.view.adapter.feedbackfragment.FeedbackEpAdapter;
+import com.lh.imbilibili.view.adapter.feedback.FeedbackEpAdapter;
 import com.lh.imbilibili.view.feedback.FeedbackFragment;
 
 import java.util.List;

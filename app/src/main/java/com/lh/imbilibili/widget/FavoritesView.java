@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
@@ -27,6 +28,8 @@ public class FavoritesView extends FrameLayout {
     private LinearLayout mBottomImageLayout;
     private ImageView mLeftImage;
     private ImageView mRightImage;
+    private TextView mTvName;
+    private TextView mTvCount;
     private List<UserCenter.Favourite.Video> mVideos;
 
     public FavoritesView(Context context) {
@@ -52,6 +55,8 @@ public class FavoritesView extends FrameLayout {
         mBottomImageLayout = (LinearLayout) layout.findViewById(R.id.image_bottom_layout);
         mLeftImage = (ImageView) layout.findViewById(R.id.image_left);
         mRightImage = (ImageView) layout.findViewById(R.id.image_right);
+        mTvCount = (TextView) layout.findViewById(R.id.count);
+        mTvName = (TextView) layout.findViewById(R.id.name);
         addView(layout);
     }
 
@@ -107,5 +112,10 @@ public class FavoritesView extends FrameLayout {
         } else {
             setEmptyImage();
         }
+    }
+
+    public void setFavoriteInfo(String name, int count) {
+        mTvName.setText(name);
+        mTvCount.setText(String.valueOf(count));
     }
 }

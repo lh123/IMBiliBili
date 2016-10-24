@@ -163,6 +163,7 @@ public class HomeRecyclerViewAdapter extends RecyclerView.Adapter {
                 favViewHolder.itemView.setVisibility(View.VISIBLE);
                 UserCenter.Favourite fav = mUserCenter.getFavourite().getItem().get(relPosition);
                 favViewHolder.mFavoritesView.setImages(fav.getVideos());
+                favViewHolder.mFavoritesView.setFavoriteInfo(fav.getName(), fav.getCurCount());
             } else {
                 favViewHolder.itemView.setVisibility(View.GONE);
             }

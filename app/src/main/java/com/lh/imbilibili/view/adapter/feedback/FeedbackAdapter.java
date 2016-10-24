@@ -1,4 +1,4 @@
-package com.lh.imbilibili.view.adapter.feedbackfragment;
+package com.lh.imbilibili.view.adapter.feedback;
 
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;

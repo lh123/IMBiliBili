@@ -18,8 +18,8 @@ import com.lh.imbilibili.utils.StringUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
-import com.lh.imbilibili.view.adapter.feedbackfragment.FeedbackAdapter;
-import com.lh.imbilibili.view.adapter.feedbackfragment.FeedbackItemDecoration;
+import com.lh.imbilibili.view.adapter.feedback.FeedbackAdapter;
+import com.lh.imbilibili.view.adapter.feedback.FeedbackItemDecoration;
 import com.lh.imbilibili.view.bangumi.EpisodeDialogFragment;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 

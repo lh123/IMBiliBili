@@ -1,4 +1,4 @@
-package com.lh.imbilibili.view.adapter.feedbackfragment;
+package com.lh.imbilibili.view.adapter.feedback;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;

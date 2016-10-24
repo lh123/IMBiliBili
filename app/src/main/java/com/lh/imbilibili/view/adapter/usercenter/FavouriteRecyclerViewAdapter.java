@@ -32,7 +32,9 @@ public class FavouriteRecyclerViewAdapter extends RecyclerView.Adapter<Favourite
 
     @Override
     public void onBindViewHolder(FavViewHolder holder, int position) {
-        holder.mFavoritesView.setImages(mFavourites.get(position).getVideos());
+        UserCenter.Favourite favourite = mFavourites.get(position);
+        holder.mFavoritesView.setImages(favourite.getVideos());
+        holder.mFavoritesView.setFavoriteInfo(favourite.getName(), favourite.getCurCount());
     }
 
     @Override

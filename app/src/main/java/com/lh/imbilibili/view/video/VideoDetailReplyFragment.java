@@ -12,8 +12,8 @@ import com.lh.imbilibili.model.feedback.FeedbackData;
 import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.view.BaseFragment;
-import com.lh.imbilibili.view.adapter.feedbackfragment.FeedbackAdapter;
-import com.lh.imbilibili.view.adapter.feedbackfragment.FeedbackItemDecoration;
+import com.lh.imbilibili.view.adapter.feedback.FeedbackAdapter;
+import com.lh.imbilibili.view.adapter.feedback.FeedbackItemDecoration;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 
 import butterknife.BindView;

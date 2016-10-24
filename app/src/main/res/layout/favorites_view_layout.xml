@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.lh.imbilibili.widget.CardFrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardUseCompatPadding="true">
+    android:background="@drawable/ic_card_border">
 
     <RelativeLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
         <com.lh.imbilibili.widget.ScalableImageView
@@ -25,7 +24,7 @@
             android:layout_alignParentTop="true"
             android:layout_marginBottom="1dp"
             app:aspectRadioHeight="1"
-            app:aspectRadioWidth="2"/>
+            app:aspectRadioWidth="2" />
 
         <com.lh.imbilibili.widget.ScalableImageView
             android:id="@+id/image_bottom"
@@ -35,7 +34,7 @@
             android:layout_marginTop="1dp"
             android:visibility="gone"
             app:aspectRadioHeight="1"
-            app:aspectRadioWidth="2"/>
+            app:aspectRadioWidth="2" />
 
         <LinearLayout
             android:id="@+id/image_bottom_layout"
@@ -52,7 +51,7 @@
                 android:layout_marginRight="1dp"
                 android:layout_weight="1"
                 app:aspectRadioHeight="1"
-                app:aspectRadioWidth="1"/>
+                app:aspectRadioWidth="1" />
 
 
             <com.lh.imbilibili.widget.ScalableImageView
@@ -62,10 +61,35 @@
                 android:layout_marginLeft="1dp"
                 android:layout_weight="1"
                 app:aspectRadioHeight="1"
-                app:aspectRadioWidth="1"/>
+                app:aspectRadioWidth="1" />
 
         </LinearLayout>
 
     </RelativeLayout>
 
-</com.lh.imbilibili.widget.CardFrameLayout>
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/shape_gradient_black"
+        android:padding="@dimen/item_half_spacing">
+
+        <TextView
+            android:id="@+id/count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|right"
+            android:background="@drawable/shape_black_alpha_round_rect"
+            android:padding="@dimen/item_half_spacing"
+            android:textAppearance="@style/TextAppearance.App.Body"
+            android:textColor="@color/white" />
+
+        <TextView
+            android:id="@+id/name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|left"
+            android:textAppearance="@style/TextAppearance.App.Title"
+            android:textColor="@color/white" />
+    </FrameLayout>
+
+</FrameLayout>
