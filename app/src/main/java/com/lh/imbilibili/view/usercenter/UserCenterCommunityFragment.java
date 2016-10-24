@@ -17,7 +17,6 @@ import com.lh.imbilibili.view.adapter.LinearLayoutItemDecoration;
 import com.lh.imbilibili.view.adapter.usercenter.CommunityRecyclerViewAdapter;
 import com.lh.imbilibili.widget.EmptyView;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
-import com.squareup.otto.Subscribe;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -103,7 +102,6 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
         SubscriptionUtils.unsubscribe(mBusSub);
     }
 
-    @Subscribe
     public void initData() {
         if (mUserCenter == null || mIsInitData) {
             return;
