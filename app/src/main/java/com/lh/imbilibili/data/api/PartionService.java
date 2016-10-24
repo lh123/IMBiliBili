@@ -2,8 +2,8 @@ package com.lh.imbilibili.data.api;
 
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.model.BilibiliDataResponse;
-import com.lh.imbilibili.model.PartionHome;
-import com.lh.imbilibili.model.PartionVideo;
+import com.lh.imbilibili.model.partion.PartionHome;
+import com.lh.imbilibili.model.partion.PartionVideo;
 
 import java.util.List;
 

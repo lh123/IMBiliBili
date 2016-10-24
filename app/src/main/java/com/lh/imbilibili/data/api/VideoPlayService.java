@@ -2,8 +2,8 @@ package com.lh.imbilibili.data.api;
 
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.model.BilibiliDataResponse;
-import com.lh.imbilibili.model.VideoDetail;
-import com.lh.imbilibili.model.VideoPlayData;
+import com.lh.imbilibili.model.video.VideoDetail;
+import com.lh.imbilibili.model.video.VideoPlayData;
 
 import retrofit2.http.GET;
 import retrofit2.http.Query;

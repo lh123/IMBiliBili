@@ -8,8 +8,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.model.Feedback;
-import com.lh.imbilibili.model.FeedbackData;
+import com.lh.imbilibili.model.feedback.Feedback;
+import com.lh.imbilibili.model.feedback.FeedbackData;
 import com.lh.imbilibili.utils.StringUtils;
 import com.lh.imbilibili.widget.FeedbackView;
 

@@ -13,7 +13,7 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.model.Feedback;
+import com.lh.imbilibili.model.feedback.Feedback;
 import com.lh.imbilibili.utils.StringUtils;
 import com.lh.imbilibili.utils.transformation.CircleTransformation;
 

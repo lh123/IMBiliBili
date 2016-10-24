@@ -23,7 +23,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".view.activity.SplashActivity"
+            android:name=".view.common.SplashActivity"
             android:screenOrientation="portrait"
             android:theme="@style/FullScreen">
             <intent-filter>
@@ -33,47 +33,47 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".view.activity.MainActivity"
+            android:name=".view.home.MainActivity"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".view.activity.BangumiDetailActivity"
+            android:name=".view.bangumi.BangumiDetailActivity"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".view.activity.WebViewActivity"
+            android:name=".view.common.WebViewActivity"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".view.activity.FeedbackActivity"
+            android:name=".view.feedback.FeedbackActivity"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".view.activity.SeasonGroupActivity"
+            android:name=".view.bangumi.SeasonGroupActivity"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".view.activity.BangumiIndexActivity"
+            android:name=".view.bangumi.BangumiIndexActivity"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".view.activity.PartitionMoreActivity"
+            android:name=".view.partion.PartitionMoreActivity"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".view.activity.SearchActivity"
+            android:name=".view.search.SearchActivity"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".view.activity.LoginActivity"
+            android:name=".view.common.LoginActivity"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize"/>
         <activity
-            android:name=".view.activity.FollowBangumiActivity"
+            android:name=".view.bangumi.FollowBangumiActivity"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".view.activity.UserCenterActivity"
+            android:name=".view.usercenter.UserCenterActivity"
             android:screenOrientation="portrait"/>
 
         <activity
-            android:name=".view.activity.VideoDetailActivity"
+            android:name=".view.video.VideoDetailActivity"
             android:configChanges="keyboardHidden|screenSize|orientation"
             android:screenOrientation="portrait"/>
 
         <activity
-            android:name=".view.activity.VideoPlayActivity"
+            android:name=".view.video.VideoPlayActivity"
             android:configChanges="keyboardHidden|screenSize|orientation"
             android:hardwareAccelerated="true"
             android:screenOrientation="landscape"

@@ -2,7 +2,7 @@ package com.lh.imbilibili.utils;
 
 import android.content.Context;
 
-import com.lh.imbilibili.model.VideoPlayData;
+import com.lh.imbilibili.model.video.VideoPlayData;
 
 import java.io.File;
 import java.io.FileWriter;

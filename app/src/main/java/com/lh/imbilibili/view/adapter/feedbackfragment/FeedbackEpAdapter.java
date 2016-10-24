@@ -8,7 +8,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.model.BangumiDetail;
+import com.lh.imbilibili.model.bangumi.BangumiDetail;
 
 import java.util.List;
 

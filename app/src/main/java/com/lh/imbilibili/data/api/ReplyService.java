@@ -2,8 +2,8 @@ package com.lh.imbilibili.data.api;
 
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.model.BilibiliDataResponse;
-import com.lh.imbilibili.model.FeedbackData;
-import com.lh.imbilibili.model.ReplyCount;
+import com.lh.imbilibili.model.feedback.FeedbackData;
+import com.lh.imbilibili.model.feedback.ReplyCount;
 
 import retrofit2.http.GET;
 import retrofit2.http.Query;

@@ -1,15 +1,15 @@
 package com.lh.imbilibili.data.api;
 
 import com.lh.imbilibili.data.Constant;
-import com.lh.imbilibili.model.BangumiDetail;
-import com.lh.imbilibili.model.BangumiIndex;
-import com.lh.imbilibili.model.BangumiIndexCond;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
-import com.lh.imbilibili.model.IndexBangumiRecommend;
-import com.lh.imbilibili.model.IndexPage;
-import com.lh.imbilibili.model.SeasonGroup;
-import com.lh.imbilibili.model.SeasonRecommend;
-import com.lh.imbilibili.model.SourceData;
+import com.lh.imbilibili.model.bangumi.BangumiDetail;
+import com.lh.imbilibili.model.bangumi.BangumiIndex;
+import com.lh.imbilibili.model.bangumi.BangumiIndexCond;
+import com.lh.imbilibili.model.bangumi.SeasonGroup;
+import com.lh.imbilibili.model.bangumi.SeasonRecommend;
+import com.lh.imbilibili.model.home.IndexBangumiRecommend;
+import com.lh.imbilibili.model.home.IndexPage;
+import com.lh.imbilibili.model.video.SourceData;
 
 import java.util.List;
 
