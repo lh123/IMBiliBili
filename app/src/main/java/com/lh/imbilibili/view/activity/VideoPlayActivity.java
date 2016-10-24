@@ -77,7 +77,6 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     private VideoHandler mHandler;
 
     private boolean mResumePlay = false;
-    private boolean mIsFirstLoadVideo = true;
 
     private int mPrePlayerPosition;
     private int mCurrentQuality = 3;
@@ -247,7 +246,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     protected void onResume() {
         super.onResume();
         if (mResumePlay) {
-            mIjkVideoView.resume();
+            mIjkVideoView.start();
         }
         if (mDanmakuView != null && mDanmakuView.isPrepared() && mDanmakuView.isPaused()) {
             mHandler.removeMessages(MSG_SYNC_AT_TIME);
@@ -274,7 +273,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     protected void onDestroy() {
         super.onDestroy();
         mHandler.removeCallbacksAndMessages(null);
-        mIjkVideoView.release();
+        mIjkVideoView.release(true);
         if (mDanmakuView != null) {
             mDanmakuView.stop();
             mDanmakuView = null;
@@ -342,7 +341,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
         mTvBuffering.setVisibility(View.VISIBLE);
         mProgressBar.setVisibility(View.VISIBLE);
         mDanmakuView.pause();
-        mIjkVideoView.release();
+        mIjkVideoView.release(true);
         preparePlay();
     }
 
@@ -376,11 +375,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
 
     @Override
     public void onPrepared(IMediaPlayer mp) {
-        if (!mIsFirstLoadVideo) {
-            mHandler.removeMessages(MSG_SYNC_NOW);
-            mIjkVideoView.seekTo(mPrePlayerPosition);
-            mHandler.sendEmptyMessage(MSG_SYNC_NOW);
-        }
+        mHandler.removeMessages(MSG_SYNC_NOW);
+        mIjkVideoView.seekTo(mPrePlayerPosition);
+        mHandler.sendEmptyMessage(MSG_SYNC_NOW);
     }
 
     private static class VideoHandler extends Handler {

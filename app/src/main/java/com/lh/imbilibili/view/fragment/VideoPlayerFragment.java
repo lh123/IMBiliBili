@@ -38,15 +38,13 @@ import tv.danmaku.ijk.media.player.IMediaPlayer;
 
 /**
  * Created by liuhui on 2016/10/3.
+ * 视频播放Fragment
  */
 
 public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.OnInfoListener, IMediaPlayer.OnErrorListener, VideoControlView.OnPlayControlListener, IMediaPlayer.OnPreparedListener, VideoControlView.OnMediaControlViewVisibleChangeListener, IMediaPlayer.OnCompletionListener {
 
     private static final int MSG_SYNC_NOW = 1;
     private static final int MSG_SYNC_AT_TIME = 2;
-
-    private static final int DANMAKU_FAIL = 1;
-    private static final int VIDEO_PLAYER_URL_FAIL = 2;
 
     @BindView(R.id.pre_play_msg)
     TextView mPrePlayMsg;
@@ -238,7 +236,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     public void onResume() {
         super.onResume();
         if (mResumePlay) {
-            mIjkVideoView.resume();
+            mIjkVideoView.start();
         }
         if (mDanmakuView != null && mDanmakuView.isPrepared() && mDanmakuView.isPaused()) {
             mHandler.removeMessages(MSG_SYNC_AT_TIME);
@@ -265,7 +263,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     public void onDestroy() {
         super.onDestroy();
         mHandler.removeCallbacksAndMessages(null);
-        mIjkVideoView.release();
+        mIjkVideoView.release(true);
         if (mDanmakuView != null) {
             mDanmakuView.release();
             mDanmakuView = null;
@@ -323,7 +321,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
         mVideoControlView.setVideoTitle(mTitle);
         mTvBuffering.setVisibility(View.VISIBLE);
         mProgressBar.setVisibility(View.VISIBLE);
-        mIjkVideoView.release();
+        mIjkVideoView.release(true);
         preparePlay();
     }
 
