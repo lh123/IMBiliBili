@@ -70,9 +70,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     private VideoHandler mHandler;
     private OnVideoFragmentStateListener mOnVideoFragmentStateListener;
 
-    private boolean mResumePlay = false;
-
-    private int mPrePlayerPosition;
+    private int mLastPlayPosition;
     private int mCurrentQuality = 3;
 
     private StringBuilder mPreMsgBuilder;
@@ -102,6 +100,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
         mAid = getArguments().getString("aid");
         mCid = getArguments().getString("cid");
         mTitle = getArguments().getString("title");
+        mLastPlayPosition = 0;
         initIjkPlayer();
         mVideoControlView.setVideoView(mIjkVideoView);
         mVideoControlView.setFullScreenButtonVisible(true);
@@ -124,6 +123,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
         mIjkVideoView.setOnInfoListener(this);
         mIjkVideoView.setOnErrorListener(this);
         mVideoControlView.setOnPlayControlListener(this);
+        mVideoControlView.setOnMediaControlViewVisibleChangeListener(this);
     }
 
     //加载视频播放所需的所有数据
@@ -224,9 +224,9 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
         mPreMsgBuilder.append("\n开始缓冲...");
         mPrePlayMsg.setText(mPreMsgBuilder);
         mHandler.removeMessages(MSG_SYNC_AT_TIME);
-        if (mPrePlayerPosition != 0) {
-            mIjkVideoView.seekTo(mPrePlayerPosition);
-            mPrePlayerPosition = 0;
+        if (mLastPlayPosition != 0) {
+            mIjkVideoView.seekTo(mLastPlayPosition);
+            mLastPlayPosition = 0;
         }
         mIjkVideoView.start();
         mHandler.sendEmptyMessage(MSG_SYNC_AT_TIME);
@@ -235,7 +235,8 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     @Override
     public void onResume() {
         super.onResume();
-        if (mResumePlay) {
+        if (mLastPlayPosition != 0 && !mIjkVideoView.isPlaying()) {
+            mIjkVideoView.seekTo(mLastPlayPosition);
             mIjkVideoView.start();
         }
         if (mDanmakuView != null && mDanmakuView.isPrepared() && mDanmakuView.isPaused()) {
@@ -249,7 +250,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     public void onPause() {
         super.onPause();
         if (mIjkVideoView.isPlaying()) {
-            mResumePlay = true;
+            mLastPlayPosition = mIjkVideoView.getCurrentPosition();
             mIjkVideoView.pause();
         }
         if (mDanmakuView != null && mDanmakuView.isPrepared() && mDanmakuView.isPaused()) {
@@ -308,7 +309,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     @Override
     public void onQualitySelect(int quality) {
         mCurrentQuality = quality;
-        mPrePlayerPosition = mIjkVideoView.getCurrentPosition();
+        mLastPlayPosition = mIjkVideoView.getCurrentPosition();
         mTvBuffering.setVisibility(View.VISIBLE);
         mProgressBar.setVisibility(View.VISIBLE);
         mDanmakuView.pause();
@@ -358,7 +359,6 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     @Override
     public void onPrepared(IMediaPlayer mp) {
         mHandler.removeMessages(MSG_SYNC_NOW);
-        mIjkVideoView.seekTo(mPrePlayerPosition);
         mHandler.sendEmptyMessage(MSG_SYNC_NOW);
     }
 

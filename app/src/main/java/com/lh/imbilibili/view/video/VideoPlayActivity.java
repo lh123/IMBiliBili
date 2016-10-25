@@ -45,14 +45,12 @@ import tv.danmaku.ijk.media.player.IMediaPlayer;
 
 /**
  * Created by home on 2016/8/3.
+ * 视频播放界面
  */
 public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnInfoListener, IMediaPlayer.OnErrorListener, VideoControlView.OnPlayControlListener, IMediaPlayer.OnPreparedListener {
 
     private static final int MSG_SYNC_NOW = 1;
     private static final int MSG_SYNC_AT_TIME = 2;
-
-    private static final String DANMAKU_ERROR = "DanmakuError";
-    private static final String VIDEO_URL_ERROR = "VideoURLError";
 
     @BindView(R.id.pre_play_msg)
     TextView mPrePlayMsg;
@@ -76,9 +74,8 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
 
     private VideoHandler mHandler;
 
-    private boolean mResumePlay = false;
+    private int mLastPlayPosition;
 
-    private int mPrePlayerPosition;
     private int mCurrentQuality = 3;
     private long firstBackPressTime = -1;
 
@@ -86,6 +83,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
 
     private boolean mIsVideoUrlSuccess;
     private boolean mIsDanmakuSuccess;
+
 
     public static void startVideoActivity(Context context, String aid, String cid, String title) {
         Intent intent = new Intent(context, VideoPlayActivity.class);
@@ -106,6 +104,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
         mCid = getIntent().getStringExtra("cid");
         mTitle = getIntent().getStringExtra("title");
         mPreMsgBuilder = new StringBuilder();
+        mLastPlayPosition = 0;
         initIjkPlayer();
         mVideoControlView.setVideoView(mIjkVideoView);
         preparePlay();
@@ -209,7 +208,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                         if (videoPlayData.getDurl() != null && !videoPlayData.getDurl().isEmpty()) {
                             return VideoUtils.concatVideo(getApplicationContext(), videoPlayData.getDurl());
                         } else {
-                            return Observable.just(DANMAKU_ERROR);
+                            return Observable.error(new ApiException(-1));
                         }
                     }
                 })
@@ -234,9 +233,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
         mPreMsgBuilder.append("\n开始缓冲...");
         mPrePlayMsg.setText(mPreMsgBuilder);
         mHandler.removeMessages(MSG_SYNC_AT_TIME);
-        if (mPrePlayerPosition != 0) {
-            mIjkVideoView.seekTo(mPrePlayerPosition);
-            mPrePlayerPosition = 0;
+        if (mLastPlayPosition != 0) {
+            mIjkVideoView.seekTo(mLastPlayPosition);
+            mLastPlayPosition = 0;
         }
         mIjkVideoView.start();
         mHandler.sendEmptyMessage(MSG_SYNC_AT_TIME);
@@ -245,12 +244,13 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     @Override
     protected void onResume() {
         super.onResume();
-        if (mResumePlay) {
+        if (mLastPlayPosition != 0 && !mIjkVideoView.isPlaying()) {
+            mIjkVideoView.seekTo(mLastPlayPosition);
             mIjkVideoView.start();
         }
         if (mDanmakuView != null && mDanmakuView.isPrepared() && mDanmakuView.isPaused()) {
             mHandler.removeMessages(MSG_SYNC_AT_TIME);
-            mDanmakuView.resume();
+//            mDanmakuView.resume();
             mHandler.sendEmptyMessage(MSG_SYNC_AT_TIME);
         }
     }
@@ -259,7 +259,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     protected void onPause() {
         super.onPause();
         if (mIjkVideoView.isPlaying()) {
-            mResumePlay = true;
+            mLastPlayPosition = mIjkVideoView.getCurrentPosition();
             mIjkVideoView.pause();
         }
         if (mDanmakuView != null && mDanmakuView.isPrepared() && mDanmakuView.isPaused()) {
@@ -337,7 +337,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     @Override
     public void onQualitySelect(int quality) {
         mCurrentQuality = quality;
-        mPrePlayerPosition = mIjkVideoView.getCurrentPosition();
+        mLastPlayPosition = mIjkVideoView.getCurrentPosition();
         mTvBuffering.setVisibility(View.VISIBLE);
         mProgressBar.setVisibility(View.VISIBLE);
         mDanmakuView.pause();
@@ -376,7 +376,6 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     @Override
     public void onPrepared(IMediaPlayer mp) {
         mHandler.removeMessages(MSG_SYNC_NOW);
-        mIjkVideoView.seekTo(mPrePlayerPosition);
         mHandler.sendEmptyMessage(MSG_SYNC_NOW);
     }
 

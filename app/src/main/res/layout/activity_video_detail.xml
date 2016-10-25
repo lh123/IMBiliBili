@@ -19,8 +19,7 @@
         android:id="@+id/app_bar_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        app:layout_behavior="com.lh.imbilibili.utils.DisableableAppBarLayoutBehavior">
+        android:background="@android:color/transparent">
 
         <android.support.design.widget.CollapsingToolbarLayout
             android:id="@+id/collapsing_toolbar_layout"

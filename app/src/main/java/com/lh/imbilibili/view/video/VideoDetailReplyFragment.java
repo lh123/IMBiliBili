@@ -81,7 +81,7 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
                                 }
                                 break;
                             case VideoStateChangeEvent.STATE_PLAY:
-                                mRecyclerView.setNestedScrollingEnabled(false);
+//                                mRecyclerView.setNestedScrollingEnabled(false);
                                 break;
                         }
                     }

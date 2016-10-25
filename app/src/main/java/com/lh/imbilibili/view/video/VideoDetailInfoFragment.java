@@ -97,7 +97,8 @@ public class VideoDetailInfoFragment extends BaseFragment implements FlowLayout.
                                 bindViewWithData();
                                 break;
                             case VideoStateChangeEvent.STATE_PLAY:
-                                mScrollView.setNestedScrollingEnabled(false);
+//                                System.out.println("setNestedScrollingEnabled:false");
+//                                mScrollView.setNestedScrollingEnabled(false);
                                 break;
                         }
                     }

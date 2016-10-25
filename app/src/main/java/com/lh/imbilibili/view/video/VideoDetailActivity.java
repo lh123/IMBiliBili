@@ -28,7 +28,6 @@ import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.video.VideoDetail;
-import com.lh.imbilibili.utils.DisableableAppBarLayoutBehavior;
 import com.lh.imbilibili.utils.HistoryUtils;
 import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
@@ -247,20 +246,8 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
         mPreViewLayout.setVisibility(View.INVISIBLE);
         mToolbar.setVisibility(View.INVISIBLE);
         RxBus.getInstance().send(new VideoStateChangeEvent(VideoStateChangeEvent.STATE_PLAY, mVideoDetail));
-        CoordinatorLayout.LayoutParams params = (CoordinatorLayout.LayoutParams) mAppBarLayout.getLayoutParams();
-        DisableableAppBarLayoutBehavior behavior = (DisableableAppBarLayoutBehavior) params.getBehavior();
-        if (behavior != null) {
-            behavior.setEnableScroll(false);
-        }
-        mViewPager.post(new Runnable() {
-            @Override
-            public void run() {
-                CoordinatorLayout.LayoutParams vparams = (CoordinatorLayout.LayoutParams) mViewPager.getLayoutParams();
-                vparams.setBehavior(null);
-                vparams.topMargin = mAppBarLayout.getHeight();
-                mViewPager.setLayoutParams(vparams);
-            }
-        });
+        AppBarLayout.LayoutParams params = (AppBarLayout.LayoutParams) mCollapsingToolbarLayout.getLayoutParams();
+        params.setScrollFlags(0);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             mVideoContainer.setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN);
         }

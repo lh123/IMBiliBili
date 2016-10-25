@@ -136,6 +136,7 @@ public class VideoPlayerView extends FrameLayout implements MediaPlayerControl {
         try {
             mMediaPlayer.setDataSource(mUri.toString());
             mMediaPlayer.prepareAsync();
+            mCurrentState = STATE_PREPARING;
         } catch (IOException | IllegalArgumentException ex) {
             mCurrentState = STATE_ERROR;
             mTargetState = STATE_ERROR;
