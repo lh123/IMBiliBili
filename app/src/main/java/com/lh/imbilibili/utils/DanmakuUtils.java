@@ -1,6 +1,5 @@
 package com.lh.imbilibili.utils;
 
-import com.lh.imbilibili.IMBilibiliApplication;
 import com.lh.imbilibili.data.Constant;
 
 import java.io.ByteArrayInputStream;
@@ -38,7 +37,11 @@ public class DanmakuUtils {
                 try {
                     Response response = call.execute();
                     ByteArrayInputStream inputStream = new ByteArrayInputStream(CompressUtils.decompressXML(response.body().bytes()));
-                    final File file = StorageUtils.getAppCache(IMBilibiliApplication.getApplication(), "danmaku.xml");
+                    String path = StorageUtils.getAppCachePath();
+                    File file = new File(path, "danmaku.xml");
+                    if (!file.getParentFile().exists()) {
+                        file.getParentFile().mkdirs();
+                    }
                     FileOutputStream fileOutputStream;
                     fileOutputStream = new FileOutputStream(file, false);
                     byte[] bytes = new byte[2048];

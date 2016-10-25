@@ -36,10 +36,10 @@ public class FileUtils {
         }
     }
 
-    public static void writeToFile(File file, String content) {
+    public static void writeToFile(File file, String content, boolean append) {
         FileWriter fileWriter = null;
         try {
-            fileWriter = new FileWriter(file, false);
+            fileWriter = new FileWriter(file, append);
             fileWriter.write(content);
             fileWriter.flush();
         } catch (IOException e) {

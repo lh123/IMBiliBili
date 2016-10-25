@@ -33,7 +33,7 @@ public class VideoUtils {
                         stringBuilder.append(durls.get(i).getLength() / 1000);
                         stringBuilder.append("\n");
                     }
-                    File file = StorageUtils.getAppCache(context, "video.cancat");
+                    File file = new File(StorageUtils.getAppCachePath(), "video.cancat");
                     FileWriter fileWriter = null;
                     try {
                         fileWriter = new FileWriter(file);

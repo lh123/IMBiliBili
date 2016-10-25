@@ -5,12 +5,14 @@ import android.support.v7.widget.GridLayoutManager;
 import android.view.View;
 import android.widget.Toast;
 
+import com.google.gson.reflect.TypeToken;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.home.IndexBangumiRecommend;
 import com.lh.imbilibili.model.home.IndexPage;
+import com.lh.imbilibili.utils.CacheTransformer;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
@@ -54,6 +56,7 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
     private BangumiAdapter adapter;
 
     private String mCursor;
+    private boolean mNeedForeRefresh;
 
     private Subscription mAllDataSub;
     private Subscription mRecommendSub;
@@ -70,40 +73,49 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
     @Override
     protected void initView(View view) {
         ButterKnife.bind(this, view);
+        mNeedForeRefresh = false;
         initRecyclerView();
         loadAllData();
     }
 
     private void loadAllData() {
         mCursor = "-1";
-        mAllDataSub = Observable.merge(loadIndexData(), loadBangumiRecommendData(mCursor, PAGE_SIZE))
+        mAllDataSub = Observable.mergeDelayError(loadIndexData(), loadBangumiRecommendData(mCursor, PAGE_SIZE))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Subscriber<Object>() {
                     @Override
                     public void onCompleted() {
-                        swipeRefreshLayout.setRefreshing(false);
-                        if (mIndexData != null) {
-                            Collections.sort(mIndexData.getSerializing());
-                            adapter.setmIndexPage(mIndexData);
-                        }
-                        if (mBangumiRecommends != null) {
-                            adapter.clearRecommend();
-                            adapter.addBangumis(mBangumiRecommends);
-                        }
-                        adapter.notifyDataSetChanged();
+                        finishTask();
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        swipeRefreshLayout.setRefreshing(false);
+                        finishTask();
                         ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
                     }
 
                     @Override
                     public void onNext(Object o) {
+
                     }
                 });
+    }
+
+    private void finishTask() {
+        swipeRefreshLayout.setRefreshing(false);
+        mNeedForeRefresh = false;
+        if (mIndexData != null) {
+            Collections.sort(mIndexData.getSerializing());
+            adapter.setmIndexPage(mIndexData);
+        }
+        if (mBangumiRecommends != null) {
+            adapter.clearRecommend();
+            adapter.addBangumis(mBangumiRecommends);
+        }
+        if (mIndexData != null || mBangumiRecommends != null) {
+            adapter.notifyDataSetChanged();
+        }
     }
 
     private void initRecyclerView() {
@@ -140,13 +152,14 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
         return RetrofitHelper.getInstance()
                 .getBangumiService()
                 .getIndexPage(System.currentTimeMillis())
-                .subscribeOn(Schedulers.io())
+                .compose(new CacheTransformer<BiliBiliResultResponse<IndexPage>>("index_page", new TypeToken<BiliBiliResultResponse<IndexPage>>() {
+                }.getType(), mNeedForeRefresh))
                 .flatMap(new Func1<BiliBiliResultResponse<IndexPage>, Observable<IndexPage>>() {
                     @Override
                     public Observable<IndexPage> call(BiliBiliResultResponse<IndexPage> indexPageBiliBiliResultResponse) {
                         if (indexPageBiliBiliResultResponse.isSuccess()) {
                             mIndexData = indexPageBiliBiliResultResponse.getResult();
-                            return Observable.just(indexPageBiliBiliResultResponse.getResult());
+                            return Observable.just(mIndexData);
                         } else {
                             return Observable.error(new ApiException(indexPageBiliBiliResultResponse.getCode()));
                         }
@@ -180,6 +193,7 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
     public void onRefresh() {
         recyclerView.setEnableLoadMore(true);
         recyclerView.setLoadView(R.string.loading, true);
+        mNeedForeRefresh = true;
         loadAllData();
     }
 

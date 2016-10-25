@@ -1,7 +1,6 @@
 package com.lh.imbilibili.data;
 
 import com.facebook.stetho.okhttp3.StethoInterceptor;
-import com.lh.imbilibili.IMBilibiliApplication;
 import com.lh.imbilibili.data.api.AttentionService;
 import com.lh.imbilibili.data.api.BangumiService;
 import com.lh.imbilibili.data.api.HistoryService;
@@ -14,6 +13,7 @@ import com.lh.imbilibili.data.api.UserService;
 import com.lh.imbilibili.data.api.VideoPlayService;
 import com.lh.imbilibili.utils.StorageUtils;
 
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Cache;
@@ -47,7 +47,8 @@ public class RetrofitHelper {
     private RetrofitHelper() {
         HttpLoggingInterceptor logi = new HttpLoggingInterceptor();
         logi.setLevel(HttpLoggingInterceptor.Level.BODY);
-        Cache cache = new Cache(StorageUtils.getAppCache(IMBilibiliApplication.getApplication(), "okhttp"), 1024 * 1024 * 100);
+        String path = StorageUtils.getAppCachePath();
+        Cache cache = new Cache(new File(path, "okhttp"), 1024 * 1024 * 100);
         OkHttpClient signClient = new OkHttpClient.Builder().writeTimeout(3000, TimeUnit.MILLISECONDS)
                 .readTimeout(3000, TimeUnit.MILLISECONDS)
                 .connectTimeout(3000, TimeUnit.MILLISECONDS)

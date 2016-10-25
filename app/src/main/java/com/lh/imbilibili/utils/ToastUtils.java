@@ -4,6 +4,8 @@ import android.content.Context;
 import android.support.annotation.StringRes;
 import android.widget.Toast;
 
+import com.lh.imbilibili.IMBilibiliApplication;
+
 import java.lang.ref.WeakReference;
 
 /**
@@ -30,5 +32,13 @@ public class ToastUtils {
             toast.get().setDuration(duration);
         }
         toast.get().show();
+    }
+
+    public static void showToastShort(String msg) {
+        showToast(IMBilibiliApplication.getApplication().getApplicationContext(), msg, Toast.LENGTH_SHORT);
+    }
+
+    public static void showToastShort(@StringRes int resId) {
+        showToast(IMBilibiliApplication.getApplication().getApplicationContext(), resId, Toast.LENGTH_SHORT);
     }
 }

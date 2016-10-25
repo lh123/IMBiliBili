@@ -6,6 +6,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.google.gson.reflect.TypeToken;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
@@ -13,6 +14,7 @@ import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.attention.DynamicVideo;
 import com.lh.imbilibili.model.attention.FollowBangumi;
 import com.lh.imbilibili.model.attention.FollowBangumiResponse;
+import com.lh.imbilibili.utils.CacheTransformer;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
@@ -131,29 +133,18 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     }
 
     private void loadAllData() {
-        mAllDataSub = Observable.merge(loadAttentionBangumiData(), loadDynamicVideoData())
+        mAllDataSub = Observable.mergeDelayError(loadAttentionBangumiData(), loadDynamicVideoData())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Subscriber<Object>() {
                     @Override
                     public void onCompleted() {
-                        System.out.println("onCompleted");
-                        mSwipeRefreshLayout.setRefreshing(false);
-                        if (mFollowBangumis != null) {
-                            mSwipeRefreshLayout.setRefreshing(false);
-                            mAdapter.setFollowBangumiData(mFollowBangumis);
-                        }
-                        if (mDynamicVideo != null) {
-                            mAdapter.clearFeeds();
-                            mAdapter.addFeeds(mDynamicVideo.getFeeds());
-                            mCurrentPage++;
-                        }
-                        mAdapter.notifyDataSetChanged();
+                        finishTask();
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        mSwipeRefreshLayout.setRefreshing(false);
+                        finishTask();
                         ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
                     }
 
@@ -161,6 +152,22 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
                     public void onNext(Object o) {
                     }
                 });
+    }
+
+    private void finishTask() {
+        mSwipeRefreshLayout.setRefreshing(false);
+        if (mFollowBangumis != null) {
+            mSwipeRefreshLayout.setRefreshing(false);
+            mAdapter.setFollowBangumiData(mFollowBangumis);
+        }
+        if (mDynamicVideo != null) {
+            mAdapter.clearFeeds();
+            mAdapter.addFeeds(mDynamicVideo.getFeeds());
+            mCurrentPage++;
+        }
+        if (mFollowBangumis != null || mDynamicVideo != null) {
+            mAdapter.notifyDataSetChanged();
+        }
     }
 
     private void loadDynamicData() {
@@ -194,7 +201,8 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
         return RetrofitHelper.getInstance()
                 .getAttentionService()
                 .getFollowBangumi(UserManagerUtils.getInstance().getCurrentUser().getMid(), System.currentTimeMillis())
-                .subscribeOn(Schedulers.io())
+                .compose(new CacheTransformer<FollowBangumiResponse<List<FollowBangumi>>>("follow_bangumi", new TypeToken<FollowBangumiResponse<List<FollowBangumi>>>() {
+                }.getType()))
                 .flatMap(new Func1<FollowBangumiResponse<List<FollowBangumi>>, Observable<List<FollowBangumi>>>() {
                     @Override
                     public Observable<List<FollowBangumi>> call(FollowBangumiResponse<List<FollowBangumi>> listFollowBangumiResponse) {

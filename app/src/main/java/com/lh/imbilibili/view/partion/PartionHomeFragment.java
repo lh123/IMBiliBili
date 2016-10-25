@@ -6,12 +6,14 @@ import android.support.v7.widget.GridLayoutManager;
 import android.view.View;
 import android.widget.Toast;
 
+import com.google.gson.reflect.TypeToken;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.partion.PartionHome;
 import com.lh.imbilibili.model.partion.PartionVideo;
+import com.lh.imbilibili.utils.CacheTransformer;
 import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
@@ -57,6 +59,7 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
     private Subscription mPartionLoadMoreSub;
 
     private int mCurrentPage = 1;
+    private boolean mNeedForeRefresh;
 
     public static PartionHomeFragment newInstance(PartionModel partionModel) {
         PartionHomeFragment fragment = new PartionHomeFragment();
@@ -71,6 +74,7 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
         mPartionModel = getArguments().getParcelable(EXTRA_DATA);
         ButterKnife.bind(this, view);
         mCurrentPage = 1;
+        mNeedForeRefresh = false;
         initRecyclerView();
         mSwipeRefreshLayout.setOnRefreshListener(this);
     }
@@ -81,10 +85,11 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
     }
 
     private void loadAllData() {
-        mPartionAllDataSub = Observable.merge(RetrofitHelper.getInstance()
+        mPartionAllDataSub = Observable.mergeDelayError(RetrofitHelper.getInstance()
                 .getPartionService()
                 .getPartionInfo(mPartionModel.getId(), "*")
-                .subscribeOn(Schedulers.io())
+                .compose(new CacheTransformer<BilibiliDataResponse<PartionHome>>("home_" + mPartionModel.getId(), new TypeToken<BilibiliDataResponse<PartionHome>>() {
+                }.getType(), mNeedForeRefresh))
                 .flatMap(new Func1<BilibiliDataResponse<PartionHome>, Observable<PartionHome>>() {
                     @Override
                     public Observable<PartionHome> call(BilibiliDataResponse<PartionHome> partionHomeBilibiliDataResponse) {
@@ -101,21 +106,12 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
                 .subscribe(new Subscriber<Object>() {
                     @Override
                     public void onCompleted() {
-                        mSwipeRefreshLayout.setRefreshing(false);
-                        if (mPartionHomeData != null) {
-                            mAdapter.setPartionData(mPartionHomeData);
-                        }
-                        if (mPartionVideos != null) {
-                            mAdapter.clearDynamicVideo();
-                            mAdapter.addDynamicVideo(mPartionVideos);
-                            mCurrentPage++;
-                        }
-                        mAdapter.notifyDataSetChanged();
+                        finishTask();
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        mSwipeRefreshLayout.setRefreshing(false);
+                        finishTask();
                         ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
                     }
 
@@ -127,11 +123,25 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
 
     }
 
+    private void finishTask() {
+        mSwipeRefreshLayout.setRefreshing(false);
+        if (mPartionHomeData != null) {
+            mAdapter.setPartionData(mPartionHomeData);
+        }
+        if (mPartionVideos != null) {
+            mAdapter.clearDynamicVideo();
+            mAdapter.addDynamicVideo(mPartionVideos);
+            mCurrentPage++;
+        }
+        if (mPartionHomeData != null || mPartionVideos != null) {
+            mAdapter.notifyDataSetChanged();
+        }
+    }
+
     private Observable<List<PartionVideo>> loadDynamicData() {
         return RetrofitHelper.getInstance()
                 .getPartionService()
                 .getPartionDynamic(mPartionModel.getId(), mCurrentPage, PAGE_SIZE)
-                .subscribeOn(Schedulers.io())
                 .flatMap(new Func1<BilibiliDataResponse<List<PartionVideo>>, Observable<List<PartionVideo>>>() {
                     @Override
                     public Observable<List<PartionVideo>> call(BilibiliDataResponse<List<PartionVideo>> listBilibiliDataResponse) {
@@ -215,6 +225,7 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
         mCurrentPage = 1;
         mRecyclerView.setEnableLoadMore(true);
         mRecyclerView.setLoadView(R.string.loading, true);
+        mNeedForeRefresh = true;
         loadAllData();
     }
 

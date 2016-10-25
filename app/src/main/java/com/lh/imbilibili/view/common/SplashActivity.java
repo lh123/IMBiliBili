@@ -12,15 +12,11 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.IMBilibiliApplication;
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.home.Splash;
 import com.lh.imbilibili.utils.DisplayUtils;
-import com.lh.imbilibili.utils.StorageUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.home.MainActivity;
-
-import java.io.File;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -58,7 +54,7 @@ public class SplashActivity extends BaseActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         int width = DisplayUtils.getWindowsWith(this);
         int height = DisplayUtils.getWindowsHeight(this);
-        final File splashFile = StorageUtils.getAppFile(this, Constant.SPLASH_FILE);
+//        final File splashFile = StorageUtils.getAppFile(this, Constant.SPLASH_FILE);
         setDefaultSplash();
         IMBilibiliApplication.getApplication().getHandler().postDelayed(new Runnable() {
             @Override
