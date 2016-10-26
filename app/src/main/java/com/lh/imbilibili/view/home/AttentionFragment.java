@@ -62,6 +62,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     private Subscription mDynamicDataSub;
 
     private boolean mNeedLoadData;
+    private boolean mNeedForceFresh;
 
     public static AttentionFragment newInstance() {
         return new AttentionFragment();
@@ -73,6 +74,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
         initRecyclerView();
         mCurrentPage = 1;
         mNeedLoadData = false;
+        mNeedForceFresh = false;
         if (UserManagerUtils.getInstance().getCurrentUser() == null) {
             mBtnLogin.setVisibility(View.VISIBLE);
             mSwipeRefreshLayout.setVisibility(View.GONE);
@@ -156,6 +158,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     }
 
     private void finishTask() {
+        mNeedForceFresh = false;
         mSwipeRefreshLayout.setRefreshing(false);
         if (mFollowBangumis != null) {
             mSwipeRefreshLayout.setRefreshing(false);
@@ -193,6 +196,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
                     @Override
                     public void call(Throwable throwable) {
                         mRecyclerView.setLoading(false);
+                        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
                         ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
                     }
                 });
@@ -202,7 +206,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
         return RetrofitHelper.getInstance()
                 .getAttentionService()
                 .getFollowBangumi(UserManagerUtils.getInstance().getCurrentUser().getMid(), System.currentTimeMillis())
-                .compose(new CacheTransformer<FollowBangumiResponse<List<FollowBangumi>>>("follow_bangumi") {
+                .compose(new CacheTransformer<FollowBangumiResponse<List<FollowBangumi>>>("follow_bangumi", mNeedForceFresh) {
                 })
                 .flatMap(new Func1<FollowBangumiResponse<List<FollowBangumi>>, Observable<List<FollowBangumi>>>() {
                     @Override
@@ -221,6 +225,12 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
         return RetrofitHelper.getInstance()
                 .getAttentionService()
                 .getDynamicVideo(mCurrentPage, PAGE_SIZE, 0)
+                .compose(new CacheTransformer<BilibiliDataResponse<DynamicVideo>>("attention_dynamic") {
+                    @Override
+                    protected boolean canCache() {
+                        return mCurrentPage == 1;
+                    }
+                })
                 .flatMap(new Func1<BilibiliDataResponse<DynamicVideo>, Observable<DynamicVideo>>() {
                     @Override
                     public Observable<DynamicVideo> call(BilibiliDataResponse<DynamicVideo> dynamicVideoBilibiliDataResponse) {
@@ -253,6 +263,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     @Override
     public void onRefresh() {
         mCurrentPage = 1;
+        mNeedForceFresh = true;
         mRecyclerView.setEnableLoadMore(true);
         mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_REFRESHING);
         loadAllData();

@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
@@ -19,10 +20,13 @@ import com.lh.imbilibili.view.LazyLoadFragment;
 import com.lh.imbilibili.view.adapter.partion.PartionHomeRecyclerViewAdapter;
 import com.lh.imbilibili.view.adapter.partion.PartionItemDecoration;
 import com.lh.imbilibili.view.adapter.partion.model.PartionModel;
+import com.lh.imbilibili.view.common.WebViewActivity;
 import com.lh.imbilibili.view.video.VideoDetailActivity;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -86,7 +90,8 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
         mPartionAllDataSub = Observable.mergeDelayError(RetrofitHelper.getInstance()
                 .getPartionService()
                 .getPartionInfo(mPartionModel.getId(), "*")
-//                .compose(new CacheTransformer<BilibiliDataResponse<PartionHome>>("home_" + mPartionModel.getId(), mNeedForeRefresh))
+                .compose(new CacheTransformer<BilibiliDataResponse<PartionHome>>("partion_home_" + mPartionModel.getId(), mNeedForeRefresh) {
+                })
                 .flatMap(new Func1<BilibiliDataResponse<PartionHome>, Observable<PartionHome>>() {
                     @Override
                     public Observable<PartionHome> call(BilibiliDataResponse<PartionHome> partionHomeBilibiliDataResponse) {
@@ -141,6 +146,12 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
         return RetrofitHelper.getInstance()
                 .getPartionService()
                 .getPartionDynamic(mPartionModel.getId(), mCurrentPage, PAGE_SIZE)
+                .compose(new CacheTransformer<BilibiliDataResponse<List<PartionVideo>>>("partion_home_dynamic" + mPartionModel.getId(), mNeedForeRefresh) {
+                    @Override
+                    protected boolean canCache() {
+                        return mCurrentPage == 1;
+                    }
+                })
                 .flatMap(new Func1<BilibiliDataResponse<List<PartionVideo>>, Observable<List<PartionVideo>>>() {
                     @Override
                     public Observable<List<PartionVideo>> call(BilibiliDataResponse<List<PartionVideo>> listBilibiliDataResponse) {
@@ -214,6 +225,7 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
                     @Override
                     public void call(Throwable throwable) {
                         mRecyclerView.setLoading(false);
+                        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
                         ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
                     }
                 });
@@ -232,6 +244,17 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
     public void onDestroy() {
         super.onDestroy();
         SubscriptionUtils.unsubscribe(mPartionAllDataSub, mPartionLoadMoreSub);
+    }
+
+    @Override
+    public void onBannerClick(String uri) {
+        Pattern p = Pattern.compile("av(\\d+)");
+        Matcher m = p.matcher(uri);
+        if (m.find()) {
+            VideoDetailActivity.startActivity(getContext(), m.group(1));
+        } else {
+            WebViewActivity.startActivity(getContext(), uri);
+        }
     }
 
     @Override

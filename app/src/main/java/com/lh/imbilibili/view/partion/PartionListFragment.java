@@ -6,6 +6,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
@@ -108,6 +109,12 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
         return RetrofitHelper.getInstance()
                 .getPartionService()
                 .getPartionChildList(mPartion.getId(), mCurrentPage, PAGE_SIZE, "senddate")
+                .compose(new CacheTransformer<BilibiliDataResponse<List<PartionVideo>>>("partion_child_new_" + mPartion.getId()) {
+                    @Override
+                    protected boolean canCache() {
+                        return mCurrentPage == 1;
+                    }
+                })
                 .subscribeOn(Schedulers.io())
                 .flatMap(new Func1<BilibiliDataResponse<List<PartionVideo>>, Observable<List<PartionVideo>>>() {
                     @Override
@@ -123,9 +130,11 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
     }
 
     private void loadData() {
-        mPartionAllDataCall = Observable.merge(RetrofitHelper.getInstance()
+        mPartionAllDataCall = Observable.mergeDelayError(RetrofitHelper.getInstance()
                 .getPartionService()
                 .getPartionChild(mPartion.getId(), "*")
+                .compose(new CacheTransformer<BilibiliDataResponse<PartionHome>>("partion_child_hot_" + mPartion.getId()) {
+                })
                 .subscribeOn(Schedulers.io())
                 .flatMap(new Func1<BilibiliDataResponse<PartionHome>, Observable<PartionHome>>() {
                     @Override
@@ -143,17 +152,13 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
                 .subscribe(new Subscriber<Object>() {
                     @Override
                     public void onCompleted() {
-                        if (mPartionHome != null) {
-                            mAdapter.setPartionHomeData(mPartionHome);
-                        }
-                        if (mPartionVideos != null) {
-                            mAdapter.addNewVideos(mPartionVideos);
-                        }
-                        mAdapter.notifyDataSetChanged();
+                        finishTask();
                     }
 
                     @Override
                     public void onError(Throwable e) {
+                        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
+                        finishTask();
                         ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
                     }
 
@@ -161,6 +166,19 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
                     public void onNext(Object o) {
                     }
                 });
+    }
+
+    private void finishTask() {
+        if (mPartionHome != null) {
+            mAdapter.setPartionHomeData(mPartionHome);
+        }
+        if (mPartionVideos != null) {
+            mCurrentPage++;
+            mAdapter.addNewVideos(mPartionVideos);
+        }
+        if (mPartionHome != null || mPartionVideos != null) {
+            mAdapter.notifyDataSetChanged();
+        }
     }
 
     @Override
@@ -185,6 +203,7 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
                     @Override
                     public void call(Throwable throwable) {
                         mRecyclerView.setLoading(false);
+                        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
                         ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
                     }
                 });

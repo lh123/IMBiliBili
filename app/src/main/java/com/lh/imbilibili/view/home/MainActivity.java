@@ -14,6 +14,7 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.user.UserDetailInfo;
@@ -39,6 +40,9 @@ import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 public class MainActivity extends BaseActivity implements IDrawerLayoutActivity, View.OnClickListener {
+
+    private static final int USER_DATAIL_CACHE_TIME = 24 * 60 * 60 * 1000;
+    private static final String USER_DETAIL_CACHE_NAME = "user_detail";
 
     @BindView(R.id.drawer_layout)
     DrawerLayout mDrawerLayout;
@@ -165,6 +169,8 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
         mUserInfoSub = RetrofitHelper.getInstance()
                 .getUserService()
                 .getUserDetailInfo()
+                .compose(new CacheTransformer<UserDetailInfo>(USER_DETAIL_CACHE_NAME, USER_DATAIL_CACHE_TIME, false) {
+                })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .map(new Func1<UserDetailInfo, UserDetailInfo>() {

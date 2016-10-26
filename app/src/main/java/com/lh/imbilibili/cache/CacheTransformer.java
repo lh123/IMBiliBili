@@ -25,20 +25,20 @@ public abstract class CacheTransformer<T> implements Observable.Transformer<T, T
     }
 
     public CacheTransformer(String cacheKey, boolean foreRefresh) {
-        mCacheKey = cacheKey;
-        mExpireTime = EXPIRE_TIME;
-        mForeRefresh = foreRefresh;
+        this(cacheKey, EXPIRE_TIME, foreRefresh);
     }
 
     public CacheTransformer(String cacheKey) {
-        mCacheKey = cacheKey;
-        mExpireTime = EXPIRE_TIME;
-        mForeRefresh = false;
+        this(cacheKey, EXPIRE_TIME, false);
     }
 
     @Override
     public Observable<T> call(Observable<T> observable) {
-        return CacheHelper.wrapObservable(observable, getType(), mCacheKey, mExpireTime, mForeRefresh);
+        if (canCache()) {
+            return CacheHelper.wrapObservable(observable, getType(), mCacheKey, mExpireTime, mForeRefresh);
+        } else {
+            return observable;
+        }
     }
 
     private Type getType() {
@@ -48,5 +48,9 @@ public abstract class CacheTransformer<T> implements Observable.Transformer<T, T
         } else {
             return String.class;
         }
+    }
+
+    protected boolean canCache() {
+        return true;
     }
 }

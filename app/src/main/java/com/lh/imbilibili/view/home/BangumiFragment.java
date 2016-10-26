@@ -113,6 +113,7 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
         if (mBangumiRecommends != null) {
             adapter.clearRecommend();
             adapter.addBangumis(mBangumiRecommends);
+            mCursor = mBangumiRecommends.get(mBangumiRecommends.size() - 1).getCursor();
         }
         if (mIndexData != null || mBangumiRecommends != null) {
             adapter.notifyDataSetChanged();
@@ -168,10 +169,16 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
                 });
     }
 
-    private Observable<List<IndexBangumiRecommend>> loadBangumiRecommendData(String cursor, int pageSize) {
+    private Observable<List<IndexBangumiRecommend>> loadBangumiRecommendData(final String cursor, int pageSize) {
         return RetrofitHelper.getInstance()
                 .getBangumiService()
                 .getBangumiRecommend(cursor, pageSize, System.currentTimeMillis())
+                .compose(new CacheTransformer<BiliBiliResultResponse<List<IndexBangumiRecommend>>>("index_page_recommend") {
+                    @Override
+                    protected boolean canCache() {
+                        return "-1".equals(cursor);
+                    }
+                })
                 .flatMap(new Func1<BiliBiliResultResponse<List<IndexBangumiRecommend>>, Observable<List<IndexBangumiRecommend>>>() {
                     @Override
                     public Observable<List<IndexBangumiRecommend>> call(BiliBiliResultResponse<List<IndexBangumiRecommend>> listBiliBiliResultResponse) {
@@ -221,6 +228,7 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
                     @Override
                     public void call(Throwable throwable) {
                         recyclerView.setLoading(false);
+                        recyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
                         ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
                     }
                 });

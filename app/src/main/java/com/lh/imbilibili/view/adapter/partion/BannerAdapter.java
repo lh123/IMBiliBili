@@ -17,6 +17,11 @@ import java.util.List;
 
 public class BannerAdapter extends BannerView.Adaper {
     private List<PartionBanner> mBanners;
+    private OnItemClickListener mOnItemClickListener;
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        mOnItemClickListener = listener;
+    }
 
     @Override
     public int getBannerCount() {
@@ -41,11 +46,22 @@ public class BannerAdapter extends BannerView.Adaper {
         imageView.setLayoutParams(layoutParams);
         Glide.with(container.getContext()).load(mBanners.get(position).getImage()).into(imageView);
         container.addView(imageView);
+        imageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mOnItemClickListener != null) {
+                    mOnItemClickListener.onItemClick(position);
+                }
+            }
+        });
         return imageView;
     }
 
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
+        if (object instanceof View) {
+            container.removeView((View) object);
+        }
     }
 
     @Override
@@ -55,5 +71,10 @@ public class BannerAdapter extends BannerView.Adaper {
 
     public void setmBanners(List<PartionBanner> mBanners) {
         this.mBanners = mBanners;
+    }
+
+
+    public interface OnItemClickListener {
+        void onItemClick(int position);
     }
 }

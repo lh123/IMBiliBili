@@ -197,7 +197,7 @@ public class PartionHomeRecyclerViewAdapter extends RecyclerView.Adapter {
         return mTypeList.get(position);
     }
 
-    private class BannerHolder extends RecyclerView.ViewHolder {
+    private class BannerHolder extends RecyclerView.ViewHolder implements BannerAdapter.OnItemClickListener {
 
         BannerView bannerView;
         BannerAdapter adapter;
@@ -208,7 +208,14 @@ public class PartionHomeRecyclerViewAdapter extends RecyclerView.Adapter {
             adapter = new BannerAdapter();
             adapter.setData(mPartionData.getBanner().getTop());
             bannerView.setAdaper(adapter);
+            adapter.setOnItemClickListener(this);
+        }
 
+        @Override
+        public void onItemClick(int position) {
+            if (mOnItemClickListener != null) {
+                mOnItemClickListener.onBannerClick(mPartionData.getBanner().getTop().get(position).getUri());
+            }
         }
     }
 
@@ -294,6 +301,8 @@ public class PartionHomeRecyclerViewAdapter extends RecyclerView.Adapter {
     }
 
     public interface OnItemClickListener {
+        void onBannerClick(String uri);
+
         void onVideoItemClick(String aid);
 
         void onSubPartionItemClick(int position);
