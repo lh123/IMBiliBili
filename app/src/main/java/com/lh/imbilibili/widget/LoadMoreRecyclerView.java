@@ -12,7 +12,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.utils.ToastUtils;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -276,7 +275,6 @@ public class LoadMoreRecyclerView extends RecyclerView {
                     mEnableLoadMore && !canScrollVertically(1) &&
                     mAdapter != null && mAdapter.getItemCount() > 0) {
                 mIsLoading = true;
-                ToastUtils.showToastShort("refresh");
                 mOnLoadMoreLinstener.onLoadMore();
             }
         }
