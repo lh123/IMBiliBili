@@ -138,7 +138,7 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
         } else {
             mRecyclerView.setShowLoadingView(true);
             if (mUserCenter.getSeason().getCount() <= PAGE_SIZE) {
-                mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                 mRecyclerView.setEnableLoadMore(false);
             } else {
                 mRecyclerView.setEnableLoadMore(true);
@@ -170,7 +170,7 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
                         mRecyclerView.setLoading(false);
                         if (seasonCenterList.getCount() < PAGE_SIZE) {
                             mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         } else {
                             int startPosition = mAdapter.getItemCount();
                             mAdapter.addSeasons(seasonCenterList.getItem());

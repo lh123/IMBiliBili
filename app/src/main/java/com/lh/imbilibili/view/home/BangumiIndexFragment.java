@@ -340,10 +340,10 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
                         mLoadMoreRecyclerView.setLoading(false);
                         if (mBangumiIndex.getPages().equals(mCurrentPage + "") || mBangumiIndex.getList().size() == 0) {
                             mLoadMoreRecyclerView.setEnableLoadMore(false);
-                            mLoadMoreRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mLoadMoreRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         } else {
                             mLoadMoreRecyclerView.setEnableLoadMore(true);
-                            mLoadMoreRecyclerView.setLoadView(R.string.loading, true);
+                            mLoadMoreRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_REFRESHING);
                         }
                     }
                 });

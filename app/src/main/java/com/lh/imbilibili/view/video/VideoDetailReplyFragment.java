@@ -113,9 +113,10 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
                 .subscribe(new Action1<FeedbackData>() {
                     @Override
                     public void call(FeedbackData feedbackData) {
+                        mRecyclerView.setLoading(false);
                         if (feedbackData.getReplies().isEmpty()) {
                             mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         }
                         if (mIsFirstLoad) {
                             mIsFirstLoad = false;
@@ -132,8 +133,9 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
                 }, new Action1<Throwable>() {
                     @Override
                     public void call(Throwable throwable) {
+                        mRecyclerView.setLoading(false);
                         mRecyclerView.setEnableLoadMore(false);
-                        mRecyclerView.setLoadView(R.string.load_failed_with_click, false);
+                        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_RETRY);
                         mRecyclerView.setOnLoadMoreViewClickListener(VideoDetailReplyFragment.this);
                     }
                 });
@@ -158,7 +160,7 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
     @Override
     public void onLoadMoreViewClick() {
         mRecyclerView.setEnableLoadMore(true);
-        mRecyclerView.setLoadView(R.string.loading, true);
+        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_REFRESHING);
         loadFeedbackData();
     }
 

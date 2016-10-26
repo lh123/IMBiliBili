@@ -148,8 +148,7 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
                     @Override
                     public void call(Throwable throwable) {
                         mRecyclerView.setEnableLoadMore(false);
-                        mRecyclerView.setLoadView(R.string.load_failed_with_click, false);
-                        mRecyclerView.setOnLoadMoreViewClickListener(FeedbackFragment.this);
+                        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_RETRY);
                     }
                 });
     }
@@ -162,6 +161,7 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
         mRecyclerView.addItemDecoration(itemDecoration);
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setOnLoadMoreLinstener(this);
+        mRecyclerView.setOnLoadMoreViewClickListener(this);
         mTvChooseEpisode.setOnClickListener(this);
     }
 
@@ -186,7 +186,7 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
     @Override
     public void onLoadMoreViewClick() {
         mRecyclerView.setEnableLoadMore(true);
-        mRecyclerView.setLoadView(R.string.loading, true);
+        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_REFRESHING);
         loadFeedbackData(mBangumiDetail.getEpisodes().get(mSelectPosition).getAvId(), mCurrentPage);
     }
 

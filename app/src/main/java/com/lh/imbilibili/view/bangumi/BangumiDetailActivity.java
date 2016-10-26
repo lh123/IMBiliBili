@@ -32,6 +32,7 @@ import com.lh.imbilibili.model.feedback.FeedbackData;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.transformation.BlurTransformation;
 import com.lh.imbilibili.utils.transformation.RoundedCornersTransformation;
 import com.lh.imbilibili.utils.transformation.TopCropTransformation;
@@ -143,16 +144,13 @@ public class BangumiDetailActivity extends BaseActivity implements BangumiEpAdap
         String seasonId = getIntent().getStringExtra(Constant.QUERY_SEASON_ID);
         initToolBar();
         initView();
+//        loadAllData();
         loadBangumiDate(seasonId, true);
         loadBangumiRecommendDate(seasonId);
     }
 
+
     private void initToolBar() {
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-//            getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-//            getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-//            toolbar.setPadding(0, getResources().getDimensionPixelSize(R.dimen.status_bar_height),0,0);
-//        }
         StatusBarUtils.setImageTransparent(this, toolbar);
         toolbar.getBackground().mutate().setAlpha(0);
         toolbar.setTitle("番剧详情");
@@ -218,6 +216,11 @@ public class BangumiDetailActivity extends BaseActivity implements BangumiEpAdap
                             initSeasonsList();
                         }
                     }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        ToastUtils.showToastShort(R.string.load_error);
+                    }
                 });
     }
 
@@ -243,6 +246,11 @@ public class BangumiDetailActivity extends BaseActivity implements BangumiEpAdap
                     public void call(FeedbackData feedbackData) {
                         mFeedbackData = feedbackData;
                         setFeedbackData(index);
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        ToastUtils.showToastShort(R.string.load_error);
                     }
                 });
     }
@@ -273,6 +281,11 @@ public class BangumiDetailActivity extends BaseActivity implements BangumiEpAdap
                         if (mRecommendSeasons.getList().size() > 0) {
                             setBangumiRecommendDate();
                         }
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        ToastUtils.showToastShort(R.string.load_error);
                     }
                 });
     }

@@ -5,14 +5,13 @@ import android.support.v7.widget.GridLayoutManager;
 import android.view.View;
 import android.widget.Toast;
 
-import com.google.gson.reflect.TypeToken;
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.home.IndexBangumiRecommend;
 import com.lh.imbilibili.model.home.IndexPage;
-import com.lh.imbilibili.utils.CacheTransformer;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
@@ -92,6 +91,8 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
                     @Override
                     public void onError(Throwable e) {
                         finishTask();
+                        recyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
+                        recyclerView.setEnableLoadMore(false);
                         ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
                     }
 
@@ -152,8 +153,8 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
         return RetrofitHelper.getInstance()
                 .getBangumiService()
                 .getIndexPage(System.currentTimeMillis())
-                .compose(new CacheTransformer<BiliBiliResultResponse<IndexPage>>("index_page", new TypeToken<BiliBiliResultResponse<IndexPage>>() {
-                }.getType(), mNeedForeRefresh))
+                .compose(new CacheTransformer<BiliBiliResultResponse<IndexPage>>("index_page", mNeedForeRefresh) {
+                })
                 .flatMap(new Func1<BiliBiliResultResponse<IndexPage>, Observable<IndexPage>>() {
                     @Override
                     public Observable<IndexPage> call(BiliBiliResultResponse<IndexPage> indexPageBiliBiliResultResponse) {
@@ -192,7 +193,7 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
     @Override
     public void onRefresh() {
         recyclerView.setEnableLoadMore(true);
-        recyclerView.setLoadView(R.string.loading, true);
+        recyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_REFRESHING);
         mNeedForeRefresh = true;
         loadAllData();
     }
@@ -207,7 +208,7 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
                     public void call(List<IndexBangumiRecommend> indexBangumiRecommends) {
                         recyclerView.setLoading(false);
                         if (indexBangumiRecommends.size() == 0) {
-                            recyclerView.setLoadView(R.string.no_data_tips, false);
+                            recyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                             recyclerView.setEnableLoadMore(false);
                         } else {
                             int startPosition = adapter.getItemCount();

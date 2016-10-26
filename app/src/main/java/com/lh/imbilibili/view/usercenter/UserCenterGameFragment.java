@@ -117,7 +117,7 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
             mRecyclerView.setShowLoadingView(true);
             if (mUserCenter.getGame().getCount() <= PAGE_SIZE) {
                 mRecyclerView.setEnableLoadMore(false);
-                mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
             } else {
                 mRecyclerView.setEnableLoadMore(true);
             }

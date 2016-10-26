@@ -136,7 +136,7 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
             mRecyclerView.setShowLoadingView(true);
             if (count <= PAGE_SIZE) {
                 mRecyclerView.setEnableLoadMore(false);
-                mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
             } else {
                 mRecyclerView.setEnableLoadMore(true);
             }
@@ -190,7 +190,7 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
                     public void onNext(UserCenter.CenterList<UserCenter.Archive> archiveCenterList) {
                         if (archiveCenterList.getCount() < PAGE_SIZE) {
                             mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         } else {
                             int startPosition = mAdapter.getItemCount();
                             mAdapter.addVideos(archiveCenterList.getItem());

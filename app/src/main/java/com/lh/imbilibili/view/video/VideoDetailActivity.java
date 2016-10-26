@@ -14,6 +14,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
 import android.support.v7.widget.Toolbar;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -96,7 +97,6 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
     private boolean mIsFabShow;
     private boolean mIsFullScreen;
     private boolean mIsInitLayout;
-    private int mVideoViewHeight;
     private int mCurrentSelectVideoPage;
 
     private Subscription mVideoDetailSub;
@@ -298,7 +298,6 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
         mViewPager.setVisibility(View.GONE);
         mAppBarLayout.setVisibility(View.GONE);
         CoordinatorLayout.LayoutParams params = (CoordinatorLayout.LayoutParams) mVideoContainer.getLayoutParams();
-        mVideoViewHeight = params.height;
         params.height = CoordinatorLayout.LayoutParams.MATCH_PARENT;
         params.width = CoordinatorLayout.LayoutParams.MATCH_PARENT;
         mVideoContainer.setLayoutParams(params);
@@ -312,8 +311,10 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
         mViewPager.setVisibility(View.VISIBLE);
         mAppBarLayout.setVisibility(View.VISIBLE);
         CoordinatorLayout.LayoutParams params = (CoordinatorLayout.LayoutParams) mVideoContainer.getLayoutParams();
-        params.height = mVideoViewHeight;
+        params.height = getResources().getDimensionPixelOffset(R.dimen.appbar_parallax_max_height);
+        ;
         params.width = CoordinatorLayout.LayoutParams.MATCH_PARENT;
+        params.gravity = Gravity.TOP;
         mVideoContainer.setLayoutParams(params);
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             mVideoContainer.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);

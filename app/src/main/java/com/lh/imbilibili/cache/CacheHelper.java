@@ -1,7 +1,9 @@
-package com.lh.imbilibili.utils;
+package com.lh.imbilibili.cache;
 
 import com.bumptech.glide.disklrucache.DiskLruCache;
 import com.google.gson.Gson;
+import com.lh.imbilibili.utils.NetworkUtils;
+import com.lh.imbilibili.utils.StorageUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,7 +18,7 @@ import rx.functions.Func1;
  * Cache工具类
  */
 
-public class CacheUtils {
+public class CacheHelper {
 
     private static final String CACHE_PATH = "/http";
     private static final int CACHE_SIZE = 10 * 1024 * 1024;
@@ -44,7 +46,7 @@ public class CacheUtils {
                     if (value != null) {
                         String data = value.getString(0);
                         long time = Long.parseLong(value.getString(1));
-                        if (System.currentTimeMillis() - time < expireTime) {
+                        if (System.currentTimeMillis() - time < expireTime || !NetworkUtils.isNetworkConnected()) {
                             T cache = new Gson().fromJson(data, type);
                             System.out.println("readFromCache");
                             System.out.println("data:" + data);
@@ -77,7 +79,6 @@ public class CacheUtils {
         });
         if (NetworkUtils.isNetworkConnected()) {
             if (refresh) {
-                System.out.println("forceRefresh");
                 return fromNetwork;
             } else {
                 return Observable.concatDelayError(fromCache, fromNetwork).takeFirst(new Func1<T, Boolean>() {

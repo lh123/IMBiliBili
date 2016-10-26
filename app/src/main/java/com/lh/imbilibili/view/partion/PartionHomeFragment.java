@@ -6,14 +6,12 @@ import android.support.v7.widget.GridLayoutManager;
 import android.view.View;
 import android.widget.Toast;
 
-import com.google.gson.reflect.TypeToken;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.partion.PartionHome;
 import com.lh.imbilibili.model.partion.PartionVideo;
-import com.lh.imbilibili.utils.CacheTransformer;
 import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
@@ -88,8 +86,7 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
         mPartionAllDataSub = Observable.mergeDelayError(RetrofitHelper.getInstance()
                 .getPartionService()
                 .getPartionInfo(mPartionModel.getId(), "*")
-                .compose(new CacheTransformer<BilibiliDataResponse<PartionHome>>("home_" + mPartionModel.getId(), new TypeToken<BilibiliDataResponse<PartionHome>>() {
-                }.getType(), mNeedForeRefresh))
+//                .compose(new CacheTransformer<BilibiliDataResponse<PartionHome>>("home_" + mPartionModel.getId(), mNeedForeRefresh))
                 .flatMap(new Func1<BilibiliDataResponse<PartionHome>, Observable<PartionHome>>() {
                     @Override
                     public Observable<PartionHome> call(BilibiliDataResponse<PartionHome> partionHomeBilibiliDataResponse) {
@@ -112,6 +109,8 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
                     @Override
                     public void onError(Throwable e) {
                         finishTask();
+                        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
+                        mRecyclerView.setEnableLoadMore(false);
                         ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
                     }
 
@@ -203,7 +202,7 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
                     public void call(List<PartionVideo> partionVideos) {
                         mRecyclerView.setLoading(false);
                         if (partionVideos.size() == 0) {
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                             mRecyclerView.setEnableLoadMore(false);
                         } else {
                             int startPosition = mAdapter.getItemCount();
@@ -224,7 +223,7 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
     public void onRefresh() {
         mCurrentPage = 1;
         mRecyclerView.setEnableLoadMore(true);
-        mRecyclerView.setLoadView(R.string.loading, true);
+        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_REFRESHING);
         mNeedForeRefresh = true;
         loadAllData();
     }

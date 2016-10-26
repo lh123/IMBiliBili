@@ -120,7 +120,7 @@ public class SearchResultFragment extends LazyLoadFragment implements LoadMoreRe
                             mCurrentPage++;
                         } else {
                             mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         }
                     }
                 });

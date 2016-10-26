@@ -131,7 +131,7 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
                         }
                         if (upSearchResult.getPages() == mCurrentPage) {
                             mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         }
                         mSearchResult = upSearchResult;
                         int startPosition = mAdapter.getItemCount();

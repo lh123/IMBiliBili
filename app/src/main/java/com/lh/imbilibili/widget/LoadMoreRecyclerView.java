@@ -1,8 +1,8 @@
 package com.lh.imbilibili.widget;
 
 import android.content.Context;
+import android.support.annotation.IntRange;
 import android.support.annotation.Nullable;
-import android.support.annotation.StringRes;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -12,6 +12,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.utils.ToastUtils;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -24,6 +25,11 @@ public class LoadMoreRecyclerView extends RecyclerView {
 
     public static final int TYPE_LOAD_MORE = -1;
 
+    public static final int STATE_REFRESHING = 1;
+    public static final int STATE_FAIL = 2;
+    public static final int STATE_RETRY = 3;
+    public static final int STATE_NO_MORE = 4;
+
     private boolean mIsLoading = false;
     private boolean mEnableLoadMore = true;
     private boolean mShowLoadingView = true;
@@ -35,7 +41,10 @@ public class LoadMoreRecyclerView extends RecyclerView {
 
     private OnLoadMoreLinstener mOnLoadMoreLinstener;
     private OnLoadMoreViewClickListener mOnLoadMoreViewClickListener;
-    private boolean mShouldChangeLoadViewState;
+
+    private boolean mLoadViewClickable;
+
+    private int mCurrentLoadViewState;
 
     public LoadMoreRecyclerView(Context context) {
         super(context);
@@ -55,6 +64,8 @@ public class LoadMoreRecyclerView extends RecyclerView {
     private void init() {
         mLoadMoreViewText = getResources().getString(R.string.loading);
         mShowProgressBar = true;
+        mLoadViewClickable = false;
+        mCurrentLoadViewState = STATE_REFRESHING;
         addOnScrollListener(new LoadMoreScrollLinstener());
     }
 
@@ -104,10 +115,9 @@ public class LoadMoreRecyclerView extends RecyclerView {
             return;
         }
         mEnableLoadMore = enable;
-        mShouldChangeLoadViewState = true;
     }
 
-    public void setLoadView(String text, boolean showProgress) {
+    private void setLoadView(String text, boolean showProgress) {
         mLoadMoreViewText = text;
         mShowProgressBar = showProgress;
         if (getLayoutManager().getChildCount() == 0 || !mShowLoadingView || mAdapter == null) {
@@ -116,10 +126,30 @@ public class LoadMoreRecyclerView extends RecyclerView {
         mAdapter.notifyItemChanged(mAdapter.getItemCount() - 1);
     }
 
-    public void setLoadView(@StringRes int resId, boolean showProgress) {
-        setLoadView(getResources().getString(resId), showProgress);
+    public void setLodingViewState(@IntRange(from = 0, to = 4) int state) {
+        if (mCurrentLoadViewState == state) {
+            return;
+        }
+        mCurrentLoadViewState = state;
+        switch (state) {
+            case STATE_REFRESHING:
+                mLoadViewClickable = false;
+                setLoadView(getResources().getString(R.string.loading), true);
+                break;
+            case STATE_FAIL:
+                mLoadViewClickable = false;
+                setLoadView(getResources().getString(R.string.load_error), false);
+                break;
+            case STATE_RETRY:
+                mLoadViewClickable = true;
+                setLoadView(getResources().getString(R.string.load_failed_with_click), false);
+                break;
+            case STATE_NO_MORE:
+                mLoadViewClickable = false;
+                setLoadView(getResources().getString(R.string.no_data_tips), false);
+                break;
+        }
     }
-
 
     public void setShowLoadingView(boolean show) {
         if (mShowLoadingView == show) {
@@ -142,7 +172,6 @@ public class LoadMoreRecyclerView extends RecyclerView {
 
     public void setOnLoadMoreViewClickListener(OnLoadMoreViewClickListener listener) {
         mOnLoadMoreViewClickListener = listener;
-        mShouldChangeLoadViewState = true;
     }
 
     public int getItemViewType(int position) {
@@ -181,14 +210,7 @@ public class LoadMoreRecyclerView extends RecyclerView {
                 LoadMoreViewHolder loadMoreViewHolder = (LoadMoreViewHolder) holder;
                 loadMoreViewHolder.textView.setText(mLoadMoreViewText);
                 loadMoreViewHolder.progressBar.setVisibility(mShowProgressBar ? VISIBLE : GONE);
-                if (mShouldChangeLoadViewState) {
-                    mShouldChangeLoadViewState = false;
-                    if (mOnLoadMoreViewClickListener != null && mEnableLoadMore) {
-                        loadMoreViewHolder.itemView.setClickable(true);
-                    } else {
-                        loadMoreViewHolder.itemView.setClickable(false);
-                    }
-                }
+                loadMoreViewHolder.itemView.setClickable(mLoadViewClickable);
             } else {
                 mInternalAdapter.onBindViewHolder(holder, position);
             }
@@ -249,13 +271,12 @@ public class LoadMoreRecyclerView extends RecyclerView {
             if (layoutManager.getChildCount() <= 0) {
                 return;
             }
-            View view = layoutManager.getChildAt(layoutManager.getChildCount() - 1);
-            ViewHolder holder = recyclerView.getChildViewHolder(view);
             if (newState == RecyclerView.SCROLL_STATE_IDLE &&
                     !mIsLoading && mOnLoadMoreLinstener != null &&
-                    mEnableLoadMore && holder instanceof LoadMoreRecyclerView.LoadMoreAdapter.LoadMoreViewHolder &&
+                    mEnableLoadMore && !canScrollVertically(1) &&
                     mAdapter != null && mAdapter.getItemCount() > 0) {
                 mIsLoading = true;
+                ToastUtils.showToastShort("refresh");
                 mOnLoadMoreLinstener.onLoadMore();
             }
         }

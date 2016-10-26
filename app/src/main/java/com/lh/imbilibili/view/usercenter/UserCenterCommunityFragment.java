@@ -125,7 +125,7 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
             mRecyclerView.setShowLoadingView(true);
             if (mUserCenter.getCommunity().getCount() <= PAGE_SIZE) {
                 mRecyclerView.setEnableLoadMore(false);
-                mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
             } else {
                 mRecyclerView.setEnableLoadMore(true);
             }
@@ -157,7 +157,7 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
                         mRecyclerView.setLoading(false);
                         if (communityCenterList.getCount() < PAGE_SIZE) {
                             mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         } else {
                             int startPosition = mAdapter.getItemCount();
                             mAdapter.addCommunities(communityCenterList.getItem());

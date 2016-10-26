@@ -173,7 +173,7 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
                         mRecyclerView.setLoading(false);
                         if (partionVideos.size() == 0) {
                             mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         } else {
                             int startPosition = mAdapter.getItemCount();
                             mAdapter.addNewVideos(partionVideos);

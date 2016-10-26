@@ -6,15 +6,14 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
-import com.google.gson.reflect.TypeToken;
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.attention.DynamicVideo;
 import com.lh.imbilibili.model.attention.FollowBangumi;
 import com.lh.imbilibili.model.attention.FollowBangumiResponse;
-import com.lh.imbilibili.utils.CacheTransformer;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
@@ -145,6 +144,8 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
                     @Override
                     public void onError(Throwable e) {
                         finishTask();
+                        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
+                        mRecyclerView.setEnableLoadMore(false);
                         ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
                     }
 
@@ -179,7 +180,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
                         mRecyclerView.setLoading(false);
                         if (dynamicVideo.getFeeds().size() == 0) {
                             mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         } else {
                             int startPosition = mAdapter.getItemCount();
                             List<DynamicVideo.Feed> feeds = dynamicVideo.getFeeds();
@@ -201,8 +202,8 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
         return RetrofitHelper.getInstance()
                 .getAttentionService()
                 .getFollowBangumi(UserManagerUtils.getInstance().getCurrentUser().getMid(), System.currentTimeMillis())
-                .compose(new CacheTransformer<FollowBangumiResponse<List<FollowBangumi>>>("follow_bangumi", new TypeToken<FollowBangumiResponse<List<FollowBangumi>>>() {
-                }.getType()))
+                .compose(new CacheTransformer<FollowBangumiResponse<List<FollowBangumi>>>("follow_bangumi") {
+                })
                 .flatMap(new Func1<FollowBangumiResponse<List<FollowBangumi>>, Observable<List<FollowBangumi>>>() {
                     @Override
                     public Observable<List<FollowBangumi>> call(FollowBangumiResponse<List<FollowBangumi>> listFollowBangumiResponse) {
@@ -253,7 +254,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     public void onRefresh() {
         mCurrentPage = 1;
         mRecyclerView.setEnableLoadMore(true);
-        mRecyclerView.setLoadView(R.string.loading, true);
+        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_REFRESHING);
         loadAllData();
     }
 

@@ -108,7 +108,7 @@ public class FollowBangumiActivity extends BaseActivity implements LoadMoreRecyc
                         mRecyclerView.setLoading(false);
                         if (followBangumis.isEmpty()) {
                             mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         } else {
                             int startPosition = mAdapter.getItemCount();
                             mAdapter.addBangumi(followBangumis);

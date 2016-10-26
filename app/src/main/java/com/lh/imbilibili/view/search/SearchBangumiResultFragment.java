@@ -137,7 +137,7 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
                         }
                         if (bangumiSearchResult.getPages() == mCurrentPage) {
                             mRecyclerView.setEnableLoadMore(false);
-                            mRecyclerView.setLoadView(R.string.no_data_tips, false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         }
                         mSearchResult = bangumiSearchResult;
                         int startPosition = mAdapter.getItemCount();
