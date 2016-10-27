@@ -73,7 +73,7 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
         mSelectPosition = getArguments().getInt("position", 0);
         mCurrentPage = 1;
         mNeedRefresh = true;
-        initView();
+        initRecyclerView();
         mTvTitle.setText(StringUtils.format("第%s话", mBangumiDetail.getEpisodes().get(mSelectPosition).getIndex()));
         loadFeedbackData(mBangumiDetail.getEpisodes().get(mSelectPosition).getAvId(), 0);
         loadReplyCount(mBangumiDetail.getEpisodes().get(mSelectPosition).getAvId());
@@ -153,7 +153,7 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
                 });
     }
 
-    private void initView() {
+    private void initRecyclerView() {
         mAdapter = new FeedbackAdapter();
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext().getApplicationContext(), LinearLayoutManager.VERTICAL, false);
         FeedbackItemDecoration itemDecoration = new FeedbackItemDecoration(ContextCompat.getColor(getContext(), R.color.theme_color_dividing_line));

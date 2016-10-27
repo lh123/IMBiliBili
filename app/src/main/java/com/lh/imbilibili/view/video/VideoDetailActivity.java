@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -14,6 +15,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -54,6 +56,7 @@ import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/2.
+ * 视频详情界面
  */
 
 public class VideoDetailActivity extends BaseActivity implements VideoPlayerFragment.OnVideoFragmentStateListener {
@@ -111,7 +114,13 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_detail);
-        mAid = getIntent().getStringExtra(EXTRA_AID);
+        if (!TextUtils.isEmpty(getIntent().getScheme())) {
+            Uri uri = getIntent().getData();
+            String str = uri.getLastPathSegment();
+            mAid = str.replaceAll("av", "");
+        } else {
+            mAid = getIntent().getStringExtra(EXTRA_AID);
+        }
         ButterKnife.bind(this);
         StatusBarUtils.setCollapsingToolbarLayout(this, mToolbar, mAppBarLayout, mCollapsingToolbarLayout);
         mIsFullScreen = false;
@@ -312,7 +321,6 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
         mAppBarLayout.setVisibility(View.VISIBLE);
         CoordinatorLayout.LayoutParams params = (CoordinatorLayout.LayoutParams) mVideoContainer.getLayoutParams();
         params.height = getResources().getDimensionPixelOffset(R.dimen.appbar_parallax_max_height);
-        ;
         params.width = CoordinatorLayout.LayoutParams.MATCH_PARENT;
         params.gravity = Gravity.TOP;
         mVideoContainer.setLayoutParams(params);

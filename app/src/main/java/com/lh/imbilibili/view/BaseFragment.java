@@ -7,20 +7,18 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.lh.imbilibili.IMBilibiliApplication;
+
 /**
  * Created by liuhui on 2016/7/5.
  * Fragment基类
  */
 public abstract class BaseFragment extends Fragment {
 
-    private View mRootView;
-
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        if (mRootView == null) {
-            mRootView = inflater.inflate(getContentView(), container, false);
-            initView(mRootView);
-        }
-        return mRootView;
+        View rootView = inflater.inflate(getContentView(), container, false);
+        initView(rootView);
+        return rootView;
     }
 
     protected abstract void initView(View view);
@@ -28,11 +26,9 @@ public abstract class BaseFragment extends Fragment {
     protected abstract int getContentView();
 
     @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        if (mRootView != null && mRootView.getParent() != null) {
-            ((ViewGroup) mRootView.getParent()).removeView(mRootView);
-        }
+    public void onDestroy() {
+        super.onDestroy();
+        IMBilibiliApplication.getApplication().getRefWatcher().watch(this);
     }
 
     public String getTitle() {

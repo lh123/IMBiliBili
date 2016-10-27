@@ -18,6 +18,7 @@
     <application
         android:name=".IMBilibiliApplication"
         android:allowBackup="true"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
@@ -70,7 +71,17 @@
         <activity
             android:name=".view.video.VideoDetailActivity"
             android:configChanges="keyboardHidden|screenSize|orientation"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="http" />
+                <data android:scheme="bilibili" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".view.video.VideoPlayActivity"

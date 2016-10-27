@@ -6,6 +6,7 @@ import android.view.View;
 
 /**
  * Created by liuhui on 2016/10/7.
+ * 懒加载的Fragment
  */
 
 public abstract class LazyLoadFragment extends BaseFragment {
@@ -24,31 +25,20 @@ public abstract class LazyLoadFragment extends BaseFragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         isViewInitiated = true;
-    }
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        prepareFetchData();
+        prepareFetchData(false);
     }
 
     @Override
     public void setUserVisibleHint(boolean isVisibleToUser) {
         super.setUserVisibleHint(isVisibleToUser);
         this.isVisibleToUser = isVisibleToUser;
-        prepareFetchData();
+        prepareFetchData(false);
     }
 
-    public boolean prepareFetchData() {
-        return prepareFetchData(false);
-    }
-
-    public boolean prepareFetchData(boolean forceUpdate) {
+    public void prepareFetchData(boolean forceUpdate) {
         if (isVisibleToUser && isViewInitiated && (!isDataInitiated || forceUpdate)) {
-            fetchData();
             isDataInitiated = true;
-            return true;
+            fetchData();
         }
-        return false;
     }
 }
