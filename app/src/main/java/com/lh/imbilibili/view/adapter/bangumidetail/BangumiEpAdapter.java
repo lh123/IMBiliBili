@@ -1,13 +1,18 @@
 package com.lh.imbilibili.view.adapter.bangumidetail;
 
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.model.bangumi.BangumiDetail;
+import com.lh.imbilibili.utils.StringUtils;
 
 import java.util.List;
 
@@ -22,11 +27,7 @@ public class BangumiEpAdapter extends RecyclerView.Adapter<BangumiEpAdapter.Epis
     private List<BangumiDetail.Episode> episodes;
     private int selectPosition = 0;
 
-    private onEpClickListener listener;
-
-    public BangumiEpAdapter(List<BangumiDetail.Episode> episodes) {
-        this.episodes = episodes;
-    }
+    private OnEpClickListener listener;
 
     public void setEpisodes(List<BangumiDetail.Episode> episodes) {
         this.episodes = episodes;
@@ -41,26 +42,39 @@ public class BangumiEpAdapter extends RecyclerView.Adapter<BangumiEpAdapter.Epis
     @Override
     public void onBindViewHolder(BangumiEpAdapter.EpisodeViewHolder holder, int position) {
         if (position == 0 && episodes.size() == 0) {
-            holder.tvIndex.setText("无");
-            holder.newTag.setVisibility(View.GONE);
+            holder.mTvTitle.setText("无");
+            holder.mBadge.setVisibility(View.GONE);
+            holder.mTvIndexTitle.setVisibility(View.GONE);
         } else {
             BangumiDetail.Episode episode = episodes.get(position);
             if ("1".equals(episode.getIsNew())) {
-                holder.newTag.setVisibility(View.VISIBLE);
+                holder.mBadge.setVisibility(View.VISIBLE);
+                holder.mBadge.setBackgroundResource(R.color.colorPrimary);
             } else {
-                holder.newTag.setVisibility(View.GONE);
+                holder.mBadge.setVisibility(View.GONE);
             }
-            holder.tvIndex.setText(episode.getIndex());
-            holder.itemView.setSelected(position == selectPosition);
+            holder.mTvTitle.setText(StringUtils.format("第%s话", episode.getIndex()));
+            if (TextUtils.isEmpty(episodes.get(0).getIndexTitle())) {
+                holder.mTvIndexTitle.setVisibility(View.GONE);
+            } else {
+                holder.mTvTitle.setGravity(Gravity.START);
+                holder.mTvIndexTitle.setVisibility(View.VISIBLE);
+                holder.mTvIndexTitle.setText(episode.getIndexTitle());
+            }
+            holder.mIndicator.setSelected(position == selectPosition);
         }
     }
 
     @Override
     public int getItemCount() {
-        if (episodes.size() > 0) {
-            return episodes.size();
+        if (episodes == null) {
+            return 0;
         } else {
-            return 1;
+            if (episodes.size() > 0) {
+                return episodes.size();
+            } else {
+                return 1;
+            }
         }
     }
 
@@ -71,21 +85,26 @@ public class BangumiEpAdapter extends RecyclerView.Adapter<BangumiEpAdapter.Epis
         notifyItemChanged(pre);
     }
 
-    public void setOnEpClickListener(onEpClickListener listener) {
+    public void setOnEpClickListener(OnEpClickListener listener) {
         this.listener = listener;
     }
 
-    public interface onEpClickListener {
+    public interface OnEpClickListener {
         void onEpClick(int position);
     }
 
     public class EpisodeViewHolder extends RecyclerView.ViewHolder {
 
-        @BindView(R.id.index)
-        TextView tvIndex;
-        @BindView(R.id.new_tag)
-        TextView newTag;
-
+        @BindView(R.id.indicator)
+        ViewGroup mIndicator;
+        @BindView(R.id.title_layout)
+        LinearLayout mTitleLayout;
+        @BindView(R.id.title)
+        TextView mTvTitle;
+        @BindView(R.id.index_title)
+        TextView mTvIndexTitle;
+        @BindView(R.id.badge)
+        ImageView mBadge;
         public EpisodeViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);

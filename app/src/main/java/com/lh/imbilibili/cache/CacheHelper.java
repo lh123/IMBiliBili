@@ -58,7 +58,7 @@ public class CacheHelper {
                     edit.set(0, new Gson().toJson(t));
                     edit.set(1, String.valueOf(System.currentTimeMillis()));
                     edit.commit();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
                 return t;

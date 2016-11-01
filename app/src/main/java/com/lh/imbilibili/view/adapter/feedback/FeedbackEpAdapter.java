@@ -72,9 +72,9 @@ public class FeedbackEpAdapter extends RecyclerView.Adapter<FeedbackEpAdapter.Ep
 
     public class EpisodeViewHolder extends RecyclerView.ViewHolder {
 
-        @BindView(R.id.index)
+        @BindView(R.id.title)
         TextView tvIndex;
-        @BindView(R.id.new_tag)
+        @BindView(R.id.badge)
         TextView newTag;
 
         public EpisodeViewHolder(View itemView) {

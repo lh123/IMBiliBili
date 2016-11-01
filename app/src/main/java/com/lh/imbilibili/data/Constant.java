@@ -40,7 +40,7 @@ public class Constant {
 
     public static final String BANGUMI_RECOMMEND = "/api/bangumi_recommend";
     public static final String INDEX_PAGE = "/api/app_index_page_v4";
-    public static final String BANGUMI_DETAIL = "/api/season_v3";
+    public static final String BANGUMI_DETAIL = "/api/season_v4";
     public static final String GET_SOURCES = "/api/get_source";
     public static final String SEASON_GROUP = "/api/season_group.json";
     public static final String BANGUMI_INDEX_COND = "/api/bangumi_index_cond";

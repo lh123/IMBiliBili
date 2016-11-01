@@ -37,7 +37,7 @@
         android:layout_marginLeft="@dimen/item_half_spacing"
         android:layout_marginRight="@dimen/item_half_spacing"
         android:layout_weight="1"
-        android:background="@drawable/shape_red_round_bg"
+        android:background="@drawable/shape_red_round_solid_bg"
         android:clickable="true"
         android:foreground="?selectableItemBackground"
         android:gravity="center"

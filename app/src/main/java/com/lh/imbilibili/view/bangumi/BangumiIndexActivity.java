@@ -58,6 +58,6 @@ public class BangumiIndexActivity extends BaseActivity {
         if (bangumiIndexFragment == null) {
             bangumiIndexFragment = BangumiIndexFragment.newInstance(mYear, mMonth, mYears);
         }
-        getSupportFragmentManager().beginTransaction().replace(R.id.container, bangumiIndexFragment, BangumiIndexFragment.TAG).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.head_container, bangumiIndexFragment, BangumiIndexFragment.TAG).commit();
     }
 }

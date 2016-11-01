@@ -29,9 +29,8 @@ public class SeasonListAdapter extends RecyclerView.Adapter<SeasonListAdapter.Se
 
     private int selectPosition = 0;
 
-    public SeasonListAdapter(Context context, List<Bangumi> seasons) {
+    public SeasonListAdapter(Context context) {
         this.context = context;
-        this.seasons = seasons;
     }
 
     public void setSeasons(List<Bangumi> seasons) {
@@ -80,7 +79,11 @@ public class SeasonListAdapter extends RecyclerView.Adapter<SeasonListAdapter.Se
 
     @Override
     public int getItemCount() {
-        return seasons.size();
+        if (seasons == null) {
+            return 0;
+        } else {
+            return seasons.size();
+        }
     }
 
     public void selectItem(int position) {

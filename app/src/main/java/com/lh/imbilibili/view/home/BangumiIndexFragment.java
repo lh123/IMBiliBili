@@ -7,7 +7,6 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.widget.AdapterView;
@@ -29,7 +28,6 @@ import com.lh.imbilibili.view.adapter.GridLayoutItemDecoration;
 import com.lh.imbilibili.view.adapter.bangumiindex.BangumiIndexAdapter;
 import com.lh.imbilibili.view.adapter.bangumiindex.GridMenuAdapter;
 import com.lh.imbilibili.view.bangumi.BangumiDetailActivity;
-import com.lh.imbilibili.widget.FlowLayout;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 
 import java.util.ArrayList;
@@ -53,7 +51,7 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
     RelativeLayout mNavView;
     DrawerLayout mDrawerLayout;
 
-    private DrawerViewHolder mDrawerViewHolder;
+//    private DrawerViewHolder mDrawerViewHolder;
 
     @BindView(R.id.recycler_view)
     LoadMoreRecyclerView mLoadMoreRecyclerView;
@@ -164,7 +162,7 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
         initRecyclerView();
         loadBangumiIndexCond(0);
         loadDataAccordingFlilter();
-        initDrawerData();
+//        initDrawerData();
     }
 
     private void initSortAndFliterView() {
@@ -213,15 +211,15 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
 //            params.rightMargin = DisplayUtils.dip2px(getContext(),-65);
 //            mNavView.setLayoutParams(params);
 //        }
-        mDrawerViewHolder = new DrawerViewHolder(mNavView);
+//        mDrawerViewHolder = new DrawerViewHolder(mNavView);
     }
 
-    private void initDrawerData() {
-        mDrawerViewHolder.setTypeTags(mBangumiTypeList);
-        mDrawerViewHolder.setStatusTags(mBangumiStatusList);
-        mDrawerViewHolder.setRegionTags(mBangumiRegionList);
-        mDrawerViewHolder.setYearTags(mYears, true);
-    }
+//    private void initDrawerData() {
+//        mDrawerViewHolder.setTypeTags(mBangumiTypeList);
+//        mDrawerViewHolder.setStatusTags(mBangumiStatusList);
+//        mDrawerViewHolder.setRegionTags(mBangumiRegionList);
+//        mDrawerViewHolder.setYearTags(mYears, true);
+//    }
 
     private void initRecyclerView() {
         mAdapter = new BangumiIndexAdapter(getContext());
@@ -373,7 +371,7 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
                         defaultCategory.setTagName("全部");
                         defaultCategory.setTagId("0");
                         mBangumiIndexCond.getCategory().add(0, defaultCategory);
-                        mDrawerViewHolder.setStyleTags(mBangumiIndexCond.getCategory(), true);
+//                        mDrawerViewHolder.setStyleTags(mBangumiIndexCond.getCategory(), true);
                     }
                 });
     }
@@ -483,14 +481,14 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
     }
 
     private void openOrCloseDrawer() {
-        if (!mDrawerLayout.isDrawerOpen(mNavView)) {
-            mDrawerLayout.openDrawer(mNavView);
-            int index = Integer.valueOf(mFilterType);
-            mDrawerViewHolder.mTagsType.selectTag(index);
-            mDrawerViewHolder.onItemClick(mDrawerViewHolder.mTagsType, index, null);
-        } else {
-            mDrawerLayout.closeDrawers();
-        }
+//        if (!mDrawerLayout.isDrawerOpen(mNavView)) {
+//            mDrawerLayout.openDrawer(mNavView);
+//            int index = Integer.valueOf(mFilterType);
+//            mDrawerViewHolder.mTagsType.selectTag(index);
+//            mDrawerViewHolder.onItemClick(mDrawerViewHolder.mTagsType, index, null);
+//        } else {
+//            mDrawerLayout.closeDrawers();
+//        }
     }
 
     @Override
@@ -533,172 +531,172 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
         loadDataAccordingFlilter();
     }
 
-    class DrawerViewHolder implements View.OnClickListener, FlowLayout.OnItemClickListener {
-        @BindView(R.id.exit)
-        View mDrawerExit;
-
-        @BindView(R.id.tv_type_selected)
-        TextView mTvTypeSelect;
-        @BindView(R.id.btn_type)
-        View mBtnTypeExpand;
-        @BindView(R.id.tags_type)
-        FlowLayout mTagsType;
-        @BindView(R.id.iv_type)
-        ImageView mIvType;
-
-        @BindView(R.id.tv_style_selected)
-        TextView mTvSyleSelect;
-        @BindView(R.id.btn_style)
-        View mBtnStyleeExpand;
-        @BindView(R.id.tags_style)
-        FlowLayout mTagsStyle;
-        @BindView(R.id.iv_style)
-        ImageView mIvStyle;
-
-        @BindView(R.id.tv_status_selected)
-        TextView mTvStatusSelect;
-        @BindView(R.id.btn_status)
-        View mBtnStatusExpand;
-        @BindView(R.id.tags_status)
-        FlowLayout mTagsStatus;
-        @BindView(R.id.iv_status)
-        ImageView mIvStatus;
-
-        @BindView(R.id.tv_region_selected)
-        TextView mTvRegionSelect;
-        @BindView(R.id.btn_region)
-        View mBtnRegionExpand;
-        @BindView(R.id.tags_region)
-        FlowLayout mTagsRegion;
-        @BindView(R.id.iv_region)
-        ImageView mIvRegion;
-
-        @BindView(R.id.tv_time_selected)
-        TextView mTvTimeSelect;
-        @BindView(R.id.btn_time)
-        View mBtnTimeExpand;
-        @BindView(R.id.tags_month)
-        FlowLayout mTagsMonth;
-        @BindView(R.id.tags_year)
-        FlowLayout mTagsYear;
-        @BindView(R.id.iv_time)
-        ImageView mIvTime;
-
-        @BindView(R.id.reset)
-        View mBtnReset;
-        @BindView(R.id.confirm)
-        View mBtnConfirm;
-
-        public DrawerViewHolder(View view) {
-            ButterKnife.bind(this, view);
-            mBtnStyleeExpand.setVisibility(View.VISIBLE);
-            mDrawerExit.setOnClickListener(this);
-            mBtnStyleeExpand.setOnClickListener(this);
-            mBtnTimeExpand.setOnClickListener(this);
-            mTagsType.setOnItemClickListener(this);
-        }
-
-        @Override
-        public void onClick(View v) {
-            switch (v.getId()) {
-                case R.id.exit:
-                    mDrawerLayout.closeDrawers();
-                    break;
-                case R.id.btn_style:
-                    if (mTagsStyle.getChildCount() == 5) {
-                        setStyleTags(mBangumiIndexCond.getCategory(), false);
-                        mIvStyle.setImageLevel(2);
-                    } else {
-                        setStyleTags(mBangumiIndexCond.getCategory(), true);
-                        mIvStyle.setImageLevel(1);
-                    }
-                    break;
-                case R.id.btn_time:
-                    if (mTagsYear.getChildCount() == 5) {
-                        setYearTags(mYears, false);
-                        mIvTime.setImageLevel(2);
-                    } else {
-                        setYearTags(mYears, true);
-                        mIvTime.setImageLevel(1);
-                    }
-                    break;
-            }
-        }
-
-        @Override
-        public void onItemClick(ViewGroup parent, int position, View view) {
-            switch (parent.getId()) {
-                case R.id.tags_type:
-                    String selectText;
-                    if (position != 0) {
-                        selectText = ":" + mBangumiTypeList.get(position).getTagName();
-                    } else {
-                        selectText = "";
-                    }
-                    mTvTypeSelect.setText(selectText);
-                    break;
-            }
-        }
-
-        public void setTypeTags(List<BangumiIndexCond.Category> tags) {
-            for (int i = 0; i < tags.size(); i++) {
-                mTagsType.addTag(tags.get(i).getTagName(), i);
-            }
-        }
-
-        public void setStyleTags(List<BangumiIndexCond.Category> tags, boolean isLite) {
-            mTagsStyle.removeAllViews();
-            if (isLite) {
-                int liteAmount = tags.size() > 5 ? 5 : tags.size();
-                for (int i = 0; i < liteAmount; i++) {
-                    mTagsStyle.addTag(tags.get(i).getTagName(), i);
-                    mTagsStyle.selectTag(0);
-                }
-            } else {
-                for (int i = 0; i < tags.size(); i++) {
-                    mTagsStyle.addTag(tags.get(i).getTagName(), i);
-                    mTagsStyle.selectTag(0);
-                }
-            }
-        }
-
-
-        public void setStatusTags(List<BangumiIndexCond.Category> tags) {
-            mTagsStatus.removeAllViews();
-            for (int i = 0; i < tags.size(); i++) {
-                mTagsStatus.addTag(tags.get(i).getTagName(), i);
-                mTagsStatus.selectTag(0);
-            }
-        }
-
-        public void setRegionTags(List<BangumiIndexCond.Category> tags) {
-            mTagsRegion.removeAllViews();
-            for (int i = 0; i < tags.size(); i++) {
-                mTagsRegion.addTag(tags.get(i).getTagName(), i);
-                mTagsRegion.selectTag(0);
-            }
-        }
-
-        public void setYearTags(List<Integer> years, boolean isLite) {
-            mTagsMonth.removeAllViews();
-            mTagsYear.removeAllViews();
-            mTagsMonth.addTag("全部", 0);
-            mTagsMonth.addTag("1月", 1);
-            mTagsMonth.addTag("4月", 2);
-            mTagsMonth.addTag("7月", 3);
-            mTagsMonth.addTag("10月", 4);
-            mTagsYear.addTag("全部", 0);
-            int liteAmount;
-            if (isLite) {
-                liteAmount = years.size() > 4 ? 4 : years.size();
-            } else {
-                liteAmount = years.size();
-            }
-            for (int i = 0; i < liteAmount; i++) {
-                mTagsYear.addTag(years.get(i) + "", i + 1);
-            }
-            mTagsMonth.selectTag(0);
-            mTagsYear.selectTag(0);
-        }
-    }
+//    class DrawerViewHolder implements View.OnClickListener, FlowLayout.OnItemClickListener {
+//        @BindView(R.id.exit)
+//        View mDrawerExit;
+//
+//        @BindView(R.id.tv_type_selected)
+//        TextView mTvTypeSelect;
+//        @BindView(R.id.btn_type)
+//        View mBtnTypeExpand;
+//        @BindView(R.id.tags_type)
+//        FlowLayout mTagsType;
+//        @BindView(R.id.iv_type)
+//        ImageView mIvType;
+//
+//        @BindView(R.id.tv_style_selected)
+//        TextView mTvSyleSelect;
+//        @BindView(R.id.btn_style)
+//        View mBtnStyleeExpand;
+//        @BindView(R.id.tags_style)
+//        FlowLayout mTagsStyle;
+//        @BindView(R.id.iv_style)
+//        ImageView mIvStyle;
+//
+//        @BindView(R.id.tv_status_selected)
+//        TextView mTvStatusSelect;
+//        @BindView(R.id.btn_status)
+//        View mBtnStatusExpand;
+//        @BindView(R.id.tags_status)
+//        FlowLayout mTagsStatus;
+//        @BindView(R.id.iv_status)
+//        ImageView mIvStatus;
+//
+//        @BindView(R.id.tv_region_selected)
+//        TextView mTvRegionSelect;
+//        @BindView(R.id.btn_region)
+//        View mBtnRegionExpand;
+//        @BindView(R.id.tags_region)
+//        FlowLayout mTagsRegion;
+//        @BindView(R.id.iv_region)
+//        ImageView mIvRegion;
+//
+//        @BindView(R.id.tv_time_selected)
+//        TextView mTvTimeSelect;
+//        @BindView(R.id.btn_time)
+//        View mBtnTimeExpand;
+//        @BindView(R.id.tags_month)
+//        FlowLayout mTagsMonth;
+//        @BindView(R.id.tags_year)
+//        FlowLayout mTagsYear;
+//        @BindView(R.id.iv_time)
+//        ImageView mIvTime;
+//
+//        @BindView(R.id.reset)
+//        View mBtnReset;
+//        @BindView(R.id.confirm)
+//        View mBtnConfirm;
+//
+//        public DrawerViewHolder(View view) {
+//            ButterKnife.bind(this, view);
+//            mBtnStyleeExpand.setVisibility(View.VISIBLE);
+//            mDrawerExit.setOnClickListener(this);
+//            mBtnStyleeExpand.setOnClickListener(this);
+//            mBtnTimeExpand.setOnClickListener(this);
+//            mTagsType.setOnItemClickListener(this);
+//        }
+//
+//        @Override
+//        public void onClick(View v) {
+//            switch (v.getId()) {
+//                case R.id.exit:
+//                    mDrawerLayout.closeDrawers();
+//                    break;
+//                case R.id.btn_style:
+//                    if (mTagsStyle.getChildCount() == 5) {
+//                        setStyleTags(mBangumiIndexCond.getCategory(), false);
+//                        mIvStyle.setImageLevel(2);
+//                    } else {
+//                        setStyleTags(mBangumiIndexCond.getCategory(), true);
+//                        mIvStyle.setImageLevel(1);
+//                    }
+//                    break;
+//                case R.id.btn_time:
+//                    if (mTagsYear.getChildCount() == 5) {
+//                        setYearTags(mYears, false);
+//                        mIvTime.setImageLevel(2);
+//                    } else {
+//                        setYearTags(mYears, true);
+//                        mIvTime.setImageLevel(1);
+//                    }
+//                    break;
+//            }
+//        }
+//
+//        @Override
+//        public void onItemClick(ViewGroup parent, int position, View view) {
+//            switch (parent.getId()) {
+//                case R.id.tags_type:
+//                    String selectText;
+//                    if (position != 0) {
+//                        selectText = ":" + mBangumiTypeList.get(position).getTagName();
+//                    } else {
+//                        selectText = "";
+//                    }
+//                    mTvTypeSelect.setText(selectText);
+//                    break;
+//            }
+//        }
+//
+//        public void setTypeTags(List<BangumiIndexCond.Category> tags) {
+//            for (int i = 0; i < tags.size(); i++) {
+//                mTagsType.addTag(tags.get(i).getTagName(), i);
+//            }
+//        }
+//
+//        public void setStyleTags(List<BangumiIndexCond.Category> tags, boolean isLite) {
+//            mTagsStyle.removeAllViews();
+//            if (isLite) {
+//                int liteAmount = tags.size() > 5 ? 5 : tags.size();
+//                for (int i = 0; i < liteAmount; i++) {
+//                    mTagsStyle.addTag(tags.get(i).getTagName(), i);
+//                    mTagsStyle.selectTag(0);
+//                }
+//            } else {
+//                for (int i = 0; i < tags.size(); i++) {
+//                    mTagsStyle.addTag(tags.get(i).getTagName(), i);
+//                    mTagsStyle.selectTag(0);
+//                }
+//            }
+//        }
+//
+//
+//        public void setStatusTags(List<BangumiIndexCond.Category> tags) {
+//            mTagsStatus.removeAllViews();
+//            for (int i = 0; i < tags.size(); i++) {
+//                mTagsStatus.addTag(tags.get(i).getTagName(), i);
+//                mTagsStatus.selectTag(0);
+//            }
+//        }
+//
+//        public void setRegionTags(List<BangumiIndexCond.Category> tags) {
+//            mTagsRegion.removeAllViews();
+//            for (int i = 0; i < tags.size(); i++) {
+//                mTagsRegion.addTag(tags.get(i).getTagName(), i);
+//                mTagsRegion.selectTag(0);
+//            }
+//        }
+//
+//        public void setYearTags(List<Integer> years, boolean isLite) {
+//            mTagsMonth.removeAllViews();
+//            mTagsYear.removeAllViews();
+//            mTagsMonth.addTag("全部", 0);
+//            mTagsMonth.addTag("1月", 1);
+//            mTagsMonth.addTag("4月", 2);
+//            mTagsMonth.addTag("7月", 3);
+//            mTagsMonth.addTag("10月", 4);
+//            mTagsYear.addTag("全部", 0);
+//            int liteAmount;
+//            if (isLite) {
+//                liteAmount = years.size() > 4 ? 4 : years.size();
+//            } else {
+//                liteAmount = years.size();
+//            }
+//            for (int i = 0; i < liteAmount; i++) {
+//                mTagsYear.addTag(years.get(i) + "", i + 1);
+//            }
+//            mTagsMonth.selectTag(0);
+//            mTagsYear.selectTag(0);
+//        }
+//    }
 }

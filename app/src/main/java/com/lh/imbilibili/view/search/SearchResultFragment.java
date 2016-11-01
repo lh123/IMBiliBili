@@ -65,7 +65,7 @@ public class SearchResultFragment extends LazyLoadFragment implements LoadMoreRe
         mAdapter = new SearchRecyclerViewAdapter(getContext(), searchResult);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext());
         linearLayoutManager.setOrientation(LinearLayoutManager.VERTICAL);
-        LinearLayoutItemDecoration itemDecoration = new LinearLayoutItemDecoration(getContext());
+        LinearLayoutItemDecoration itemDecoration = new LinearLayoutItemDecoration(getContext(), LinearLayoutManager.VERTICAL);
         mRecyclerView.setLayoutManager(linearLayoutManager);
         mRecyclerView.addItemDecoration(itemDecoration);
         mRecyclerView.setAdapter(mAdapter);

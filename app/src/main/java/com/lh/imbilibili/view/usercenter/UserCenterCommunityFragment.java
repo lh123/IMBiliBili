@@ -73,7 +73,7 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
         mAdapter = new CommunityRecyclerViewAdapter(getContext());
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         mRecyclerView.setLayoutManager(layoutManager);
-        mRecyclerView.addItemDecoration(new LinearLayoutItemDecoration(getContext()));
+        mRecyclerView.addItemDecoration(new LinearLayoutItemDecoration(getContext(), LinearLayoutManager.VERTICAL));
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setOnLoadMoreLinstener(this);
     }

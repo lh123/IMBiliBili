@@ -78,7 +78,7 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
         mAdapter = new BangumiSearchAdapter(getContext());
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
-        LinearLayoutItemDecoration itemDecoration = new LinearLayoutItemDecoration(getContext());
+        LinearLayoutItemDecoration itemDecoration = new LinearLayoutItemDecoration(getContext(), LinearLayoutManager.VERTICAL);
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.addItemDecoration(itemDecoration);
         mRecyclerView.setAdapter(mAdapter);

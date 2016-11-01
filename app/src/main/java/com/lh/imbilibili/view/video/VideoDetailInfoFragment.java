@@ -20,9 +20,10 @@ import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.videodetail.RelatesVideoItemDecoration;
 import com.lh.imbilibili.view.adapter.videodetail.VideoPageRecyclerViewAdapter;
 import com.lh.imbilibili.view.adapter.videodetail.VideoRelatesRecyclerViewAdapter;
+import com.lh.imbilibili.view.adapter.videodetail.VideoTagAdapter;
 import com.lh.imbilibili.view.search.SearchActivity;
 import com.lh.imbilibili.view.usercenter.UserCenterActivity;
-import com.lh.imbilibili.widget.FlowLayout;
+import com.zhy.view.flowlayout.TagFlowLayout;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -34,7 +35,7 @@ import rx.functions.Action1;
  * 视频介绍界面
  */
 
-public class VideoDetailInfoFragment extends BaseFragment implements FlowLayout.OnItemClickListener, VideoPageRecyclerViewAdapter.OnPageClickListener, VideoRelatesRecyclerViewAdapter.OnVideoItemClickListener {
+public class VideoDetailInfoFragment extends BaseFragment implements VideoPageRecyclerViewAdapter.OnPageClickListener, VideoRelatesRecyclerViewAdapter.OnVideoItemClickListener {
 
     public static final String EXTRA_DATA = "videoDetail";
 
@@ -49,7 +50,7 @@ public class VideoDetailInfoFragment extends BaseFragment implements FlowLayout.
     @BindView(R.id.tv_description)
     TextView mTvDescription;
     @BindView(R.id.author_tag)
-    FlowLayout mFlowLayout;
+    TagFlowLayout mFlowLayout;
     @BindView(R.id.recycler_view)
     RecyclerView mRecyclerView;
     @BindView(R.id.owner_layout)
@@ -79,7 +80,7 @@ public class VideoDetailInfoFragment extends BaseFragment implements FlowLayout.
     @Override
     protected void initView(View view) {
         ButterKnife.bind(this, view);
-        mFlowLayout.setOnItemClickListener(this);
+//        mFlowLayout.setOnItemClickListener(this);
         initRecyclerView();
     }
 
@@ -155,13 +156,15 @@ public class VideoDetailInfoFragment extends BaseFragment implements FlowLayout.
         }
         LayoutInflater inflater = LayoutInflater.from(getContext());
         if (mVideoDetail.getTags() != null) {
-            int count = mVideoDetail.getTags().length > 8 ? 8 : mVideoDetail.getTags().length;
-            for (int i = 0; i < count; i++) {
-                View view = inflater.inflate(R.layout.video_detail_tag_item, mFlowLayout, false);
-                TextView textView = (TextView) view.findViewById(R.id.tv_tag);
-                textView.setText(mVideoDetail.getTags()[i]);
-                mFlowLayout.addTag(view, i);
-            }
+//            int count = mVideoDetail.getTags().length > 8 ? 8 : mVideoDetail.getTags().length;
+//            for (int i = 0; i < count; i++) {
+//                View view = inflater.inflate(R.layout.video_detail_tag_item, mFlowLayout, false);
+//                TextView textView = (TextView) view.findViewById(R.id.tv_tag);
+//                textView.setText(mVideoDetail.getTags()[i]);
+//                mFlowLayout.addTag(view, i);
+//            }
+            VideoTagAdapter tagAdapter = new VideoTagAdapter(mVideoDetail.getTags());
+            mFlowLayout.setAdapter(tagAdapter);
         }
         mAdapter.setVideoDetails(mVideoDetail.getRelates());
         mAdapter.notifyDataSetChanged();
@@ -182,8 +185,6 @@ public class VideoDetailInfoFragment extends BaseFragment implements FlowLayout.
         return "简介";
     }
 
-    //tagclick
-    @Override
     public void onItemClick(ViewGroup parent, int position, View view) {
         SearchActivity.startActivity(getContext(), mVideoDetail.getTags()[position]);
     }

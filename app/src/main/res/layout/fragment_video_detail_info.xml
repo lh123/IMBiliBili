@@ -2,7 +2,6 @@
 <android.support.v4.widget.NestedScrollView
     android:id="@+id/scroll_view"
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -156,11 +155,10 @@
             android:text="视频相关"
             android:textAppearance="@style/TextAppearance.App.Medium"/>
 
-        <com.lh.imbilibili.widget.FlowLayout
+        <com.zhy.view.flowlayout.TagFlowLayout
             android:id="@+id/author_tag"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:itemSpace="@dimen/item_half_spacing"/>
+            android:layout_height="wrap_content" />
 
 
         <android.support.v7.widget.RecyclerView

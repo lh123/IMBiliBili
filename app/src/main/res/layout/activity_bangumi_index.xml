@@ -14,7 +14,7 @@
         <include layout="@layout/navigation_back_top_bar"/>
 
         <FrameLayout
-            android:id="@+id/container"
+            android:id="@+id/head_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
     </LinearLayout>

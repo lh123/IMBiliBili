@@ -105,7 +105,7 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
         mAdapter = new ArchiveRecyclerViewAdapter(getContext());
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         mRecyclerView.setLayoutManager(layoutManager);
-        mRecyclerView.addItemDecoration(new LinearLayoutItemDecoration(getContext()));
+        mRecyclerView.addItemDecoration(new LinearLayoutItemDecoration(getContext(), LinearLayoutManager.VERTICAL));
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setEnableLoadMore(false);
         mRecyclerView.setOnLoadMoreLinstener(this);

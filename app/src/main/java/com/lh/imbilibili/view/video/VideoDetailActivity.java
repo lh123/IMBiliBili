@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -15,7 +14,6 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
 import android.support.v7.widget.Toolbar;
-import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -114,13 +112,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_detail);
-        if (!TextUtils.isEmpty(getIntent().getScheme())) {
-            Uri uri = getIntent().getData();
-            String str = uri.getLastPathSegment();
-            mAid = str.replaceAll("av", "");
-        } else {
-            mAid = getIntent().getStringExtra(EXTRA_AID);
-        }
+        mAid = getIntent().getStringExtra(EXTRA_AID);
         ButterKnife.bind(this);
         StatusBarUtils.setCollapsingToolbarLayout(this, mToolbar, mAppBarLayout, mCollapsingToolbarLayout);
         mIsFullScreen = false;

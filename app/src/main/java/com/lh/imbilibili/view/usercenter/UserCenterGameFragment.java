@@ -63,7 +63,7 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
         mAdapter = new GameRecyclerViewAdapter(getContext());
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         mRecyclerView.setLayoutManager(layoutManager);
-        mRecyclerView.addItemDecoration(new LinearLayoutItemDecoration(getContext()));
+        mRecyclerView.addItemDecoration(new LinearLayoutItemDecoration(getContext(), LinearLayoutManager.VERTICAL));
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setOnLoadMoreLinstener(this);
     }

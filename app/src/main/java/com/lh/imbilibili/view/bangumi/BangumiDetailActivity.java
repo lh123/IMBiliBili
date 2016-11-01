@@ -1,62 +1,53 @@
 package com.lh.imbilibili.view.bangumi;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.v4.widget.NestedScrollView;
-import android.support.v7.widget.GridLayoutManager;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.text.SpannableString;
-import android.text.Spanned;
-import android.text.style.ForegroundColorSpan;
 import android.view.View;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
+import android.view.ViewGroup;
+import android.view.animation.BounceInterpolator;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.bangumi.Bangumi;
 import com.lh.imbilibili.model.bangumi.BangumiDetail;
 import com.lh.imbilibili.model.bangumi.SeasonRecommend;
+import com.lh.imbilibili.model.feedback.Feedback;
 import com.lh.imbilibili.model.feedback.FeedbackData;
+import com.lh.imbilibili.model.feedback.ReplyCount;
+import com.lh.imbilibili.utils.DisplayUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
-import com.lh.imbilibili.utils.transformation.BlurTransformation;
-import com.lh.imbilibili.utils.transformation.RoundedCornersTransformation;
-import com.lh.imbilibili.utils.transformation.TopCropTransformation;
 import com.lh.imbilibili.view.BaseActivity;
-import com.lh.imbilibili.view.adapter.GridLayoutItemDecoration;
-import com.lh.imbilibili.view.adapter.bangumidetail.BangumiEpAdapter;
-import com.lh.imbilibili.view.adapter.bangumidetail.BangumiRecommendAdapter;
-import com.lh.imbilibili.view.adapter.bangumidetail.SeasonListAdapter;
-import com.lh.imbilibili.view.feedback.FeedbackActivity;
+import com.lh.imbilibili.view.adapter.bangumidetail.BangumiDetailAdapter;
 import com.lh.imbilibili.view.video.VideoPlayActivity;
-import com.lh.imbilibili.widget.FeedbackView;
-import com.lh.imbilibili.widget.ForegroundLinearLayout;
-import com.lh.imbilibili.widget.ScalableImageView;
+import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 
-import java.util.Collections;
 import java.util.List;
 
 import butterknife.BindView;
-import butterknife.BindViews;
 import butterknife.ButterKnife;
 import rx.Observable;
+import rx.Subscriber;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -64,71 +55,50 @@ import rx.schedulers.Schedulers;
  * Created by home on 2016/7/30.
  * 番剧详情界面
  */
-public class BangumiDetailActivity extends BaseActivity implements BangumiEpAdapter.onEpClickListener, SeasonListAdapter.OnSeasonItemClickListener, BangumiRecommendAdapter.OnBangumiRecommendItemClickListener, View.OnClickListener {
+public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyclerView.OnLoadMoreLinstener, LoadMoreRecyclerView.OnLoadMoreViewClickListener, BangumiDetailAdapter.OnItemClickListener {
 
-    @BindView(R.id.scroll_view)
-    NestedScrollView nestedScrollView;
+    private static final int PAGE_SIZE = 20;
+
 
     @BindView(R.id.nav_top_bar)
-    Toolbar toolbar;
+    Toolbar mToolbar;
+    @BindView(R.id.recycler_view)
+    LoadMoreRecyclerView mRecyclerView;
 
-    @BindView(R.id.cover)
-    ScalableImageView ivCover;
-    @BindView(R.id.background)
-    ScalableImageView ivBackground;
+    @BindView(R.id.stickly_layout)
+    ViewGroup mSticklyLayout;
+    @BindView(R.id.head_container)
+    ViewGroup mHeadContainer;
     @BindView(R.id.title)
-    TextView tvTitle;
-    @BindView(R.id.text1)
-    TextView tvText1;
-    @BindView(R.id.text2)
-    TextView tvText2;
-    @BindView(R.id.text3)
-    TextView tvText3;
+    TextView mTvTitle;
+    @BindView(R.id.addition_info)
+    TextView mTvAdditionInfo;
+    @BindView(R.id.sub_title)
+    TextView mTvSubTitle;
+    @BindView(R.id.sub_title_ico)
+    ImageView mIvSubTitleIco;
+    @BindView(R.id.fab_btn)
+    FloatingActionButton mFab;
+    @BindView(R.id.loading_view)
+    ProgressBar mLoadingView;
 
-    @BindView(R.id.loading)
-    ProgressBar pbLoading;
+    private int mHeadHeight;
 
-    @BindView(R.id.season_list)
-    RecyclerView seasonList;
+    private String mSeasonId;
+    private int mCurrentPage;
+    private int mReplyCount;
+    private boolean mFabShow;
 
-    @BindView(R.id.content_layout)
-    LinearLayout contentLayout;
-    @BindView(R.id.grid)
-    RecyclerView epRecyclerView;
-    @BindView(R.id.description)
-    TextView tvDescription;
+    private BangumiDetailAdapter mAdapter;
 
-    @BindView(R.id.comments)
-    LinearLayout llComments;
-    @BindView(R.id.season_comment_title)
-    TextView tvSeasonCommentTitle;
-    @BindViews({R.id.feedback1, R.id.feedback2, R.id.feedback3})
-    List<FeedbackView> feedbackViews;
-    @BindView(R.id.empty_view)
-    TextView emptyView;
-
-    @BindView(R.id.recommend_bangumi_header)
-    TextView tvRecommendBangumiHeader;
-    @BindView(R.id.recommend_bangumi_content)
-    RecyclerView recommendRecyclerView;
-    @BindView(R.id.season_comment_title_layout)
-    FrameLayout fmMoreComment;
-    @BindView(R.id.more)
-    ForegroundLinearLayout llMoreComment;
-
-    private Subscription mBangumiDetailSub;
+    private Subscription mAllDataSub;
     private Subscription mFeedbackSub;
-    private Subscription mSeasonRecommendSub;
+    private Subscription mLoadMoreFeedbackSub;
 
     private BangumiDetail mBangumiDetail;
-    private FeedbackData mFeedbackData;
-    private SeasonRecommend mRecommendSeasons;
-
-    private SeasonListAdapter seasonListAdapter;
-    private BangumiEpAdapter bangumiEpAdapter;
-    private BangumiRecommendAdapter recommendAdapter;
-
-    private int selectEpPosition = 0;
+    private List<Bangumi> mSeasonsRecommends;
+    private List<Feedback> mHotFeedback;
+    private List<Feedback> mNormalFeedback;
 
     public static void startActivity(Context context, String seasonId) {
         Intent intent = new Intent(context, BangumiDetailActivity.class);
@@ -141,273 +111,420 @@ public class BangumiDetailActivity extends BaseActivity implements BangumiEpAdap
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bangumi_detail);
         ButterKnife.bind(this);
-        String seasonId = getIntent().getStringExtra(Constant.QUERY_SEASON_ID);
+        mSeasonId = getIntent().getStringExtra(Constant.QUERY_SEASON_ID);
+        mCurrentPage = 1;
+        mHeadHeight = DisplayUtils.dip2px(getApplicationContext(), 178);
         initToolBar();
-        initView();
-//        loadAllData();
-        loadBangumiDate(seasonId, true);
-        loadBangumiRecommendDate(seasonId);
+        initFloatView();
+        initRecyclerView();
+        loadAllData();
+    }
+
+    private void initFloatView() {
+        mSticklyLayout.setVisibility(View.GONE);
+        mHeadContainer.setBackgroundColor(Color.WHITE);
+        mTvTitle.setText("评论");
+        mTvSubTitle.setText("选集");
+        mHeadContainer.setBackgroundColor(Color.WHITE);
+        mFab.setScaleX(0);
+        mFab.setScaleY(0);
+        mFab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LinearLayoutManager layoutManager = (LinearLayoutManager) mRecyclerView.getLayoutManager();
+                int position = layoutManager.findFirstVisibleItemPosition();
+                if (position > 5) {//太远直接移动
+                    mRecyclerView.scrollToPosition(5);
+                }
+                mRecyclerView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mRecyclerView.smoothScrollToPosition(0);//延迟执行
+                    }
+                });
+            }
+        });
+    }
+
+    private void initRecyclerView() {
+        mAdapter = new BangumiDetailAdapter(this);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
+        mRecyclerView.setLayoutManager(linearLayoutManager);
+        mRecyclerView.setAdapter(mAdapter);
+        mRecyclerView.setOnLoadMoreLinstener(this);
+        mRecyclerView.setOnLoadMoreViewClickListener(this);
+        mRecyclerView.setEnableLoadMore(false);
+        mRecyclerView.setShowLoadingView(false);
+        mAdapter.setOnItemClickListener(this);
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    View firstView = recyclerView.findChildViewUnder(mHeadContainer.getWidth() / 2, mToolbar.getBottom());
+                    if (firstView == null) {
+                        return;
+                    }
+                    int position = recyclerView.getChildAdapterPosition(firstView);
+                    if (position < 5) {
+                        hideFab();
+                    }
+                }
+            }
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                View firstView = recyclerView.findChildViewUnder(mHeadContainer.getWidth() / 2, mToolbar.getBottom());
+                if (firstView != null) {
+                    int type = recyclerView.getChildViewHolder(firstView).getItemViewType();
+                    if (type >= BangumiDetailAdapter.TYPE_FEEDBACK_HEAD) {//type 是顺序排列的
+                        if (firstView.getTop() < mToolbar.getBottom()) {
+                            mSticklyLayout.setVisibility(View.VISIBLE);
+                        }
+                    } else if (type < BangumiDetailAdapter.TYPE_FEEDBACK_HEAD) {
+                        if (firstView.getBottom() > mToolbar.getBottom()) {
+                            mSticklyLayout.setVisibility(View.GONE);
+                        }
+                    }
+                    if (type == BangumiDetailAdapter.TYPE_HEADER) {
+                        int scrollHeight = (int) (mHeadHeight - mToolbar.getMeasuredHeight() * 1.5);
+                        int scrolledY = -firstView.getTop();
+                        float percent = (float) scrolledY / scrollHeight;
+                        int iAlpha = (int) (percent * 255);
+                        if (iAlpha < 0) {
+                            iAlpha = 0;
+                        } else if (iAlpha > 255) {
+                            iAlpha = 255;
+                        }
+                        if (scrolledY < 5) {
+                            hideFab();
+                        }
+                        if (scrolledY > firstView.getMeasuredHeight() / 4) {
+                            mToolbar.setTitle(mBangumiDetail.getTitle());
+                        } else {
+                            mToolbar.setTitle("番剧详情");
+                        }
+                        mToolbar.getBackground().setAlpha(iAlpha);
+                    } else {
+                        mToolbar.setTitle(mBangumiDetail.getTitle());
+                        mToolbar.getBackground().setAlpha(255);
+                    }
+                }
+            }
+        });
     }
 
 
+    private void showFab() {
+        if (mFabShow) {
+            return;
+        }
+        mFabShow = true;
+        ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
+        animator.setInterpolator(new BounceInterpolator());
+        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float scale = (float) animation.getAnimatedValue();
+                if (scale == 0) {
+                    mFab.setVisibility(View.VISIBLE);
+                }
+                mFab.setScaleX(scale);
+                mFab.setScaleY(scale);
+            }
+        });
+        animator.start();
+    }
+
+    private void hideFab() {
+        if (!mFabShow) {
+            return;
+        }
+        mFabShow = false;
+        ValueAnimator animator = ValueAnimator.ofFloat(1, 0);
+        animator.setInterpolator(new BounceInterpolator());
+        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float scale = (float) animation.getAnimatedValue();
+                mFab.setScaleX(scale);
+                mFab.setScaleY(scale);
+                if (scale < 0.1) {
+                    mFab.setVisibility(View.GONE);
+                }
+            }
+        });
+        animator.start();
+    }
+
     private void initToolBar() {
-        StatusBarUtils.setImageTransparent(this, toolbar);
-        toolbar.getBackground().mutate().setAlpha(0);
-        toolbar.setTitle("番剧详情");
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+        StatusBarUtils.setImageTransparent(this, mToolbar);
+        mToolbar.getBackground().mutate().setAlpha(0);
+        mToolbar.setTitle("番剧详情");
+        mToolbar.getBackground().mutate();
+        mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
             }
         });
-        nestedScrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
-            @Override
-            public void onScrollChange(NestedScrollView v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
-                int scrollHeight = (int) (ivBackground.getMeasuredHeight() - toolbar.getMeasuredHeight() * 1.5);
-                float percent = (float) scrollY / scrollHeight;
-                int iAlpha = (int) (percent * 255);
-                if (iAlpha < 0) {
-                    iAlpha = 0;
-                } else if (iAlpha > 255) {
-                    iAlpha = 255;
-                }
-                toolbar.getBackground().mutate().setAlpha(iAlpha);
-            }
-        });
     }
 
-    private void initView() {
-        fmMoreComment.setOnClickListener(this);
-        llMoreComment.setOnClickListener(this);
+    private void loadAllData() {
+        mAllDataSub = Observable.mergeDelayError(loadBangumiAndFeedbackData(), loadBangumiRecommendData())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<Object>() {
+                    @Override
+                    public void onCompleted() {
+                        finishTask();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        ToastUtils.showToastShort(R.string.load_error);
+                        finishTask();
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+                    }
+                });
     }
 
-    private void loadBangumiDate(String seasonId, final boolean loadSeasons) {
-        pbLoading.setVisibility(View.VISIBLE);
-        seasonList.setVisibility(loadSeasons ? View.GONE : View.VISIBLE);
-        llComments.setVisibility(View.GONE);
-        contentLayout.setVisibility(View.GONE);
-        emptyView.setVisibility(View.GONE);
-        mBangumiDetailSub = RetrofitHelper
+    private Observable<Object> loadBangumiAndFeedbackData() {
+        return RetrofitHelper
                 .getInstance()
                 .getBangumiService()
-                .getBangumiDetail(seasonId, System.currentTimeMillis(), Constant.TYPE_BANGUMI)
-                .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<BiliBiliResultResponse<BangumiDetail>, Observable<BangumiDetail>>() {
+                .getBangumiDetail(mSeasonId, System.currentTimeMillis(), Constant.TYPE_BANGUMI)
+                .compose(new CacheTransformer<BiliBiliResultResponse<BangumiDetail>>("bangumi_detail_" + mSeasonId) {
+                })
+                .flatMap(new Func1<BiliBiliResultResponse<BangumiDetail>, Observable<Object>>() {
                     @Override
-                    public Observable<BangumiDetail> call(BiliBiliResultResponse<BangumiDetail> bangumiDetailBiliBiliResultResponse) {
+                    public Observable<Object> call(BiliBiliResultResponse<BangumiDetail> bangumiDetailBiliBiliResultResponse) {
                         if (bangumiDetailBiliBiliResultResponse.isSuccess()) {
-                            return Observable.just(bangumiDetailBiliBiliResultResponse.getResult());
+                            mBangumiDetail = bangumiDetailBiliBiliResultResponse.getResult();
+                            String avId = mBangumiDetail.getEpisodes().get(0).getAvId();
+                            return Observable.mergeDelayError(loadReplyCount(avId),
+                                    loadFeedbackDate(avId, false), loadFeedbackDate(avId, true));
                         } else {
                             return Observable.error(new ApiException(bangumiDetailBiliBiliResultResponse.getCode()));
                         }
                     }
-                })
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<BangumiDetail>() {
-                    @Override
-                    public void call(BangumiDetail bangumiDetail) {
-                        mBangumiDetail = bangumiDetail;
-                        setBangumiDetailData();
-                        if (bangumiDetail.getEpisodes().size() > 0) {
-                            loadFeedbackDate(bangumiDetail.getEpisodes().get(0).getAvId(),
-                                    bangumiDetail.getEpisodes().get(0).getIndex());
-                        }
-                        if (bangumiDetail.getSeasons().size() > 1 && loadSeasons) {
-                            initSeasonsList();
-                        }
-                    }
-                }, new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        ToastUtils.showToastShort(R.string.load_error);
-                    }
                 });
     }
 
-    private void loadFeedbackDate(String avId, final String index) {
-        mFeedbackSub = RetrofitHelper
-                .getInstance()
-                .getReplyService()
-                .getFeedback(1, avId, 1, 3, 2, 1)
-                .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<BilibiliDataResponse<FeedbackData>, Observable<FeedbackData>>() {
-                    @Override
-                    public Observable<FeedbackData> call(BilibiliDataResponse<FeedbackData> feedbackDataBilibiliDataResponse) {
-                        if (feedbackDataBilibiliDataResponse.isSuccess()) {
-                            return Observable.just(feedbackDataBilibiliDataResponse.getData());
-                        } else {
-                            return Observable.error(new ApiException(feedbackDataBilibiliDataResponse.getCode()));
-                        }
-                    }
-                })
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<FeedbackData>() {
-                    @Override
-                    public void call(FeedbackData feedbackData) {
-                        mFeedbackData = feedbackData;
-                        setFeedbackData(index);
-                    }
-                }, new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        ToastUtils.showToastShort(R.string.load_error);
-                    }
-                });
-    }
-
-    private void loadBangumiRecommendDate(String seasonId) {
-        tvRecommendBangumiHeader.setVisibility(View.GONE);
-        recommendRecyclerView.setVisibility(View.GONE);
-        mSeasonRecommendSub = RetrofitHelper
+    private Observable<List<Bangumi>> loadBangumiRecommendData() {
+        return RetrofitHelper
                 .getInstance()
                 .getBangumiService()
-                .getSeasonRecommend(seasonId, System.currentTimeMillis())
-                .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<BiliBiliResultResponse<SeasonRecommend>, Observable<SeasonRecommend>>() {
+                .getSeasonRecommend(mSeasonId, System.currentTimeMillis())
+                .flatMap(new Func1<BiliBiliResultResponse<SeasonRecommend>, Observable<List<Bangumi>>>() {
                     @Override
-                    public Observable<SeasonRecommend> call(BiliBiliResultResponse<SeasonRecommend> seasonRecommendBiliBiliResultResponse) {
+                    public Observable<List<Bangumi>> call(BiliBiliResultResponse<SeasonRecommend> seasonRecommendBiliBiliResultResponse) {
                         if (seasonRecommendBiliBiliResultResponse.isSuccess()) {
-                            return Observable.just(seasonRecommendBiliBiliResultResponse.getResult());
+                            mSeasonsRecommends = seasonRecommendBiliBiliResultResponse.getResult().getList();
+                            return Observable.just(mSeasonsRecommends);
                         } else {
                             return Observable.error(new ApiException(seasonRecommendBiliBiliResultResponse.getCode()));
                         }
                     }
-                })
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<SeasonRecommend>() {
+                });
+    }
+
+
+    private void finishTask() {
+        mLoadingView.setVisibility(View.GONE);
+        if (mBangumiDetail != null) {
+            mAdapter.setBangumiDetail(mBangumiDetail);
+        }
+        if (mSeasonsRecommends != null) {
+            mAdapter.setSeasonRecommend(mSeasonsRecommends);
+        }
+        if (mHotFeedback != null) {
+            mAdapter.setHotFeedbacks(mHotFeedback);
+        }
+        if (mNormalFeedback != null) {
+            mAdapter.addFeedBack(mNormalFeedback);
+            mCurrentPage++;
+        }
+        if (mBangumiDetail != null || mSeasonsRecommends != null) {
+            mRecyclerView.setEnableLoadMore(true);
+            mRecyclerView.setShowLoadingView(true);
+            mTvAdditionInfo.setVisibility(View.VISIBLE);
+            mTvTitle.setText(StringUtils.format("评论 第%s话", mBangumiDetail.getEpisodes().get(0).getIndex()));
+            mTvAdditionInfo.setText(StringUtils.format("(%d)", mReplyCount));
+            mAdapter.setReplyCount(mReplyCount);
+            mAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private Observable<List<Feedback>> loadFeedbackDate(String avId, final boolean noHot) {
+        if (noHot) {
+            mNormalFeedback = null;
+        } else {
+            mHotFeedback = null;
+        }
+        return RetrofitHelper
+                .getInstance()
+                .getReplyService()
+                .getFeedback(noHot ? 1 : 0, avId, mCurrentPage, noHot ? PAGE_SIZE : 3, noHot ? 0 : 2, 1)
+                .flatMap(new Func1<BilibiliDataResponse<FeedbackData>, Observable<List<Feedback>>>() {
                     @Override
-                    public void call(SeasonRecommend seasonRecommend) {
-                        mRecommendSeasons = seasonRecommend;
-                        if (mRecommendSeasons.getList().size() > 0) {
-                            setBangumiRecommendDate();
+                    public Observable<List<Feedback>> call(BilibiliDataResponse<FeedbackData> feedbackDataBilibiliDataResponse) {
+                        if (feedbackDataBilibiliDataResponse.isSuccess()) {
+                            if (!noHot) {
+                                mHotFeedback = feedbackDataBilibiliDataResponse.getData().getHots();
+                                return Observable.just(mHotFeedback);
+                            } else {
+                                mNormalFeedback = feedbackDataBilibiliDataResponse.getData().getReplies();
+                                return Observable.just(mNormalFeedback);
+                            }
+                        } else {
+                            return Observable.error(new ApiException(feedbackDataBilibiliDataResponse.getCode()));
                         }
-                    }
-                }, new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        ToastUtils.showToastShort(R.string.load_error);
                     }
                 });
     }
 
-    private void setBangumiRecommendDate() {
-        tvRecommendBangumiHeader.setVisibility(View.VISIBLE);
-        recommendRecyclerView.setVisibility(View.VISIBLE);
-        if (recommendAdapter == null) {
-            GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 3);
-            recommendAdapter = new BangumiRecommendAdapter(this, mRecommendSeasons.getList());
-            recommendRecyclerView.setLayoutManager(gridLayoutManager);
-            recommendRecyclerView.addItemDecoration(new GridLayoutItemDecoration(this, false));
-            recommendRecyclerView.setHasFixedSize(true);
-            recommendRecyclerView.setNestedScrollingEnabled(false);
-            recommendRecyclerView.setAdapter(recommendAdapter);
-            recommendAdapter.setOnBangumiRecommendItemClickListener(this);
-        } else {
-            recommendAdapter.setBangumis(mRecommendSeasons.getList());
-            recommendAdapter.notifyDataSetChanged();
-        }
+    private Observable<Integer> loadReplyCount(String id) {
+        return RetrofitHelper.getInstance()
+                .getReplyService()
+                .getReplyCount(id, 1)
+                .flatMap(new Func1<BilibiliDataResponse<ReplyCount>, Observable<Integer>>() {
+                    @Override
+                    public Observable<Integer> call(BilibiliDataResponse<ReplyCount> replyCountBilibiliDataResponse) {
+                        if (replyCountBilibiliDataResponse.isSuccess()) {
+                            mReplyCount = replyCountBilibiliDataResponse.getData().getCount();
+                            return Observable.just(mReplyCount);
+                        } else {
+                            return Observable.error(new ApiException(replyCountBilibiliDataResponse.getCode()));
+                        }
+                    }
+                });
     }
 
-    public void setFeedbackData(String index) {
-        String txt = StringUtils.format("第%s话评论(%d)", index,
-                mFeedbackData.getPage().getAcount());
-        SpannableString spannableString = new SpannableString(txt);
-        int start = txt.indexOf("(");
-        spannableString.setSpan(new ForegroundColorSpan(Color.GRAY), start, txt.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        tvSeasonCommentTitle.setText(spannableString);
-        if (mFeedbackData.getReplies().size() >= 3) {
-            llComments.setVisibility(View.VISIBLE);
-            emptyView.setVisibility(View.GONE);
-            for (int i = 0; i < 3; i++) {
-                feedbackViews.get(i).setData(mFeedbackData.getReplies().get(i));
-            }
-        }
-    }
-
-    private void setBangumiDetailData() {
-        pbLoading.setVisibility(View.GONE);
-        Glide.with(BangumiDetailActivity.this).load(mBangumiDetail.getCover()).transform(new RoundedCornersTransformation(this, 5)).into(ivCover);
-        Glide.with(BangumiDetailActivity.this).load(mBangumiDetail.getCover())
-                .transform(new TopCropTransformation(this), new BlurTransformation(BangumiDetailActivity.this, 20))
-                .into(ivBackground);
-        tvTitle.setText(mBangumiDetail.getTitle());
-        if ("0".equals(mBangumiDetail.getIsFinish())) {
-            tvText1.setText(StringUtils.format("连载中，每周%s更新", StringUtils.str2Weekday(mBangumiDetail.getWeekday())));
-        } else {
-            tvText1.setText(StringUtils.format("已完结，%s话全", mBangumiDetail.getTotalCount()));
-        }
-        tvText2.setText(StringUtils.format("播放：%s", StringUtils.formateNumber(mBangumiDetail.getPlayCount())));
-        tvText3.setText(StringUtils.format("追番：%s", StringUtils.formateNumber(mBangumiDetail.getFavorites())));
-        tvDescription.setText(mBangumiDetail.getEvaluate());
-        setBangumiEpRecyclerView();
-    }
-
-    private void initSeasonsList() {
-        seasonList.setVisibility(View.VISIBLE);
-        if (seasonListAdapter == null) {
-            seasonListAdapter = new SeasonListAdapter(getApplicationContext(), mBangumiDetail.getSeasons());
-            LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
-            seasonList.setLayoutManager(linearLayoutManager);
-            seasonList.setAdapter(seasonListAdapter);
-            seasonListAdapter.selectItem(mBangumiDetail.getSeasonId());
-            linearLayoutManager.scrollToPosition(seasonListAdapter.getSelectPosition());
-            seasonListAdapter.setOnSeasonItemClickListener(this);
-        } else {
-            seasonListAdapter.setSeasons(mBangumiDetail.getSeasons());
-            seasonListAdapter.notifyDataSetChanged();
-        }
-    }
-
-    private void setBangumiEpRecyclerView() {
-        contentLayout.setVisibility(View.VISIBLE);
-        if ("1".equals(mBangumiDetail.getIsFinish())) {
-            Collections.reverse(mBangumiDetail.getEpisodes());
-        }
-        if (bangumiEpAdapter == null) {
-            GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 4);
-            bangumiEpAdapter = new BangumiEpAdapter(mBangumiDetail.getEpisodes());
-            epRecyclerView.addItemDecoration(new GridLayoutItemDecoration(this, false));
-            epRecyclerView.setLayoutManager(gridLayoutManager);
-            epRecyclerView.setAdapter(bangumiEpAdapter);
-            epRecyclerView.setNestedScrollingEnabled(false);
-            bangumiEpAdapter.setOnEpClickListener(this);
-        } else {
-            bangumiEpAdapter.setEpisodes(mBangumiDetail.getEpisodes());
-            bangumiEpAdapter.notifyDataSetChanged();
-        }
-    }
 
     @Override
     protected void onDestroy() {
-        SubscriptionUtils.unsubscribe(mBangumiDetailSub, mFeedbackSub, mSeasonRecommendSub);
+        SubscriptionUtils.unsubscribe(mAllDataSub, mLoadMoreFeedbackSub, mFeedbackSub);
         super.onDestroy();
     }
 
+//    @Override
+//    public void onEpClick(int position) {
+//        if (0 != position) {
+////            0 = position;
+//            loadFeedbackDate(mBangumiDetail.getEpisodes().get(position).getAvId(), false, 3);
+//        }
+//        VideoPlayActivity.startVideoActivity(this, mBangumiDetail.getEpisodes().get(position).getEpisodeId(), null, mBangumiDetail.getTitle());
+//    }
+
+    //    @Override
+//    public void onSeasonItemClick(int position) {
+////        loadBangumiAndFeedbackData(mBangumiDetail.getSeasons().get(position).getSeasonId(), false);
+//    }
+//
+//    @Override
+//    public void onBangumiRecommendItemClick(int position) {
+//        BangumiDetailActivity.startActivity(this, mSeasonsRecommend.getList().get(position).getSeasonId());
+//    }
+//
     @Override
-    public void onEpClick(int position) {
-        if (selectEpPosition != position) {
-            selectEpPosition = position;
-            loadFeedbackDate(mBangumiDetail.getEpisodes().get(position).getAvId(),
-                    mBangumiDetail.getEpisodes().get(position).getIndex());
+    public void onLoadMore() {
+        if (mCurrentPage > 1) {
+            showFab();
         }
-        VideoPlayActivity.startVideoActivity(this, mBangumiDetail.getEpisodes().get(position).getEpisodeId(), null, mBangumiDetail.getTitle());
+        mLoadMoreFeedbackSub = loadFeedbackDate(mBangumiDetail.getEpisodes().get(mAdapter.getEpSelectPosition()).getAvId(), true)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<List<Feedback>>() {
+                    @Override
+                    public void onCompleted() {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        mRecyclerView.setLoading(false);
+                        mRecyclerView.setEnableLoadMore(false);
+                        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_RETRY);
+                    }
+
+                    @Override
+                    public void onNext(List<Feedback> feedbacks) {
+                        mRecyclerView.setLoading(false);
+                        if (feedbacks.isEmpty()) {
+                            mRecyclerView.setEnableLoadMore(false);
+                            mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
+                        } else {
+                            int preCount = mAdapter.getItemCount();
+                            mAdapter.addFeedBack(feedbacks);
+                            mAdapter.notifyItemRangeInserted(preCount, feedbacks.size());
+                            mCurrentPage++;
+                        }
+                    }
+                });
     }
 
     @Override
-    public void onSeasonItemClick(int position) {
-        loadBangumiDate(mBangumiDetail.getSeasons().get(position).getSeasonId(), false);
+    public void onLoadMoreViewClick() {
+        mRecyclerView.setEnableLoadMore(true);
+        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_REFRESHING);
+        onLoadMore();
     }
 
     @Override
-    public void onBangumiRecommendItemClick(int position) {
-        BangumiDetailActivity.startActivity(this, mRecommendSeasons.getList().get(position).getSeasonId());
-    }
+    public void onItemClick(int type, final int position) {
+        switch (type) {
+            case BangumiDetailAdapter.TYPE_SEASON_LIST:
+                SubscriptionUtils.unsubscribe(mAllDataSub, mLoadMoreFeedbackSub, mFeedbackSub);
+                mSeasonId = mBangumiDetail.getSeasons().get(position).getSeasonId();
+                mAdapter.clearAllData();
+                mCurrentPage = 1;
+                mRecyclerView.setEnableLoadMore(false);
+                mRecyclerView.setShowLoadingView(false);
+                mLoadingView.setVisibility(View.VISIBLE);
+                mAdapter.notifyDataSetChanged();
+                loadAllData();
+                break;
+            case BangumiDetailAdapter.TYPE_EPOSIDE:
+                SubscriptionUtils.unsubscribe(mAllDataSub, mLoadMoreFeedbackSub, mFeedbackSub);
+                BangumiDetail.Episode episode = mBangumiDetail.getEpisodes().get(position);
+                VideoPlayActivity.startVideoActivity(this, episode.getEpisodeId(), episode.getAvId(), episode.getIndexTitle());
+                int[] result = mAdapter.clearFeedback();
+                mAdapter.notifyItemRangeRemoved(result[0], result[1]);
+                mCurrentPage = 1;
+                mFeedbackSub = Observable.mergeDelayError(loadReplyCount(episode.getAvId()),
+                        loadFeedbackDate(episode.getAvId(), false),
+                        loadFeedbackDate(episode.getAvId(), true))
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new Subscriber<Object>() {
+                            @Override
+                            public void onCompleted() {
+                                mTvTitle.setText(StringUtils.format("评论 第%s话", mBangumiDetail.getEpisodes().get(position).getIndex()));
+                                mTvAdditionInfo.setText(StringUtils.format("(%d)", mReplyCount));
+                                mAdapter.setHotFeedbacks(mHotFeedback);
+                                mAdapter.addFeedBack(mNormalFeedback);
+                                mAdapter.setReplyCount(mReplyCount);
+                                mAdapter.notifyDataSetChanged();
+                            }
 
-    @Override
-    public void onClick(View v) {
-        if (v.getId() == R.id.season_comment_title_layout ||
-                v.getId() == R.id.more) {
-            FeedbackActivity.startActivity(this, selectEpPosition, mBangumiDetail);
+                            @Override
+                            public void onError(Throwable e) {
+                                ToastUtils.showToastShort(R.string.load_error);
+                            }
+
+                            @Override
+                            public void onNext(Object o) {
+
+                            }
+                        });
+                break;
+            case BangumiDetailAdapter.TYPE_RECOMMEND:
+                BangumiDetailActivity.startActivity(this, mSeasonsRecommends.get(position).getSeasonId());
+                break;
         }
     }
 }

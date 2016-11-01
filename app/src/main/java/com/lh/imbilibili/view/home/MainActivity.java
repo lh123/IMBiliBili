@@ -138,7 +138,7 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
             default:
                 return;
         }
-        getSupportFragmentManager().beginTransaction().replace(R.id.container, fragment, tag).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.head_container, fragment, tag).commit();
     }
 
     @Override
