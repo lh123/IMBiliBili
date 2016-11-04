@@ -52,7 +52,7 @@ public class VideoRelatesRecyclerViewAdapter extends RecyclerView.Adapter<VideoR
     @Override
     public void onBindViewHolder(VideoHolder holder, int position) {
         VideoDetail video = mVideoDetails.get(position);
-        Glide.with(mContext).load(video.getPic()).fitCenter().into(holder.mIvCover);
+        Glide.with(mContext).load(video.getPic()).centerCrop().into(holder.mIvCover);
         holder.mTvTitle.setText(video.getTitle());
         holder.mTvAuthor.setText(video.getOwner().getName());
         holder.mTvInfoViews.setText(StringUtils.formateNumber(video.getStat().getView()));

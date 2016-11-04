@@ -3,7 +3,6 @@ package com.lh.imbilibili.view.usercenter;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.view.View;
-import android.widget.Toast;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
@@ -183,7 +182,7 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
                     @Override
                     public void onError(Throwable e) {
                         mRecyclerView.setLoading(false);
-                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                        ToastUtils.showToastShort(R.string.load_error);
                     }
 
                     @Override

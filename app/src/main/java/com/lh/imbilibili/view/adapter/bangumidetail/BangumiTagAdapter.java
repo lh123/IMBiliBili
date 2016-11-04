@@ -33,7 +33,8 @@ public class BangumiTagAdapter extends RecyclerView.Adapter {
         TextView tagView = new TextView(parent.getContext());
         tagView.setGravity(Gravity.CENTER);
         int padding = parent.getResources().getDimensionPixelOffset(R.dimen.item_spacing);
-        tagView.setPadding(padding, padding, padding, padding);
+        int paddLR = parent.getResources().getDimensionPixelOffset(R.dimen.item_medium_spacing);
+        tagView.setPadding(paddLR, padding, paddLR, padding);
         tagView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         tagView.setBackgroundResource(R.drawable.selector_bangumi_tag_bg);
         tagView.setTextColor(Color.BLACK);

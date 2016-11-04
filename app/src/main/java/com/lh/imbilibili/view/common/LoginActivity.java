@@ -11,7 +11,6 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.RetrofitHelper;
@@ -109,13 +108,13 @@ public class LoginActivity extends BaseActivity implements View.OnFocusChangeLis
                             RxBus.getInstance().send(userResponse);
                             finish();
                         } else {
-                            ToastUtils.showToast(LoginActivity.this, userResponse.getCode() + "", Toast.LENGTH_SHORT);
+                            ToastUtils.showToastShort(userResponse.getCode() + "");
                         }
                     }
                 }, new Action1<Throwable>() {
                     @Override
                     public void call(Throwable throwable) {
-                        ToastUtils.showToast(LoginActivity.this, "网络异常", Toast.LENGTH_SHORT);
+                        ToastUtils.showToastShort("网络异常");
                     }
                 });
     }

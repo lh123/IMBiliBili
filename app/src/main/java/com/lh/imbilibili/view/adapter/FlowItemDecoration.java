@@ -1,4 +1,4 @@
-package com.lh.imbilibili.view.adapter.bangumidetail;
+package com.lh.imbilibili.view.adapter;
 
 import android.content.Context;
 import android.graphics.Rect;
@@ -11,12 +11,16 @@ import com.lh.imbilibili.R;
  * Created by liuhui on 2016/10/31.
  */
 
-public class TagItemDecoration extends RecyclerView.ItemDecoration {
+public class FlowItemDecoration extends RecyclerView.ItemDecoration {
 
     private int itemHalfSpace;
 
-    public TagItemDecoration(Context context) {
-        itemHalfSpace = context.getResources().getDimensionPixelSize(R.dimen.item_spacing);
+    public FlowItemDecoration(Context context) {
+        itemHalfSpace = context.getResources().getDimensionPixelSize(R.dimen.item_half_spacing);
+    }
+
+    public FlowItemDecoration(int space) {
+        itemHalfSpace = space;
     }
 
     @Override

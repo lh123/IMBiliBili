@@ -3,7 +3,6 @@ package com.lh.imbilibili.view.partion;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.view.View;
-import android.widget.Toast;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.cache.CacheTransformer;
@@ -159,7 +158,7 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
                     public void onError(Throwable e) {
                         mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
                         finishTask();
-                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                        ToastUtils.showToastShort(R.string.load_error);
                     }
 
                     @Override
@@ -204,7 +203,7 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
                     public void call(Throwable throwable) {
                         mRecyclerView.setLoading(false);
                         mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
-                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                        ToastUtils.showToastShort(R.string.load_error);
                     }
                 });
     }

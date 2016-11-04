@@ -7,14 +7,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.history.History;
 import com.lh.imbilibili.utils.CallUtils;
-import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.lh.imbilibili.view.BaseFragment;
@@ -83,7 +81,6 @@ public class HistoryRecordFragment extends BaseFragment {
     protected void initView(View view) {
         ButterKnife.bind(this, view);
         mNeedToLoad = true;
-        StatusBarUtils.setDrawerToolbarLayout(getActivity(), mRootView);
         mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -143,7 +140,7 @@ public class HistoryRecordFragment extends BaseFragment {
 
             @Override
             public void onFailure(Call<BilibiliDataResponse<List<History>>> call, Throwable t) {
-                ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                ToastUtils.showToastShort(R.string.load_error);
             }
         });
     }

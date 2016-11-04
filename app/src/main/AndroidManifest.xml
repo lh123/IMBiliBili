@@ -52,7 +52,7 @@
             android:name=".view.bangumi.BangumiIndexActivity"
             android:screenOrientation="portrait"/>
         <activity
-            android:name=".view.partion.PartitionMoreActivity"
+            android:name=".view.partion.PartitionActivity"
             android:screenOrientation="portrait"/>
         <activity
             android:name=".view.search.SearchActivity"

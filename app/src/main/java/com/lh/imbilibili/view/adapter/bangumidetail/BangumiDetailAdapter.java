@@ -20,6 +20,7 @@ import com.lh.imbilibili.utils.StringUtils;
 import com.lh.imbilibili.utils.transformation.BlurTransformation;
 import com.lh.imbilibili.utils.transformation.RoundedCornersTransformation;
 import com.lh.imbilibili.utils.transformation.TopCropTransformation;
+import com.lh.imbilibili.view.adapter.FlowItemDecoration;
 import com.lh.imbilibili.view.adapter.GridLayoutItemDecoration;
 import com.lh.imbilibili.view.adapter.LinearLayoutItemDecoration;
 import com.lh.imbilibili.widget.FeedbackView;
@@ -84,6 +85,14 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
         mHotFeedbacks = hotFeedbacks;
     }
 
+    public void setEpSelectPosition(int position) {
+        mEpSelectPosition = position;
+        int itemPosition = mTypeList.indexOf(TYPE_EPOSIDE);
+        if (itemPosition > 0) {
+            notifyItemChanged(itemPosition);
+        }
+    }
+
     public int getEpSelectPosition() {
         return mEpSelectPosition;
     }
@@ -104,21 +113,21 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
         clearFeedback();
     }
 
-    public int[] clearFeedback() {
-        int[] result = new int[2];
+    public void clearFeedback() {
         if (mHotFeedbacks != null) {
             mHotFeedbacks.clear();
         }
         if (mFeedbacks != null) {
             mFeedbacks.clear();
         }
-        result[0] = mTypeList.indexOf(TYPE_HOT_FEEDBACK);
-        result[1] = mTypeList.lastIndexOf(TYPE_NORMAL_FEEDBACK) - mTypeList.indexOf(TYPE_HOT_FEEDBACK) + 1;
-        return result;
     }
 
     public void setReplyCount(int count) {
         mReplyCount = count;
+    }
+
+    public int getItemStartPositionOfType(int type) {
+        return mTypeList.indexOf(type);
     }
 
     @Override
@@ -179,8 +188,16 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
         } else if (itemType == TYPE_SEASON_LIST) {
             SeasonListViewHolder viewHolder = (SeasonListViewHolder) holder;
             viewHolder.refreshData(mBangumiDetail.getSeasons());
+            if (!mBangumiDetail.getSeasonId().equals(viewHolder.mAdapter.getSelectSeasonId())) {
+                viewHolder.mAdapter.selectItem(mBangumiDetail.getSeasonId());
+                viewHolder.mRecyclerView.scrollToPosition(viewHolder.mAdapter.getSelectPosition());
+            }
         } else if (itemType == TYPE_EPOSIDE) {
             EposideViewHolder viewHolder = (EposideViewHolder) holder;
+            if (mEpSelectPosition != viewHolder.mAdapter.getSelectPosition()) {
+                viewHolder.mAdapter.setSelectPosition(mEpSelectPosition);
+                viewHolder.mRecyclerView.scrollToPosition(mEpSelectPosition);
+            }
             viewHolder.refreshData(mBangumiDetail.getEpisodes());
         } else if (itemType == TYPE_DESC) {
             DescViewHolder viewHolder = (DescViewHolder) holder;
@@ -228,21 +245,23 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
         if (mSeasonRecommends != null && mSeasonRecommends.size() > 0) {
             mTypeList.add(TYPE_RECOMMEND);
         }
-        mTypeList.add(TYPE_FEEDBACK_HEAD);
-        if ((mHotFeedbacks != null && !mHotFeedbacks.isEmpty())) {
-            if (mHotFeedbacks != null) {
-                int count = Math.min(mHotFeedbacks.size(), 3);
-                for (int i = 0; i < count; i++) {
-                    mTypeList.add(TYPE_HOT_FEEDBACK);
-                }
-                if (mHotFeedbacks.size() >= 3) {
-                    mTypeList.add(TYPE_HOT_FEEDBACK_MORE);
+        if (!mBangumiDetail.getEpisodes().isEmpty()) {
+            mTypeList.add(TYPE_FEEDBACK_HEAD);
+            if ((mHotFeedbacks != null && !mHotFeedbacks.isEmpty())) {
+                if (mHotFeedbacks != null) {
+                    int count = Math.min(mHotFeedbacks.size(), 3);
+                    for (int i = 0; i < count; i++) {
+                        mTypeList.add(TYPE_HOT_FEEDBACK);
+                    }
+                    if (mHotFeedbacks.size() >= 3) {
+                        mTypeList.add(TYPE_HOT_FEEDBACK_MORE);
+                    }
                 }
             }
-        }
-        if (mFeedbacks != null) {
-            for (int i = 0; i < mFeedbacks.size(); i++) {
-                mTypeList.add(TYPE_NORMAL_FEEDBACK);
+            if (mFeedbacks != null) {
+                for (int i = 0; i < mFeedbacks.size(); i++) {
+                    mTypeList.add(TYPE_NORMAL_FEEDBACK);
+                }
             }
         }
         return mTypeList.size();
@@ -312,7 +331,7 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
     }
 
     @SuppressWarnings("WeakerAccess")
-    class EposideViewHolder extends RecyclerView.ViewHolder implements BangumiEpAdapter.OnEpClickListener {
+    class EposideViewHolder extends RecyclerView.ViewHolder implements BangumiEpAdapter.OnEpClickListener, View.OnClickListener {
 
         @BindView(R.id.head_container)
         ViewGroup mHeadContainer;
@@ -336,6 +355,7 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
             mRecyclerView.setHasFixedSize(true);
             mRecyclerView.setNestedScrollingEnabled(false);
             mAdapter.setOnEpClickListener(this);
+            mHeadContainer.setOnClickListener(this);
         }
 
         private void refreshData(List<BangumiDetail.Episode> episodes) {
@@ -358,6 +378,13 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
             mEpSelectPosition = position;
             if (mOnItemClickListener != null) {
                 mOnItemClickListener.onItemClick(getItemViewType(), position);
+            }
+        }
+
+        @Override
+        public void onClick(View v) {
+            if (mOnItemClickListener != null) {
+                mOnItemClickListener.onHeadClick(getItemViewType());
             }
         }
     }
@@ -384,7 +411,8 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
             mAdapter = new BangumiTagAdapter();
             FlowLayoutManager layoutManager = new FlowLayoutManager();
             mRecyclerView.setLayoutManager(layoutManager);
-            mRecyclerView.addItemDecoration(new TagItemDecoration(mContext));
+            int space = mContext.getResources().getDimensionPixelSize(R.dimen.item_spacing);
+            mRecyclerView.addItemDecoration(new FlowItemDecoration(space));
             mRecyclerView.setAdapter(mAdapter);
         }
 
@@ -449,7 +477,7 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
     }
 
     @SuppressWarnings("WeakerAccess")
-    class FeedbackHeadHolder extends RecyclerView.ViewHolder {
+    class FeedbackHeadHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         @BindView(R.id.head_container)
         ViewGroup mHeadContainer;
@@ -465,6 +493,14 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
         public FeedbackHeadHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);
+            itemView.setOnClickListener(this);
+        }
+
+        @Override
+        public void onClick(View v) {
+            if (mOnItemClickListener != null) {
+                mOnItemClickListener.onHeadClick(getItemViewType());
+            }
         }
     }
 
@@ -496,5 +532,7 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
 
     public interface OnItemClickListener {
         void onItemClick(int type, int position);
+
+        void onHeadClick(int type);
     }
 }

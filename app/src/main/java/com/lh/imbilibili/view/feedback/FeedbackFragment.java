@@ -5,7 +5,6 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
@@ -108,7 +107,7 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
                 }, new Action1<Throwable>() {
                     @Override
                     public void call(Throwable throwable) {
-                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                        ToastUtils.showToastShort(R.string.load_error);
                     }
                 });
     }

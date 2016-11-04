@@ -1,6 +1,5 @@
 package com.lh.imbilibili.view.home;
 
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
@@ -8,9 +7,9 @@ import android.support.v4.app.Fragment;
 import android.support.v4.widget.DrawerLayout;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
@@ -46,13 +45,13 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
 
     @BindView(R.id.drawer_layout)
     DrawerLayout mDrawerLayout;
+    @BindView(R.id.container)
+    ViewGroup mContainer;
     @BindView(R.id.drawer)
     NavigationView mDrawer;
 
     private ImageView mIvAvatar;
     private TextView mTvNickName;
-    //    private ImageView mIvLoginBg;
-    private View mDrawerProfileLayout;
     private TextView mTvLevel;
     private TextView mTvMemberState;
     private TextView mTvCoinCount;
@@ -67,8 +66,8 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+        StatusBarUtils.setDrawerToolbarTabLayout(this, mDrawerLayout, mDrawer, mContainer);
         View headView = mDrawer.getHeaderView(0);
-        mDrawerProfileLayout = headView.findViewById(R.id.drawer_profile_layout);
         mIvAvatar = (ImageView) headView.findViewById(R.id.user_avatar);
         mTvNickName = (TextView) headView.findViewById(R.id.user_nick_text);
         mTvLevel = (TextView) headView.findViewById(R.id.level);
@@ -87,9 +86,6 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
     }
 
     private void initView() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            mDrawerProfileLayout.setPadding(0, StatusBarUtils.getStatusBarHeight(this), 0, 0);
-        }
         mIvAvatar.setOnClickListener(this);
         mTvNickName.setOnClickListener(this);
         if (UserManagerUtils.getInstance().getCurrentUser() != null) {
@@ -138,7 +134,7 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
             default:
                 return;
         }
-        getSupportFragmentManager().beginTransaction().replace(R.id.head_container, fragment, tag).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.container, fragment, tag).commit();
     }
 
     @Override
@@ -193,7 +189,7 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
                 }, new Action1<Throwable>() {
                     @Override
                     public void call(Throwable throwable) {
-                        ToastUtils.showToast(getApplicationContext(), "加载用户信息失败", Toast.LENGTH_SHORT);
+                        ToastUtils.showToastShort("加载用户信息失败");
                     }
                 });
     }

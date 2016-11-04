@@ -40,6 +40,7 @@ public class VideoPageRecyclerViewAdapter extends RecyclerView.Adapter<VideoPage
         VideoDetail.Page page = mPages.get(position);
         holder.mTvTitle.setText(page.getPart());
         holder.itemView.setSelected(position == selectPosition);
+        holder.mTvTitle.setSelected(position == selectPosition);
     }
 
     @Override

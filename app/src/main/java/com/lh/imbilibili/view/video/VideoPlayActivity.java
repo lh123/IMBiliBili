@@ -10,7 +10,6 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.lh.danmakulibrary.BiliBiliDanmakuParser;
 import com.lh.danmakulibrary.Danmaku;
@@ -20,6 +19,8 @@ import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
+import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.bangumi.BangumiDetail;
 import com.lh.imbilibili.model.video.SourceData;
 import com.lh.imbilibili.model.video.VideoPlayData;
 import com.lh.imbilibili.utils.DanmakuUtils;
@@ -39,6 +40,7 @@ import butterknife.ButterKnife;
 import rx.Observable;
 import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 import tv.danmaku.ijk.media.player.IMediaPlayer;
@@ -65,10 +67,8 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     @BindView(R.id.danmaku_view)
     DanmakuView mDanmakuView;
 
-    private String mAid;
-    private String mCid;
-
-    private String mTitle;
+    private BangumiDetail.Episode mEpisode;
+    private SourceData mSourceData;
 
     private ArrayList<Danmaku> mDanmakus;
 
@@ -81,15 +81,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
 
     private StringBuilder mPreMsgBuilder;
 
-    private boolean mIsVideoUrlSuccess;
-    private boolean mIsDanmakuSuccess;
-
-
-    public static void startVideoActivity(Context context, String aid, String cid, String title) {
+    public static void startVideoActivity(Context context, BangumiDetail.Episode episode) {
         Intent intent = new Intent(context, VideoPlayActivity.class);
-        intent.putExtra("aid", aid);
-        intent.putExtra("cid", cid);
-        intent.putExtra("title", title);
+        intent.putExtra("episode", episode);
         context.startActivity(intent);
     }
 
@@ -100,9 +94,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
         mHandler = new VideoHandler(new WeakReference<>(this));
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED, WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
         ButterKnife.bind(this);
-        mAid = getIntent().getStringExtra("aid");
-        mCid = getIntent().getStringExtra("cid");
-        mTitle = getIntent().getStringExtra("title");
+        mEpisode = getIntent().getParcelableExtra("episode");
         mPreMsgBuilder = new StringBuilder();
         mLastPlayPosition = 0;
         initIjkPlayer();
@@ -113,7 +105,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     private void initIjkPlayer() {
         mPreMsgBuilder.append("初始化播放器...");
         mPrePlayMsg.setText(mPreMsgBuilder);
-        mVideoControlView.setVideoTitle(mTitle);
+        mVideoControlView.setVideoTitle(mEpisode.getIndexTitle());
         mIjkVideoView.setKeepScreenOn(true);
         mIjkVideoView.setOnPreparedListener(this);
         mIjkVideoView.setOnInfoListener(this);
@@ -122,26 +114,23 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     }
 
     private void preparePlay() {
-        mIsVideoUrlSuccess = false;
-        mIsDanmakuSuccess = false;
         mPreMsgBuilder.append("【完成】\n解析视频信息...");
         mPrePlayMsg.setText(mPreMsgBuilder);
         RetrofitHelper.getInstance()
                 .getBangumiService()
-                .getSource(mAid, System.currentTimeMillis())
+                .getSource(mEpisode.getEpisodeId(), System.currentTimeMillis())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(new Func1<BiliBiliResultResponse<List<SourceData>>, Observable<?>>() {
                     @Override
                     public Observable<?> call(BiliBiliResultResponse<List<SourceData>> listBiliBiliResultResponse) {
                         if (listBiliBiliResultResponse.isSuccess()) {
-                            SourceData sourceData = listBiliBiliResultResponse.getResult().get(0);
-                            mCid = sourceData.getCid();
+                            mSourceData = listBiliBiliResultResponse.getResult().get(0);
                             mPreMsgBuilder.append("【完成】\n" +
                                     "解析视频地址...\n" +
                                     "全舰弹幕填装...");
                             mPrePlayMsg.setText(mPreMsgBuilder);
-                            return Observable.mergeDelayError(loadVideoInfo(), DanmakuUtils.downLoadDanmaku(mCid));
+                            return Observable.mergeDelayError(loadVideoInfo(), downloadDanmaku(), reportWatch(mSourceData.getCid(), mEpisode.getEpisodeId()));
                         } else {
                             mPreMsgBuilder.append("【失败】");
                             mPrePlayMsg.setText(mPreMsgBuilder);
@@ -149,7 +138,6 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                         }
                     }
                 })
-                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Subscriber<Object>() {
                     @Override
@@ -159,41 +147,12 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
 
                     @Override
                     public void onError(Throwable e) {
-                        if (!mIsDanmakuSuccess) {
-                            String target = "全舰弹幕填装...";
-                            int startPosition = mPreMsgBuilder.indexOf(target);
-                            mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
-                            mPrePlayMsg.setText(mPreMsgBuilder);
-                            startPlaying();
-                        } else if (!mIsVideoUrlSuccess) {
-                            String target = "解析视频地址...";
-                            int startPosition = mPreMsgBuilder.indexOf(target);
-                            mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
-                            mPrePlayMsg.setText(mPreMsgBuilder);
-                        }
-                        if (mIsVideoUrlSuccess) {
-                            startPlaying();
-                        }
+
                     }
 
                     @Override
                     public void onNext(Object o) {
-                        if (o instanceof InputStream) {
-                            String target = "全舰弹幕填装...";
-                            int startPosition = mPreMsgBuilder.indexOf(target);
-                            mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
-                            mPrePlayMsg.setText(mPreMsgBuilder);
-                            preparDanmaku((InputStream) o);
-                            mIsDanmakuSuccess = true;
-                        } else if (o instanceof String) {
-                            String target = "解析视频地址...";
-                            int startPosition = mPreMsgBuilder.indexOf(target);
-                            mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
-                            mPrePlayMsg.setText(mPreMsgBuilder);
-                            mIjkVideoView.setVideoPath((String) o);
-                            mVideoControlView.setCurrentVideoQuality(mCurrentQuality);
-                            mIsVideoUrlSuccess = true;
-                        }
+
                     }
                 });
     }
@@ -201,25 +160,75 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     private Observable<String> loadVideoInfo() {
         return RetrofitHelper.getInstance()
                 .getVideoPlayService()
-                .getPlayData(Constant.BUILD, Constant.PLATFORM, mAid, 0, 0, 0, mCid, mCurrentQuality, "json")
+                .getPlayData(Constant.BUILD, Constant.PLATFORM, mSourceData.getAvId(), 0, 0, 0, mSourceData.getCid(), mCurrentQuality, "json")
                 .flatMap(new Func1<VideoPlayData, Observable<String>>() {
                     @Override
                     public Observable<String> call(VideoPlayData videoPlayData) {
                         if (videoPlayData.getDurl() != null && !videoPlayData.getDurl().isEmpty()) {
-                            return VideoUtils.concatVideo(getApplicationContext(), videoPlayData.getDurl());
+                            return VideoUtils.concatVideo(videoPlayData.getDurl());
                         } else {
                             return Observable.error(new ApiException(-1));
                         }
                     }
+                }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnNext(new Action1<String>() {
+                    @Override
+                    public void call(String s) {
+                        String target = "解析视频地址...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                        mIjkVideoView.setVideoPath(s);
+                    }
                 })
-                .subscribeOn(Schedulers.io());
+                .doOnError(new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        String target = "解析视频地址...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                    }
+                });
     }
 
-    private void preparDanmaku(InputStream stream) {
+    private Observable<InputStream> downloadDanmaku() {
+        return DanmakuUtils.downLoadDanmaku(mSourceData.getCid())
+                .doOnNext(new Action1<InputStream>() {
+                    @Override
+                    public void call(InputStream inputStream) {
+                        preparDanmaku(inputStream);
+                    }
+                }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .onErrorResumeNext(new Func1<Throwable, Observable<? extends InputStream>>() {
+                    @Override
+                    public Observable<? extends InputStream> call(Throwable throwable) {
+                        String target = "全舰弹幕填装...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                        return Observable.empty();
+                    }
+                })
+                .doOnNext(new Action1<InputStream>() {
+                    @Override
+                    public void call(InputStream inputStream) {
+                        String target = "全舰弹幕填装...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                    }
+                });
+    }
+
+
+    private void preparDanmaku(InputStream o) {
         if (mDanmakuView != null) {
             BiliBiliDanmakuParser mParser = new BiliBiliDanmakuParser();
             try {
-                mDanmakus = mParser.parse(stream);
+                mDanmakus = mParser.parse(o);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -227,6 +236,14 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                 mDanmakuView.setDanmakuSource(mDanmakus);
             }
         }
+    }
+
+    private Observable<BilibiliDataResponse> reportWatch(String cid, String eposideId) {
+        return RetrofitHelper.getInstance()
+                .getHistoryService()
+                .reportWatch(cid, eposideId, System.currentTimeMillis())
+                .subscribeOn(Schedulers.io())
+                .onErrorResumeNext(Observable.<BilibiliDataResponse>empty());
     }
 
     private void startPlaying() {
@@ -317,7 +334,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     @Override
     public void onBackPressed() {
         if (firstBackPressTime < -1) {
-            ToastUtils.showToast(this, "再按一次退出", Toast.LENGTH_SHORT);
+            ToastUtils.showToastShort("再按一次退出");
             firstBackPressTime = System.currentTimeMillis();
         } else {
             long secondBackPressTime = System.currentTimeMillis();
@@ -328,7 +345,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                     mDanmakuView = null;
                 }
             } else {
-                ToastUtils.showToast(this, "再按一次退出", Toast.LENGTH_SHORT);
+                ToastUtils.showToastShort("再按一次退出");
                 firstBackPressTime = secondBackPressTime;
             }
         }
@@ -390,7 +407,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            if (mActivity.get() == null) {
+            if (mActivity.get() == null
+                    || mActivity.get().mIjkVideoView == null
+                    || mActivity.get().mDanmakuView == null) {
                 return;
             }
             switch (msg.what) {

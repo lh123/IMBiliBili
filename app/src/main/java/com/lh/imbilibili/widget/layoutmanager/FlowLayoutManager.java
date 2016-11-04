@@ -68,7 +68,7 @@ public class FlowLayoutManager extends RecyclerView.LayoutManager {
             mChildFrames.put(i, childFrame);
             mItemsAttach.put(i, false);
         }
-        Rect lastFrame = mChildFrames.get(getItemCount() - 1);
+        Rect lastFrame = mChildFrames.get(state.getItemCount() - 1);
         mTotalHeight = Math.max(lastFrame.bottom, getHeight());
         if (getHeightMode() == View.MeasureSpec.UNSPECIFIED) {//未指定高度，高度无限制
             mViewHeight = mTotalHeight;
@@ -98,7 +98,7 @@ public class FlowLayoutManager extends RecyclerView.LayoutManager {
             }
         }
 
-        for (int i = 0; i < getItemCount(); i++) {
+        for (int i = 0; i < state.getItemCount(); i++) {
             Rect rect = mChildFrames.get(i);
             if (!mItemsAttach.get(i) && Rect.intersects(mDisPlayFrame, rect)) {
                 View view = recycler.getViewForPosition(i);

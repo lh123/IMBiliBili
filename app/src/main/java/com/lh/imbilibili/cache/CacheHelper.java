@@ -67,7 +67,7 @@ public class CacheHelper {
         if (refresh) {
             return fromNetwork;
         } else {
-            return Observable.concat(fromCache, fromNetwork).takeFirst(new Func1<T, Boolean>() {
+            return Observable.concatDelayError(fromCache, fromNetwork).takeFirst(new Func1<T, Boolean>() {
                 @Override
                 public Boolean call(T t) {
                     return t != null;

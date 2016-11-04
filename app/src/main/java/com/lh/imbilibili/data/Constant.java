@@ -6,7 +6,7 @@ package com.lh.imbilibili.data;
 public class Constant {
 
 //    public static final String APPKEY="f3bb208b3d081dc8";
-//    public static final String SECRETKEY ="ea85624dfcf12d7cc7b2b3a94fac1f2c";
+//    public static final String SECRETKEY ="1c15888dc316e05a15fdd0a02ed6584f";
 
 //    public static final String APPKEY = "27eb53fc9058f8c3";
 //    public static final String SECRETKEY = "c2ed53a74eeefe3cf99fbd01d8c9c375";
@@ -20,11 +20,13 @@ public class Constant {
 //    static final String APPKEY = "9326043312df4201";
 //    static final String SECRETKEY = "af97f9c667f1bbb47752d4fedbe27842";
 
-    //    static final String PLAYER_APPKEY = "6f90a59ac58a4123";
-//    static final String PLAYER_SECRETKEY = "0bfd84cc3940035173f35e6777508326";
-//
+//    static final String APPKEY = "6f90a59ac58a4123";
+//    static final String SECRETKEY = "0bfd84cc3940035173f35e6777508326";
+
     static final String SECRETKEY = "c2ed53a74eeefe3cf99fbd01d8c9c375";
     static final String APPKEY = "27eb53fc9058f8c3";
+
+    static final String PLAYER_SECRETKEY = "0edc1e6f1a10a570d3a51df5165e83fb";
 
 //    public static final String APPKEY = "c1b107428d337928";
 //    public static final String SECRETKEY = "ea85624dfcf12d7cc7b2b3a94fac1f2c";
@@ -79,7 +81,6 @@ public class Constant {
     public static final String VIDEO_DETAIL = "/x/v2/view";
 
     public static final String PLAY_URL = "/playurl";
-
 
     public static final String DANMAKU = "/{cid}.xml";
 

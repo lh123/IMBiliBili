@@ -32,7 +32,7 @@ import rx.functions.Action1;
  * 分区Activity
  */
 
-public class PartitionMoreActivity extends BaseActivity {
+public class PartitionActivity extends BaseActivity {
 
     private static final String EXTRA_DATA = "partionModel";
 
@@ -50,7 +50,7 @@ public class PartitionMoreActivity extends BaseActivity {
     private Subscription mBusSub;
 
     public static void startActivity(Context context, PartionModel partionModel) {
-        Intent intent = new Intent(context, PartitionMoreActivity.class);
+        Intent intent = new Intent(context, PartitionActivity.class);
         intent.putExtra(EXTRA_DATA, partionModel);
         context.startActivity(intent);
     }
@@ -60,7 +60,7 @@ public class PartitionMoreActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_partionmore);
         ButterKnife.bind(this);
-        StatusBarUtils.setToolbarTabLayout(this, mCoordinatorLayout);
+        StatusBarUtils.setCoordinatorToolbarTabLayout(this, mCoordinatorLayout);
         mPartionModel = getIntent().getParcelableExtra(EXTRA_DATA);
         initView();
     }

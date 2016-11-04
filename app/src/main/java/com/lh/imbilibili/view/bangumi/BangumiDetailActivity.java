@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -18,7 +19,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.RetrofitHelper;
@@ -31,6 +31,7 @@ import com.lh.imbilibili.model.feedback.Feedback;
 import com.lh.imbilibili.model.feedback.FeedbackData;
 import com.lh.imbilibili.model.feedback.ReplyCount;
 import com.lh.imbilibili.utils.DisplayUtils;
+import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
@@ -48,6 +49,7 @@ import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -58,7 +60,6 @@ import rx.schedulers.Schedulers;
 public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyclerView.OnLoadMoreLinstener, LoadMoreRecyclerView.OnLoadMoreViewClickListener, BangumiDetailAdapter.OnItemClickListener {
 
     private static final int PAGE_SIZE = 20;
-
 
     @BindView(R.id.nav_top_bar)
     Toolbar mToolbar;
@@ -94,6 +95,7 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
     private Subscription mAllDataSub;
     private Subscription mFeedbackSub;
     private Subscription mLoadMoreFeedbackSub;
+    private Subscription mBusSub;
 
     private BangumiDetail mBangumiDetail;
     private List<Bangumi> mSeasonsRecommends;
@@ -107,10 +109,33 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        mBusSub = RxBus.getInstance()
+                .toObserverable(EpisodeChooseFragment.EpisodeClickEvent.class)
+                .subscribe(new Action1<EpisodeChooseFragment.EpisodeClickEvent>() {
+                    @Override
+                    public void call(EpisodeChooseFragment.EpisodeClickEvent episodeClickEvent) {
+                        mAdapter.setEpSelectPosition(episodeClickEvent.position);
+                        onEposideSelect(episodeClickEvent.position
+                                , episodeClickEvent.mode == EpisodeChooseFragment.MODE_PLAY
+                                , episodeClickEvent.mode == EpisodeChooseFragment.MODE_FEEDBACK);
+                    }
+                });
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        SubscriptionUtils.unsubscribe(mBusSub);
+    }
+
+    @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bangumi_detail);
         ButterKnife.bind(this);
+        StatusBarUtils.setImageTransparent(this, mToolbar);
         mSeasonId = getIntent().getStringExtra(Constant.QUERY_SEASON_ID);
         mCurrentPage = 1;
         mHeadHeight = DisplayUtils.dip2px(getApplicationContext(), 178);
@@ -125,7 +150,12 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
         mHeadContainer.setBackgroundColor(Color.WHITE);
         mTvTitle.setText("评论");
         mTvSubTitle.setText("选集");
-        mHeadContainer.setBackgroundColor(Color.WHITE);
+        mHeadContainer.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showEpFragment(EpisodeChooseFragment.MODE_FEEDBACK);
+            }
+        });
         mFab.setScaleX(0);
         mFab.setScaleY(0);
         mFab.setOnClickListener(new View.OnClickListener() {
@@ -258,7 +288,6 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
     }
 
     private void initToolBar() {
-        StatusBarUtils.setImageTransparent(this, mToolbar);
         mToolbar.getBackground().mutate().setAlpha(0);
         mToolbar.setTitle("番剧详情");
         mToolbar.getBackground().mutate();
@@ -283,6 +312,8 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                     @Override
                     public void onError(Throwable e) {
                         ToastUtils.showToastShort(R.string.load_error);
+                        mRecyclerView.setEnableLoadMore(false);
+                        mRecyclerView.setShowLoadingView(false);
                         finishTask();
                     }
 
@@ -297,18 +328,21 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                 .getInstance()
                 .getBangumiService()
                 .getBangumiDetail(mSeasonId, System.currentTimeMillis(), Constant.TYPE_BANGUMI)
-                .compose(new CacheTransformer<BiliBiliResultResponse<BangumiDetail>>("bangumi_detail_" + mSeasonId) {
-                })
                 .flatMap(new Func1<BiliBiliResultResponse<BangumiDetail>, Observable<Object>>() {
                     @Override
                     public Observable<Object> call(BiliBiliResultResponse<BangumiDetail> bangumiDetailBiliBiliResultResponse) {
                         if (bangumiDetailBiliBiliResultResponse.isSuccess()) {
                             mBangumiDetail = bangumiDetailBiliBiliResultResponse.getResult();
-                            String avId = mBangumiDetail.getEpisodes().get(0).getAvId();
-                            return Observable.mergeDelayError(loadReplyCount(avId),
-                                    loadFeedbackDate(avId, false), loadFeedbackDate(avId, true));
+                            if (!mBangumiDetail.getEpisodes().isEmpty()) {
+                                String avId = mBangumiDetail.getEpisodes().get(0).getAvId();
+                                return Observable.mergeDelayError(loadReplyCount(avId),
+                                        loadFeedbackDate(avId, false), loadFeedbackDate(avId, true));
+                            } else {
+                                return Observable.empty();
+                            }
                         } else {
-                            return Observable.error(new ApiException(bangumiDetailBiliBiliResultResponse.getCode()));
+                            return Observable.error(new ApiException(bangumiDetailBiliBiliResultResponse.getCode(),
+                                    bangumiDetailBiliBiliResultResponse.getMessage()));
                         }
                     }
                 });
@@ -326,7 +360,8 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                             mSeasonsRecommends = seasonRecommendBiliBiliResultResponse.getResult().getList();
                             return Observable.just(mSeasonsRecommends);
                         } else {
-                            return Observable.error(new ApiException(seasonRecommendBiliBiliResultResponse.getCode()));
+                            return Observable.error(new ApiException(seasonRecommendBiliBiliResultResponse.getCode(),
+                                    seasonRecommendBiliBiliResultResponse.getMessage()));
                         }
                     }
                 });
@@ -335,9 +370,6 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
 
     private void finishTask() {
         mLoadingView.setVisibility(View.GONE);
-        if (mBangumiDetail != null) {
-            mAdapter.setBangumiDetail(mBangumiDetail);
-        }
         if (mSeasonsRecommends != null) {
             mAdapter.setSeasonRecommend(mSeasonsRecommends);
         }
@@ -348,13 +380,22 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
             mAdapter.addFeedBack(mNormalFeedback);
             mCurrentPage++;
         }
-        if (mBangumiDetail != null || mSeasonsRecommends != null) {
-            mRecyclerView.setEnableLoadMore(true);
-            mRecyclerView.setShowLoadingView(true);
+        if (mBangumiDetail != null) {
             mTvAdditionInfo.setVisibility(View.VISIBLE);
-            mTvTitle.setText(StringUtils.format("评论 第%s话", mBangumiDetail.getEpisodes().get(0).getIndex()));
-            mTvAdditionInfo.setText(StringUtils.format("(%d)", mReplyCount));
-            mAdapter.setReplyCount(mReplyCount);
+            int position;
+            for (position = 0; position < mBangumiDetail.getSeasons().size(); position++) {
+                if (mBangumiDetail.getSeasons().get(position).getSeasonId().equals(mSeasonId)) {
+                    break;
+                }
+            }
+            mAdapter.setBangumiDetail(mBangumiDetail);
+            if (!mBangumiDetail.getEpisodes().isEmpty()) {
+                mTvAdditionInfo.setText(StringUtils.format("(%d)", mReplyCount));
+                mAdapter.setReplyCount(mReplyCount);
+                mTvTitle.setText(StringUtils.format("评论 第%s话", mBangumiDetail.getEpisodes().get(0).getIndex()));
+                mRecyclerView.setEnableLoadMore(true);
+                mRecyclerView.setShowLoadingView(true);
+            }
             mAdapter.notifyDataSetChanged();
         }
     }
@@ -381,7 +422,8 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                                 return Observable.just(mNormalFeedback);
                             }
                         } else {
-                            return Observable.error(new ApiException(feedbackDataBilibiliDataResponse.getCode()));
+                            return Observable.error(new ApiException(feedbackDataBilibiliDataResponse.getCode(),
+                                    feedbackDataBilibiliDataResponse.getMessage()));
                         }
                     }
                 });
@@ -398,7 +440,8 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                             mReplyCount = replyCountBilibiliDataResponse.getData().getCount();
                             return Observable.just(mReplyCount);
                         } else {
-                            return Observable.error(new ApiException(replyCountBilibiliDataResponse.getCode()));
+                            return Observable.error(new ApiException(replyCountBilibiliDataResponse.getCode(),
+                                    replyCountBilibiliDataResponse.getMessage()));
                         }
                     }
                 });
@@ -411,25 +454,6 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
         super.onDestroy();
     }
 
-//    @Override
-//    public void onEpClick(int position) {
-//        if (0 != position) {
-////            0 = position;
-//            loadFeedbackDate(mBangumiDetail.getEpisodes().get(position).getAvId(), false, 3);
-//        }
-//        VideoPlayActivity.startVideoActivity(this, mBangumiDetail.getEpisodes().get(position).getEpisodeId(), null, mBangumiDetail.getTitle());
-//    }
-
-    //    @Override
-//    public void onSeasonItemClick(int position) {
-////        loadBangumiAndFeedbackData(mBangumiDetail.getSeasons().get(position).getSeasonId(), false);
-//    }
-//
-//    @Override
-//    public void onBangumiRecommendItemClick(int position) {
-//        BangumiDetailActivity.startActivity(this, mSeasonsRecommend.getList().get(position).getSeasonId());
-//    }
-//
     @Override
     public void onLoadMore() {
         if (mCurrentPage > 1) {
@@ -467,6 +491,50 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                 });
     }
 
+    private void onEposideSelect(final int position, final boolean playVideo, final boolean needScroll) {
+        SubscriptionUtils.unsubscribe(mAllDataSub, mLoadMoreFeedbackSub, mFeedbackSub);
+        BangumiDetail.Episode episode = mBangumiDetail.getEpisodes().get(position);
+        if (playVideo) {
+            VideoPlayActivity.startVideoActivity(this, episode);
+        }
+        mCurrentPage = 1;
+        mFeedbackSub = Observable.mergeDelayError(loadReplyCount(episode.getAvId()),
+                loadFeedbackDate(episode.getAvId(), false),
+                loadFeedbackDate(episode.getAvId(), true))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<Object>() {
+                    @Override
+                    public void onCompleted() {
+                        mTvTitle.setText(StringUtils.format("评论 第%s话", mBangumiDetail.getEpisodes().get(position).getIndex()));
+                        mTvAdditionInfo.setText(StringUtils.format("(%d)", mReplyCount));
+                        mAdapter.clearFeedback();
+                        mAdapter.setHotFeedbacks(mHotFeedback);
+                        mAdapter.addFeedBack(mNormalFeedback);
+                        mAdapter.setReplyCount(mReplyCount);
+                        mAdapter.notifyDataSetChanged();
+                        if (needScroll) {
+                            int headPosition = mAdapter.getItemStartPositionOfType(BangumiDetailAdapter.TYPE_FEEDBACK_HEAD);
+                            if (headPosition > 0) {
+                                LinearLayoutManager layoutManager = (LinearLayoutManager) mRecyclerView.getLayoutManager();
+                                layoutManager.scrollToPositionWithOffset(headPosition, mToolbar.getBottom());
+                                mSticklyLayout.setVisibility(View.VISIBLE);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        ToastUtils.showToastShort(R.string.load_error);
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+
+                    }
+                });
+    }
+
     @Override
     public void onLoadMoreViewClick() {
         mRecyclerView.setEnableLoadMore(true);
@@ -489,42 +557,43 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                 loadAllData();
                 break;
             case BangumiDetailAdapter.TYPE_EPOSIDE:
-                SubscriptionUtils.unsubscribe(mAllDataSub, mLoadMoreFeedbackSub, mFeedbackSub);
-                BangumiDetail.Episode episode = mBangumiDetail.getEpisodes().get(position);
-                VideoPlayActivity.startVideoActivity(this, episode.getEpisodeId(), episode.getAvId(), episode.getIndexTitle());
-                int[] result = mAdapter.clearFeedback();
-                mAdapter.notifyItemRangeRemoved(result[0], result[1]);
-                mCurrentPage = 1;
-                mFeedbackSub = Observable.mergeDelayError(loadReplyCount(episode.getAvId()),
-                        loadFeedbackDate(episode.getAvId(), false),
-                        loadFeedbackDate(episode.getAvId(), true))
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(new Subscriber<Object>() {
-                            @Override
-                            public void onCompleted() {
-                                mTvTitle.setText(StringUtils.format("评论 第%s话", mBangumiDetail.getEpisodes().get(position).getIndex()));
-                                mTvAdditionInfo.setText(StringUtils.format("(%d)", mReplyCount));
-                                mAdapter.setHotFeedbacks(mHotFeedback);
-                                mAdapter.addFeedBack(mNormalFeedback);
-                                mAdapter.setReplyCount(mReplyCount);
-                                mAdapter.notifyDataSetChanged();
-                            }
-
-                            @Override
-                            public void onError(Throwable e) {
-                                ToastUtils.showToastShort(R.string.load_error);
-                            }
-
-                            @Override
-                            public void onNext(Object o) {
-
-                            }
-                        });
+                onEposideSelect(position, true, false);
                 break;
             case BangumiDetailAdapter.TYPE_RECOMMEND:
                 BangumiDetailActivity.startActivity(this, mSeasonsRecommends.get(position).getSeasonId());
                 break;
         }
+    }
+
+    @Override
+    public void onHeadClick(int type) {
+        if (type == BangumiDetailAdapter.TYPE_EPOSIDE) {
+            showEpFragment(EpisodeChooseFragment.MODE_PLAY);
+        } else if (type == BangumiDetailAdapter.TYPE_FEEDBACK_HEAD) {
+            showEpFragment(EpisodeChooseFragment.MODE_FEEDBACK);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        Fragment fragment = getSupportFragmentManager().findFragmentByTag(EpisodeChooseFragment.TAG);
+        if (fragment != null) {
+            getSupportFragmentManager().beginTransaction().remove(fragment).commit();
+            return;
+        }
+        super.onBackPressed();
+    }
+
+    private void showEpFragment(int mode) {
+        if (mBangumiDetail == null || mBangumiDetail.getEpisodes().isEmpty()) {
+            return;
+        }
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_right)
+                .replace(R.id.container, EpisodeChooseFragment
+                                .newInstance(mBangumiDetail, mAdapter.getEpSelectPosition(), mode),
+                        EpisodeChooseFragment.TAG)
+                .commit();
     }
 }

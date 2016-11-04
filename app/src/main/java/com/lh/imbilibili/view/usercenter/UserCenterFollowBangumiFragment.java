@@ -2,7 +2,6 @@ package com.lh.imbilibili.view.usercenter;
 
 import android.support.v7.widget.GridLayoutManager;
 import android.view.View;
-import android.widget.Toast;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
@@ -182,7 +181,7 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
                     @Override
                     public void call(Throwable throwable) {
                         mRecyclerView.setLoading(false);
-                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                        ToastUtils.showToastShort(R.string.load_error);
                     }
                 });
     }

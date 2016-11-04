@@ -1,7 +1,5 @@
 package com.lh.imbilibili.utils;
 
-import android.content.Context;
-
 import com.lh.imbilibili.model.video.VideoPlayData;
 
 import java.io.File;
@@ -17,7 +15,7 @@ import rx.Subscriber;
  */
 
 public class VideoUtils {
-    public static Observable<String> concatVideo(final Context context, final List<VideoPlayData.Durl> durls) {
+    public static Observable<String> concatVideo(final List<VideoPlayData.Durl> durls) {
         return Observable.create(new Observable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> subscriber) {

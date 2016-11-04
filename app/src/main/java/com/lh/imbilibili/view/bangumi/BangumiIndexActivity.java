@@ -4,10 +4,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
+import android.view.ViewGroup;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.home.BangumiIndexFragment;
 
@@ -21,8 +24,15 @@ import butterknife.ButterKnife;
  */
 public class BangumiIndexActivity extends BaseActivity {
 
+    @BindView(R.id.drawer_layout)
+    DrawerLayout mDrawerLayout;
     @BindView(R.id.nav_top_bar)
     Toolbar mToolbar;
+    @BindView(R.id.container)
+    ViewGroup mContainer;
+    @BindView(R.id.drawer)
+    ViewGroup mDrawer;
+
     private int mYear;
     private int mMonth;
     private ArrayList<Integer> mYears;
@@ -40,6 +50,7 @@ public class BangumiIndexActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bangumi_index);
         ButterKnife.bind(this);
+        StatusBarUtils.setDrawerToolbarTabLayout(this, mDrawerLayout, mDrawer, mContainer);
         mYear = getIntent().getIntExtra("year", 2016);
         mMonth = getIntent().getIntExtra("month", 3);
         mYears = getIntent().getIntegerArrayListExtra("years");
@@ -58,6 +69,6 @@ public class BangumiIndexActivity extends BaseActivity {
         if (bangumiIndexFragment == null) {
             bangumiIndexFragment = BangumiIndexFragment.newInstance(mYear, mMonth, mYears);
         }
-        getSupportFragmentManager().beginTransaction().replace(R.id.head_container, bangumiIndexFragment, BangumiIndexFragment.TAG).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, bangumiIndexFragment, BangumiIndexFragment.TAG).commit();
     }
 }

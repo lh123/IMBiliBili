@@ -82,6 +82,7 @@ public class SearchActivity extends BaseActivity implements BiliBiliSearchView.O
         setContentView(R.layout.activity_search);
         ButterKnife.bind(this);
         StatusBarUtils.setSearchActivity(this);
+        StatusBarUtils.setStatusBarLighMode(this, true);
         mFragments = new ArrayList<>();
         mSearchView = BiliBiliSearchView.newInstance();
         mSearchView.setOnSearchListener(this);

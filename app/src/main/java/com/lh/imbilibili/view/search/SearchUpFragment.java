@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
@@ -114,7 +113,7 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
                     @Override
                     public void onError(Throwable e) {
                         mRecyclerView.setLoading(false);
-                        ToastUtils.showToast(getContext(), R.string.load_error, Toast.LENGTH_SHORT);
+                        ToastUtils.showToastShort(R.string.load_error);
                         LoadAnimationUtils.stopLoadAnimate(mIvLoading, R.drawable.search_failed);
                         mRecyclerView.setVisibility(View.GONE);
                     }

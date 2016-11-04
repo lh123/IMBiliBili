@@ -40,8 +40,8 @@ public class BannerAdapter extends BannerView.Adaper {
     public Object getItemView(final ViewGroup container, final int position) {
         ScalableImageView imageView = new ScalableImageView(container.getContext());
         imageView.setScaleType(ImageView.ScaleType.FIT_XY);
-        imageView.setWidthRatio(960);
-        imageView.setHeightRatio(300);
+//        imageView.setWidthRatio(960);
+//        imageView.setHeightRatio(300);
         ViewGroup.LayoutParams layoutParams = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         imageView.setLayoutParams(layoutParams);
         Glide.with(container.getContext()).load(mBanners.get(position).getImage()).into(imageView);

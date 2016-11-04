@@ -8,7 +8,6 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
-import android.widget.Toast;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
@@ -124,7 +123,7 @@ public class FollowBangumiActivity extends BaseActivity implements LoadMoreRecyc
                     @Override
                     public void call(Throwable throwable) {
                         mRecyclerView.setLoading(false);
-                        ToastUtils.showToast(FollowBangumiActivity.this, R.string.load_error, Toast.LENGTH_SHORT);
+                        ToastUtils.showToastShort(R.string.load_error);
                     }
                 });
     }

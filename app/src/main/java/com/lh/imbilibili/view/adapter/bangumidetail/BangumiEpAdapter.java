@@ -25,7 +25,9 @@ import butterknife.ButterKnife;
 public class BangumiEpAdapter extends RecyclerView.Adapter<BangumiEpAdapter.EpisodeViewHolder> {
 
     private List<BangumiDetail.Episode> episodes;
-    private int selectPosition = 0;
+    private int mSelectPosition = 0;
+
+    private boolean mItemMatchWidth = false;
 
     private OnEpClickListener listener;
 
@@ -33,9 +35,29 @@ public class BangumiEpAdapter extends RecyclerView.Adapter<BangumiEpAdapter.Epis
         this.episodes = episodes;
     }
 
+    public void setItemMatchWidht(boolean matchWidht) {
+        mItemMatchWidth = matchWidht;
+    }
+
+    public void setSelectPosition(int position) {
+        int prePosition = mSelectPosition;
+        mSelectPosition = position;
+        notifyItemChanged(prePosition);
+        notifyItemChanged(mSelectPosition);
+    }
+
+    public int getSelectPosition() {
+        return mSelectPosition;
+    }
+
     @Override
     public BangumiEpAdapter.EpisodeViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.bangumi_ep_grid_item, parent, false);
+        if (mItemMatchWidth) {
+            ViewGroup.LayoutParams params = view.getLayoutParams();
+            params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            view.setLayoutParams(params);
+        }
         return new EpisodeViewHolder(view);
     }
 
@@ -61,7 +83,9 @@ public class BangumiEpAdapter extends RecyclerView.Adapter<BangumiEpAdapter.Epis
                 holder.mTvIndexTitle.setVisibility(View.VISIBLE);
                 holder.mTvIndexTitle.setText(episode.getIndexTitle());
             }
-            holder.mIndicator.setSelected(position == selectPosition);
+            holder.mIndicator.setSelected(position == mSelectPosition);
+            holder.mTvIndexTitle.setSelected(position == mSelectPosition);
+            holder.mTvTitle.setSelected(position == mSelectPosition);
         }
     }
 
@@ -79,9 +103,9 @@ public class BangumiEpAdapter extends RecyclerView.Adapter<BangumiEpAdapter.Epis
     }
 
     private void selectItem(int position) {
-        int pre = selectPosition;
-        selectPosition = position;
-        notifyItemChanged(selectPosition);
+        int pre = mSelectPosition;
+        mSelectPosition = position;
+        notifyItemChanged(mSelectPosition);
         notifyItemChanged(pre);
     }
 
@@ -105,6 +129,7 @@ public class BangumiEpAdapter extends RecyclerView.Adapter<BangumiEpAdapter.Epis
         TextView mTvIndexTitle;
         @BindView(R.id.badge)
         ImageView mBadge;
+
         public EpisodeViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);

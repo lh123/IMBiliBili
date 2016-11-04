@@ -20,7 +20,6 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
@@ -29,7 +28,6 @@ import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.video.VideoDetail;
-import com.lh.imbilibili.utils.HistoryUtils;
 import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
@@ -114,7 +112,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
         setContentView(R.layout.activity_video_detail);
         mAid = getIntent().getStringExtra(EXTRA_AID);
         ButterKnife.bind(this);
-        StatusBarUtils.setCollapsingToolbarLayout(this, mToolbar, mAppBarLayout, mCollapsingToolbarLayout);
+        StatusBarUtils.setCollapsingToolbarLayout(this, mToolbar);
         mIsFullScreen = false;
         mIsFabShow = true;
         mIsInitLayout = false;
@@ -186,7 +184,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
                             mEmptyView.setShowRetryButton(false);
                             mEmptyView.setText(R.string.video_load_error_404);
                         } else {
-                            ToastUtils.showToast(VideoDetailActivity.this, R.string.load_error, Toast.LENGTH_SHORT);
+                            ToastUtils.showToastShort(R.string.load_error);
                             mEmptyView.setVisibility(View.VISIBLE);
                             mEmptyView.setImgResource(R.drawable.img_tips_error_load_error);
                             mEmptyView.setText(R.string.video_load_error_failed);
@@ -230,8 +228,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
 
     private void initVideoView(final int page) {
         initPlayerLayout();
-        HistoryUtils.addHistory(mAid);
-        mVideoPlayerFragment = VideoPlayerFragment.newInstance(mAid, mVideoDetail.getPages().get(page).getCid() + "", mVideoDetail.getTitle());
+        mVideoPlayerFragment = VideoPlayerFragment.newInstance(mVideoDetail.getAid(), mVideoDetail.getPages().get(page).getCid() + "", mVideoDetail.getTitle());
         mVideoContainer.setVisibility(View.VISIBLE);
         mVideoPlayerFragment.setOnFullScreemButtonClick(VideoDetailActivity.this);
         getSupportFragmentManager().beginTransaction().replace(R.id.video_view_container, mVideoPlayerFragment).commit();

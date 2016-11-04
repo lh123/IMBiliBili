@@ -6,6 +6,7 @@ package com.lh.imbilibili.model;
 public class BilibiliDataResponse<T> {
     private int code;
     private T data;
+    private String message;
 
     public T getData() {
         return data;
@@ -25,5 +26,13 @@ public class BilibiliDataResponse<T> {
 
     public boolean isSuccess() {
         return code == 0 && data != null;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

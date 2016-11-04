@@ -1,115 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/drawer_profile_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:background="@color/colorPrimary">
 
-    <RelativeLayout
-        android:id="@+id/drawer_profile_layout"
-        android:layout_width="match_parent"
+    <ImageView
+        android:id="@+id/profile_cover_image"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@color/colorPrimary">
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:clickable="true"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bili_drawerbg_not_logined" />
 
-        <ImageView
-            android:id="@+id/profile_cover_image"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentRight="true"
-            android:clickable="true"
-            android:scaleType="centerCrop"
-            android:src="@drawable/bili_drawerbg_not_logined"/>
+    <android.support.v4.widget.Space
+        android:id="@+id/top"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="16dp" />
 
-        <android.support.v4.widget.Space
-            android:id="@+id/top"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginLeft="16dp"
-            android:layout_marginTop="16dp"/>
+    <ImageView
+        android:id="@+id/user_avatar"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_alignLeft="@+id/top"
+        android:layout_below="@+id/top"
+        android:src="@drawable/bili_default_avatar" />
 
-        <ImageView
-            android:id="@+id/user_avatar"
-            android:layout_width="70dp"
-            android:layout_height="70dp"
-            android:layout_alignLeft="@+id/top"
-            android:layout_below="@+id/top"
-            android:src="@drawable/bili_default_avatar"/>
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/top"
+        android:layout_below="@+id/user_avatar"
+        android:layout_marginBottom="12dp"
+        android:layout_marginLeft="4dp"
+        android:layout_marginTop="12dp"
+        android:gravity="left"
+        android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignLeft="@+id/top"
-            android:layout_below="@+id/user_avatar"
-            android:layout_marginBottom="12dp"
-            android:layout_marginLeft="4dp"
-            android:layout_marginTop="12dp"
-            android:gravity="left"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:id="@+id/user_nick_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="left"
-                    android:ellipsize="end"
-                    android:singleLine="true"
-                    android:textAppearance="@style/TextAppearance.App.Headline"
-                    android:textColor="@color/white"
-                    android:textSize="14sp"/>
-
-                <TextView
-                    android:id="@+id/level"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="4dp"
-                    android:layout_marginRight="4dp"
-                    android:background="@drawable/shape_white_border_background"
-                    android:gravity="center_vertical"
-                    android:paddingBottom="1dp"
-                    android:paddingLeft="4dp"
-                    android:paddingRight="4dp"
-                    android:paddingTop="1dp"
-                    android:textColor="@color/white"
-                    android:textSize="8sp"
-                    android:textStyle="bold"
-                    android:visibility="gone"/>
-            </LinearLayout>
+            android:gravity="center_vertical">
 
             <TextView
-                android:id="@+id/member_status"
+                android:id="@+id/user_nick_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="left"
-                android:layout_marginTop="2dp"
-                android:background="@drawable/shape_drawer_member_status_background"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textAppearance="@style/TextAppearance.App.Headline"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/level"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:layout_marginRight="4dp"
+                android:background="@drawable/shape_white_border_background"
+                android:gravity="center_vertical"
                 android:paddingBottom="1dp"
                 android:paddingLeft="4dp"
                 android:paddingRight="4dp"
                 android:paddingTop="1dp"
-                android:text="正式会员"
-                android:textColor="@color/colorPrimary"
-                android:textSize="9sp"
-                android:visibility="gone"/>
-
-            <TextView
-                android:id="@+id/user_coin_count"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="left"
-                android:layout_marginBottom="10dp"
-                android:layout_marginTop="2dp"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:singleLine="true"
-                android:textAppearance="@style/TextAppearance.App.Subtitle"
-                android:textColor="@color/white_trans"
-                android:textSize="13sp"/>
+                android:textColor="@color/white"
+                android:textSize="8sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
         </LinearLayout>
-    </RelativeLayout>
-</LinearLayout>
+
+        <TextView
+            android:id="@+id/member_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left"
+            android:layout_marginTop="2dp"
+            android:background="@drawable/shape_drawer_member_status_background"
+            android:paddingBottom="1dp"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:paddingTop="1dp"
+            android:text="正式会员"
+            android:textColor="@color/colorPrimary"
+            android:textSize="9sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/user_coin_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left"
+            android:layout_marginBottom="10dp"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textAppearance="@style/TextAppearance.App.Subtitle"
+            android:textColor="@color/white_trans"
+            android:textSize="13sp" />
+    </LinearLayout>
+</RelativeLayout>

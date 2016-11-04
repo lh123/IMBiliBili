@@ -8,7 +8,7 @@ import com.lh.imbilibili.R;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.partion.GridViewAdapter;
 import com.lh.imbilibili.view.adapter.partion.model.PartionModel;
-import com.lh.imbilibili.view.partion.PartitionMoreActivity;
+import com.lh.imbilibili.view.partion.PartitionActivity;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -135,6 +135,6 @@ public class CategoryFragment extends BaseFragment implements GridViewAdapter.On
             default:
                 return;
         }
-        PartitionMoreActivity.startActivity(getContext(), builder.build());
+        PartitionActivity.startActivity(getContext(), builder.build());
     }
 }

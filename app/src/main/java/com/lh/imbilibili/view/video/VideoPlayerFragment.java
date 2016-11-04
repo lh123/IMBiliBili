@@ -31,7 +31,7 @@ import butterknife.ButterKnife;
 import rx.Observable;
 import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action0;
+import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 import tv.danmaku.ijk.media.player.IMediaPlayer;
@@ -74,9 +74,6 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     private int mCurrentQuality = 3;
 
     private StringBuilder mPreMsgBuilder;
-
-    private boolean mIsVideoUrlSuccess;
-    private boolean mIsDanmakuSuccess;
 
     public static VideoPlayerFragment newInstance(String aid, String cid, String title) {
         VideoPlayerFragment fragment = new VideoPlayerFragment();
@@ -128,20 +125,13 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
 
     //加载视频播放所需的所有数据
     private void preparePlay() {
-        mIsVideoUrlSuccess = false;
-        mIsDanmakuSuccess = false;
-        mPreMsgBuilder.append("【完成】\n解析视频信息...");
+        mPreMsgBuilder.append("【完成】\n解析视频信息...【完成】\n" +
+                "解析视频地址...\n" +
+                "全舰弹幕填装...");
         mPrePlayMsg.setText(mPreMsgBuilder);
-        Observable.merge(loadVideoPlayUrl(), DanmakuUtils.downLoadDanmaku(mCid))
+        Observable.merge(loadVideoInfo(), downloadDanmaku())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .doOnSubscribe(new Action0() {
-                    @Override
-                    public void call() {
-                        mPreMsgBuilder.append("【完成】\n解析视频地址...\n全舰弹幕填装...");
-                        mPrePlayMsg.setText(mPreMsgBuilder);
-                    }
-                })
                 .subscribe(new Subscriber<Object>() {
                     @Override
                     public void onCompleted() {
@@ -150,46 +140,15 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
 
                     @Override
                     public void onError(Throwable e) {
-                        if (!mIsDanmakuSuccess) {
-                            String target = "全舰弹幕填装...";
-                            int startPosition = mPreMsgBuilder.indexOf(target);
-                            mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
-                            mPrePlayMsg.setText(mPreMsgBuilder);
-                            startPlaying();
-                        } else if (!mIsVideoUrlSuccess) {
-                            String target = "解析视频地址...";
-                            int startPosition = mPreMsgBuilder.indexOf(target);
-                            mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
-                            mPrePlayMsg.setText(mPreMsgBuilder);
-                        }
-                        if (mIsVideoUrlSuccess) {
-                            startPlaying();
-                        }
                     }
 
                     @Override
                     public void onNext(Object o) {
-                        if (o instanceof InputStream) {
-                            String target = "全舰弹幕填装...";
-                            int startPosition = mPreMsgBuilder.indexOf(target);
-                            mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
-                            mPrePlayMsg.setText(mPreMsgBuilder);
-                            preparDanmaku((InputStream) o);
-                            mIsDanmakuSuccess = true;
-                        } else if (o instanceof String) {
-                            String target = "解析视频地址...";
-                            int startPosition = mPreMsgBuilder.indexOf(target);
-                            mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
-                            mPrePlayMsg.setText(mPreMsgBuilder);
-                            mIjkVideoView.setVideoPath((String) o);
-                            mVideoControlView.setCurrentVideoQuality(mCurrentQuality);
-                            mIsVideoUrlSuccess = true;
-                        }
                     }
                 });
     }
 
-    private Observable<String> loadVideoPlayUrl() {
+    private Observable<String> loadVideoInfo() {
         return RetrofitHelper.getInstance()
                 .getVideoPlayService()
                 .getPlayData(Constant.BUILD, Constant.PLATFORM, mAid, 0, 0, 0, mCid, mCurrentQuality, "json")
@@ -197,13 +156,62 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
                     @Override
                     public Observable<String> call(VideoPlayData videoPlayData) {
                         if (videoPlayData.getDurl() != null && !videoPlayData.getDurl().isEmpty()) {
-                            return VideoUtils.concatVideo(getContext(), videoPlayData.getDurl());
+                            return VideoUtils.concatVideo(videoPlayData.getDurl());
                         } else {
                             return Observable.error(new ApiException(-1));
                         }
                     }
+                }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnNext(new Action1<String>() {
+                    @Override
+                    public void call(String s) {
+                        String target = "解析视频地址...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                        mIjkVideoView.setVideoPath(s);
+                    }
                 })
-                .subscribeOn(Schedulers.io());
+                .doOnError(new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        String target = "解析视频地址...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                    }
+                });
+    }
+
+    private Observable<InputStream> downloadDanmaku() {
+        return DanmakuUtils.downLoadDanmaku(mCid)
+                .doOnNext(new Action1<InputStream>() {
+                    @Override
+                    public void call(InputStream inputStream) {
+                        preparDanmaku(inputStream);
+                    }
+                }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .onErrorResumeNext(new Func1<Throwable, Observable<? extends InputStream>>() {
+                    @Override
+                    public Observable<? extends InputStream> call(Throwable throwable) {
+                        String target = "全舰弹幕填装...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                        return Observable.empty();
+                    }
+                })
+                .doOnNext(new Action1<InputStream>() {
+                    @Override
+                    public void call(InputStream inputStream) {
+                        String target = "全舰弹幕填装...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                    }
+                });
     }
 
     private void preparDanmaku(InputStream stream) {
@@ -385,7 +393,9 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            if (mFragment.get() == null) {
+            if (mFragment.get() == null
+                    || mFragment.get().mIjkVideoView == null
+                    || mFragment.get().mDanmakuView == null) {
                 return;
             }
             switch (msg.what) {

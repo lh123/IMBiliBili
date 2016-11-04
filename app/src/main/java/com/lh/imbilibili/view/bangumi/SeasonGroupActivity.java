@@ -57,6 +57,8 @@ public class SeasonGroupActivity extends BaseActivity implements SeasonYearAdapt
     DrawerLayout mDrawerLayout;
     @BindView(R.id.drawer)
     ViewGroup mDrawer;
+    @BindView(R.id.container)
+    ViewGroup mContainer;
 
     private SeasonGroupAdapter mSeasonGroupAdapter;
     private SeasonYearAdapter mSeasonYearAdapter;
@@ -76,7 +78,7 @@ public class SeasonGroupActivity extends BaseActivity implements SeasonYearAdapt
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_season_group);
         ButterKnife.bind(this);
-        StatusBarUtils.setDrawerToolbarLayout(this, mToolbar, mDrawer);
+        StatusBarUtils.setDrawerToolbarTabLayout(this, mDrawerLayout, mDrawer, mContainer);
         initView();
         initRecyclerView();
         loadData();

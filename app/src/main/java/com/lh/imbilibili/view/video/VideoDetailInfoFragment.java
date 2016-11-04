@@ -3,7 +3,6 @@ package com.lh.imbilibili.view.video;
 import android.support.v4.widget.NestedScrollView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -17,13 +16,14 @@ import com.lh.imbilibili.utils.StringUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.transformation.CircleTransformation;
 import com.lh.imbilibili.view.BaseFragment;
+import com.lh.imbilibili.view.adapter.FlowItemDecoration;
 import com.lh.imbilibili.view.adapter.videodetail.RelatesVideoItemDecoration;
 import com.lh.imbilibili.view.adapter.videodetail.VideoPageRecyclerViewAdapter;
 import com.lh.imbilibili.view.adapter.videodetail.VideoRelatesRecyclerViewAdapter;
 import com.lh.imbilibili.view.adapter.videodetail.VideoTagAdapter;
 import com.lh.imbilibili.view.search.SearchActivity;
 import com.lh.imbilibili.view.usercenter.UserCenterActivity;
-import com.zhy.view.flowlayout.TagFlowLayout;
+import com.lh.imbilibili.widget.layoutmanager.FlowLayoutManager;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -50,7 +50,7 @@ public class VideoDetailInfoFragment extends BaseFragment implements VideoPageRe
     @BindView(R.id.tv_description)
     TextView mTvDescription;
     @BindView(R.id.author_tag)
-    TagFlowLayout mFlowLayout;
+    RecyclerView mFlowLayout;
     @BindView(R.id.recycler_view)
     RecyclerView mRecyclerView;
     @BindView(R.id.owner_layout)
@@ -154,17 +154,19 @@ public class VideoDetailInfoFragment extends BaseFragment implements VideoPageRe
         } else {
             mPageLayout.setVisibility(View.GONE);
         }
-        LayoutInflater inflater = LayoutInflater.from(getContext());
         if (mVideoDetail.getTags() != null) {
-//            int count = mVideoDetail.getTags().length > 8 ? 8 : mVideoDetail.getTags().length;
-//            for (int i = 0; i < count; i++) {
-//                View view = inflater.inflate(R.layout.video_detail_tag_item, mFlowLayout, false);
-//                TextView textView = (TextView) view.findViewById(R.id.tv_tag);
-//                textView.setText(mVideoDetail.getTags()[i]);
-//                mFlowLayout.addTag(view, i);
-//            }
-            VideoTagAdapter tagAdapter = new VideoTagAdapter(mVideoDetail.getTags());
+            VideoTagAdapter tagAdapter = new VideoTagAdapter();
+            tagAdapter.setTags(mVideoDetail.getTags());
+            mFlowLayout.addItemDecoration(new FlowItemDecoration(getResources().getDimensionPixelSize(R.dimen.item_half_spacing)));
+            FlowLayoutManager layoutManager = new FlowLayoutManager();
+            mFlowLayout.setLayoutManager(layoutManager);
             mFlowLayout.setAdapter(tagAdapter);
+            tagAdapter.setOnTagClickListener(new VideoTagAdapter.OnTagClickListener() {
+                @Override
+                public void onTagClick(String tagContent) {
+                    SearchActivity.startActivity(getContext(), tagContent);
+                }
+            });
         }
         mAdapter.setVideoDetails(mVideoDetail.getRelates());
         mAdapter.notifyDataSetChanged();

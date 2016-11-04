@@ -15,7 +15,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
@@ -119,7 +118,7 @@ public class UserCenterActivity extends BaseActivity implements UserCenterDataPr
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_center);
         ButterKnife.bind(this);
-        StatusBarUtils.setCollapsingToolbarLayout(this, mToolbar, mAppBarLayout, mCollapsingToolbarLayout);
+        StatusBarUtils.setCollapsingToolbarLayout(this, mToolbar);
         mId = getIntent().getIntExtra(EXTRA_ID, 0);
         mDefaultPage = getIntent().getIntExtra(EXTRA_PAGE, 0);
         mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
@@ -184,7 +183,7 @@ public class UserCenterActivity extends BaseActivity implements UserCenterDataPr
                 }, new Action1<Throwable>() {
                     @Override
                     public void call(Throwable throwable) {
-                        ToastUtils.showToast(UserCenterActivity.this, "加载失败", Toast.LENGTH_SHORT);
+                        ToastUtils.showToastShort("加载失败");
                     }
                 });
     }

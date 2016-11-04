@@ -3,16 +3,13 @@ package com.lh.imbilibili.view.home;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
@@ -21,8 +18,8 @@ import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.bangumi.BangumiIndex;
 import com.lh.imbilibili.model.bangumi.BangumiIndexCond;
-import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.GridLayoutItemDecoration;
 import com.lh.imbilibili.view.adapter.bangumiindex.BangumiIndexAdapter;
@@ -36,6 +33,7 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import rx.Observable;
+import rx.Subscriber;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
@@ -47,11 +45,6 @@ import rx.schedulers.Schedulers;
  */
 public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecyclerView.OnLoadMoreLinstener, BangumiIndexAdapter.OnBangumiItemClickListener, View.OnClickListener, AdapterView.OnItemClickListener {
     public static final String TAG = "BangumiIndexFragment";
-
-    RelativeLayout mNavView;
-    DrawerLayout mDrawerLayout;
-
-//    private DrawerViewHolder mDrawerViewHolder;
 
     @BindView(R.id.recycler_view)
     LoadMoreRecyclerView mLoadMoreRecyclerView;
@@ -148,8 +141,6 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        initDrawer();
-        StatusBarUtils.setDrawerToolbarLayout(getActivity(), (Toolbar) getActivity().findViewById(R.id.nav_top_bar), mNavView);
         mCurrentPage = 1;
         mYear = getArguments().getInt("year");
         mQuarter = getArguments().getInt("quarter");
@@ -200,26 +191,6 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
         category.setTagName(name);
         return category;
     }
-
-    private void initDrawer() {
-        mDrawerLayout = (DrawerLayout) getActivity().findViewById(R.id.drawer_layout);
-        mNavView = (RelativeLayout) getActivity().findViewById(R.id.nav_view);
-//        DisplayMetrics displayMetrics = new DisplayMetrics();
-//        getActivity().getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-//        if(displayMetrics.widthPixels <= 320){
-//            ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) mNavView.getLayoutParams();
-//            params.rightMargin = DisplayUtils.dip2px(getContext(),-65);
-//            mNavView.setLayoutParams(params);
-//        }
-//        mDrawerViewHolder = new DrawerViewHolder(mNavView);
-    }
-
-//    private void initDrawerData() {
-//        mDrawerViewHolder.setTypeTags(mBangumiTypeList);
-//        mDrawerViewHolder.setStatusTags(mBangumiStatusList);
-//        mDrawerViewHolder.setRegionTags(mBangumiRegionList);
-//        mDrawerViewHolder.setYearTags(mYears, true);
-//    }
 
     private void initRecyclerView() {
         mAdapter = new BangumiIndexAdapter(getContext());
@@ -329,9 +300,19 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
                 })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<BangumiIndex>() {
+                .subscribe(new Subscriber<BangumiIndex>() {
                     @Override
-                    public void call(BangumiIndex bangumiIndex) {
+                    public void onCompleted() {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        ToastUtils.showToastShort(R.string.load_error);
+                    }
+
+                    @Override
+                    public void onNext(BangumiIndex bangumiIndex) {
                         mBangumiIndex = bangumiIndex;
                         mAdapter.addBangumis(mBangumiIndex.getList());
                         mAdapter.notifyDataSetChanged();

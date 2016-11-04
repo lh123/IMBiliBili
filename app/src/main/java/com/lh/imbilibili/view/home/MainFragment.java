@@ -6,6 +6,7 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -13,7 +14,6 @@ import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.model.user.UserDetailInfo;
 import com.lh.imbilibili.utils.RxBus;
-import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.lh.imbilibili.utils.transformation.CircleTransformation;
@@ -47,6 +47,8 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
     TabLayout mTabs;
     @BindView(R.id.toolbar)
     Toolbar mToolbar;
+    @BindView(R.id.navigation)
+    ViewGroup mNavigation;
     @BindView(R.id.avatar)
     ImageView mIvAvatar;
     @BindView(R.id.account_badge)
@@ -55,8 +57,6 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
     ImageView mIvNoticeBadge;
     @BindView(R.id.nick_name)
     TextView mTvNickName;
-    @BindView(R.id.navigation)
-    View mDrawHome;
 
     private BiliBiliSearchView mSearchView;
 
@@ -90,7 +90,6 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
         ButterKnife.bind(this, view);
         mToolbar.inflateMenu(R.menu.main_menu);
         mToolbar.setOnMenuItemClickListener(this);
-        StatusBarUtils.setDrawerToolbarTabLayout(getActivity(), mCoordinatorLayout);
         List<BaseFragment> fragments = new ArrayList<>();
         fragments.add(BangumiFragment.newInstance());
         fragments.add(CategoryFragment.newInstance());
@@ -118,7 +117,7 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
         mSearchView = BiliBiliSearchView.newInstance();
         mSearchView.setHint(getResources().getString(R.string.search_hint));
         mSearchView.setOnSearchListener(this);
-        mDrawHome.setOnClickListener(new View.OnClickListener() {
+        mNavigation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (getActivity() instanceof IDrawerLayoutActivity) {
