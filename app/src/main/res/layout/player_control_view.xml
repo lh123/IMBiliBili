@@ -48,6 +48,16 @@
             android:textColor="@color/white"/>
 
         <TextView
+            android:id="@+id/source"
+            android:layout_width="50dp"
+            android:layout_height="match_parent"
+            android:background="?selectableItemBackground"
+            android:gravity="center"
+            android:padding="@dimen/item_spacing"
+            android:text="官方"
+            android:textColor="@color/white" />
+
+        <TextView
             android:id="@+id/quality_select"
             android:layout_width="50dp"
             android:layout_height="match_parent"

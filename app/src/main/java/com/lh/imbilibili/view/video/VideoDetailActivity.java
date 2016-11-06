@@ -154,7 +154,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
 
     private void loadVideoDetail() {
         mVideoDetailSub = RetrofitHelper.getInstance()
-                .getVideoPlayService()
+                .getVideoService()
                 .getVideoDetail(mAid, Constant.PLAT, System.currentTimeMillis())
                 .subscribeOn(Schedulers.io())
                 .flatMap(new Func1<BilibiliDataResponse<VideoDetail>, Observable<VideoDetail>>() {

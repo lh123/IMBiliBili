@@ -13,7 +13,6 @@ import com.lh.danmakulibrary.Danmaku;
 import com.lh.danmakulibrary.DanmakuView;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.RetrofitHelper;
 import com.lh.imbilibili.model.video.VideoPlayData;
 import com.lh.imbilibili.utils.DanmakuUtils;
@@ -151,7 +150,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     private Observable<String> loadVideoInfo() {
         return RetrofitHelper.getInstance()
                 .getVideoPlayService()
-                .getPlayData(Constant.BUILD, Constant.PLATFORM, mAid, 0, 0, 0, mCid, mCurrentQuality, "json")
+                .getPlayData(mAid, 0, 0, 0, mCid, mCurrentQuality, "json")
                 .flatMap(new Func1<VideoPlayData, Observable<String>>() {
                     @Override
                     public Observable<String> call(VideoPlayData videoPlayData) {
@@ -321,6 +320,11 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
         mTvBuffering.setVisibility(View.VISIBLE);
         mProgressBar.setVisibility(View.VISIBLE);
         mDanmakuView.pause();
+    }
+
+    @Override
+    public void onSourceChange() {
+
     }
 
     public void changeVideo(String aid, String cid, String title) {

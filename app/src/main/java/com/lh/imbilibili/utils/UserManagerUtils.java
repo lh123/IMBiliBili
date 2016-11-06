@@ -6,7 +6,6 @@ import android.preference.PreferenceManager;
 
 import com.lh.imbilibili.model.user.User;
 import com.lh.imbilibili.model.user.UserDetailInfo;
-import com.lh.imbilibili.model.user.UserResponse;
 
 /**
  * Created by liuhui on 2016/10/8.
@@ -31,25 +30,27 @@ public class UserManagerUtils {
         return mUserManager;
     }
 
-    public void saveUserInfo(Context context, UserResponse user) {
+    public void saveUserInfo(Context context, User user) {
         SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(context).edit();
-        editor.putString("accessKey", user.getAccess_key());
+        editor.putString("accessToken", user.getAccessToken());
+        editor.putString("refreshToken", user.getRefreshToken());
         editor.putInt("mid", user.getMid());
-        editor.putLong("expires", user.getExpires());
+        editor.putLong("expires", user.getExpiresIn());
         editor.apply();
     }
 
     public void readUserInfo(Context context) {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
-        if (!sharedPreferences.contains("accessKey")) {
+        if (!sharedPreferences.contains("accessToken")) {
             return;
         }
         if (mUser == null) {
             mUser = new User();
         }
         mUser.setMid(sharedPreferences.getInt("mid", 0));
-        mUser.setAccessKey(sharedPreferences.getString("accessKey", ""));
-        mUser.setExpires(sharedPreferences.getLong("expires", 0));
+        mUser.setAccessToken(sharedPreferences.getString("accessToken", ""));
+        mUser.setRefreshToken(sharedPreferences.getString("refreshToken", ""));
+        mUser.setExpiresIn(sharedPreferences.getLong("expires", 0));
     }
 
     public User getCurrentUser() {

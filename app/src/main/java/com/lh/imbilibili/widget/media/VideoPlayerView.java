@@ -153,7 +153,7 @@ public class VideoPlayerView extends FrameLayout implements MediaPlayerControl {
             if (cleartargetstate) {
                 mTargetState = STATE_IDLE;
             }
-            AudioManager am = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+            AudioManager am = (AudioManager) mContext.getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
             am.abandonAudioFocus(null);
         }
     }

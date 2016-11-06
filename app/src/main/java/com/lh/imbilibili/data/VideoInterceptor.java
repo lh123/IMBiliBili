@@ -16,16 +16,15 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 /**
- * Created by liuhui on 2016/10/8.
+ * Created by liuhui on 2016/11/5.
  */
 
-public class BilliInterceptor implements Interceptor {
-
+public class VideoInterceptor implements Interceptor {
     @Override
     public Response intercept(Chain chain) throws IOException {
         Request oldRequest = chain.request();
         HttpUrl.Builder builder = chain.request().url().newBuilder();
-        HashMap<String, String> map = new HashMap<>();
+        Map<String, String> map = new HashMap<>();
         Set<String> params = oldRequest.url().queryParameterNames();
         for (String s : params) {
             map.put(s, oldRequest.url().queryParameter(s));
@@ -33,14 +32,14 @@ public class BilliInterceptor implements Interceptor {
         }
         User user = UserManagerUtils.getInstance().getCurrentUser();
         if (user != null && !TextUtils.isEmpty(user.getAccessToken())) {
-            builder.addQueryParameter(Constant.QUERY_ACCESS_KEY, user.getAccessToken());
+            map.put(Constant.QUERY_ACCESS_KEY, user.getAccessToken());
+            map.put("mid", user.getMid() + "");
         }
-        if (!oldRequest.url().toString().contains("passport.bilibili.com/api/oauth2/login")) {
-            builder.addQueryParameter(Constant.QUERY_APP_KEY, Constant.APPKEY);
-            builder.addQueryParameter(Constant.QUERY_BUILD, Constant.BUILD);
-            builder.addQueryParameter(Constant.QUERY_MOBI_APP, Constant.MOBI_APP);
-            builder.addQueryParameter(Constant.QUERY_PLATFORM, Constant.PLATFORM);
-        }
+        map.put(Constant.QUERY_PLATFORM, Constant.PLATFORM);
+        map.put("_appver", Constant.BUILD);
+        map.put(Constant.QUERY_BUILD, Constant.BUILD);
+        map.put("_device", Constant.PLATFORM);
+        map.put(Constant.QUERY_APP_KEY, Constant.APPKEY);
         for (Map.Entry<String, String> entry : map.entrySet()) {
             builder.addQueryParameter(entry.getKey(), entry.getValue());
         }

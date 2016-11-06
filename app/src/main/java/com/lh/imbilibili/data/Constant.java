@@ -5,31 +5,8 @@ package com.lh.imbilibili.data;
  */
 public class Constant {
 
-//    public static final String APPKEY="f3bb208b3d081dc8";
-//    public static final String SECRETKEY ="1c15888dc316e05a15fdd0a02ed6584f";
-
-//    public static final String APPKEY = "27eb53fc9058f8c3";
-//    public static final String SECRETKEY = "c2ed53a74eeefe3cf99fbd01d8c9c375";
-
-//    public static final String APPKEY = "422fd9d7289a1dd9";
-//    public static final String SECRETKEY = "ba3a4e554e9a6e15dc4d1d70c2b154e3";
-
-//    public static final String APPKEY = "85eb6835b0a1034e";
-//    public static final String SECRETKEY = "2ad42749773c441109bdc0191257a664";
-
-//    static final String APPKEY = "9326043312df4201";
-//    static final String SECRETKEY = "af97f9c667f1bbb47752d4fedbe27842";
-
-//    static final String APPKEY = "6f90a59ac58a4123";
-//    static final String SECRETKEY = "0bfd84cc3940035173f35e6777508326";
-
-    static final String SECRETKEY = "c2ed53a74eeefe3cf99fbd01d8c9c375";
-    static final String APPKEY = "27eb53fc9058f8c3";
-
-    static final String PLAYER_SECRETKEY = "0edc1e6f1a10a570d3a51df5165e83fb";
-
-//    public static final String APPKEY = "c1b107428d337928";
-//    public static final String SECRETKEY = "ea85624dfcf12d7cc7b2b3a94fac1f2c";
+    public static final String APPKEY = "1d8b6e7d45233436";
+    public static final String SECRETKEY = "560c52ccd288fed045859ed18bffd973";
 
     public static final String BASE_URL = "http://bangumi.bilibili.com";
     public static final String API_URL = "http://api.bilibili.com";
@@ -39,6 +16,8 @@ public class Constant {
     public static final String INTERFACE_URL = "http://interface.bilibili.com";
     public static final String COMMENT_URL = "http://comment.bilibili.com";
     public static final String ACCOUNT_URL = "https://account.bilibili.com";
+
+    public static final String PASSWORD_URL = "https://passport.bilibili.com";
 
     public static final String BANGUMI_RECOMMEND = "/api/bangumi_recommend";
     public static final String INDEX_PAGE = "/api/app_index_page_v4";
@@ -74,7 +53,8 @@ public class Constant {
     public static final String HISTORY = "/x/v2/history";
     public static final String HISTORY_ADD = HISTORY + "/add";
 
-    public static final String LOGIN = "/api/login/v2";
+    public static final String GET_KEY = "/api/oauth2/getKey";
+    public static final String LOGIN = "/api/oauth2/login";
 
     public static final String MY_INFO = "/api/myinfo/v2";
 

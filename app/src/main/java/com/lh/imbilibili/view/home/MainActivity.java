@@ -16,8 +16,8 @@ import com.lh.imbilibili.R;
 import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.model.user.User;
 import com.lh.imbilibili.model.user.UserDetailInfo;
-import com.lh.imbilibili.model.user.UserResponse;
 import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
@@ -76,10 +76,10 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
         initView();
         switchFragment(0);
         mBusSub = RxBus.getInstance()
-                .toObserverable(UserResponse.class)
-                .subscribe(new Action1<UserResponse>() {
+                .toObserverable(User.class)
+                .subscribe(new Action1<User>() {
                     @Override
-                    public void call(UserResponse userResponse) {
+                    public void call(User user) {
                         loadUserInfo();
                     }
                 });

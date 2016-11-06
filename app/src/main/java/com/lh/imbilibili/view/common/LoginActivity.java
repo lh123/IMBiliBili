@@ -6,16 +6,20 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.widget.NestedScrollView;
 import android.support.v7.widget.Toolbar;
-import android.text.TextUtils;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.RetrofitHelper;
-import com.lh.imbilibili.model.user.UserResponse;
+import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.user.RsaData;
+import com.lh.imbilibili.model.user.User;
+import com.lh.imbilibili.utils.BiliBilliSignUtils;
 import com.lh.imbilibili.utils.DrawableTintUtils;
+import com.lh.imbilibili.utils.RsaHelper;
 import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.SubscriptionUtils;
@@ -23,11 +27,17 @@ import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.lh.imbilibili.view.BaseActivity;
 
+import java.net.URLEncoder;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import rx.Observable;
+import rx.Subscriber;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
+import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 /**
@@ -93,28 +103,78 @@ public class LoginActivity extends BaseActivity implements View.OnFocusChangeLis
         mBtnLogin.setOnClickListener(this);
     }
 
-    private void login(final String username, String password) {
+    private void login(final String username, final String password) {
         mLoginSub = RetrofitHelper.getInstance()
                 .getLoginService()
-                .doLogin(password, "jsonp", username)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<UserResponse>() {
+                .getRsaKey(System.currentTimeMillis())
+                .flatMap(new Func1<BilibiliDataResponse<RsaData>, Observable<BilibiliDataResponse<User>>>() {
                     @Override
-                    public void call(UserResponse userResponse) {
-                        if (!TextUtils.isEmpty(userResponse.getAccess_key())) {
-                            UserManagerUtils.getInstance().saveUserInfo(getApplicationContext(), userResponse);
-                            UserManagerUtils.getInstance().readUserInfo(getApplicationContext());
-                            RxBus.getInstance().send(userResponse);
-                            finish();
-                        } else {
-                            ToastUtils.showToastShort(userResponse.getCode() + "");
+                    public Observable<BilibiliDataResponse<User>> call(BilibiliDataResponse<RsaData> rsaDataBilibiliDataResponse) {
+                        RsaData rsaData = rsaDataBilibiliDataResponse.getData();
+                        String temp = rsaData.getHash() + password;
+                        try {
+                            String psw = RsaHelper.encryptByPublicKey(temp.getBytes(), RsaHelper.getPublicKey(rsaData.getKey()));
+                            LinkedHashMap<String, String> map = new LinkedHashMap<>();
+                            map.put("appkey", Constant.APPKEY);
+                            map.put("build", "428001");
+                            map.put("mobi_app", Constant.MOBI_APP);
+                            map.put("password", psw);
+                            map.put("ts", System.currentTimeMillis() + "");
+                            map.put("username", username);
+                            StringBuilder bodyBuilder = new StringBuilder();
+                            boolean isFirst = true;
+                            for (Map.Entry<String, String> entry : map.entrySet()) {
+                                if (isFirst) {
+                                    isFirst = false;
+                                    bodyBuilder.append(entry.getKey())
+                                            .append("=")
+                                            .append(entry.getValue());
+                                } else {
+                                    if (entry.getKey().equals("password")) {
+                                        System.out.println(entry.getKey());
+                                        bodyBuilder.append("&")
+                                                .append(entry.getKey())
+                                                .append("=")
+                                                .append(URLEncoder.encode(entry.getValue(), "utf-8"));
+                                    } else {
+                                        bodyBuilder.append("&")
+                                                .append(entry.getKey())
+                                                .append("=")
+                                                .append(entry.getValue());
+                                    }
+                                }
+                            }
+                            String sign = BiliBilliSignUtils.getSign(bodyBuilder.toString(), Constant.SECRETKEY);
+                            map.put("sign", sign);
+                            return RetrofitHelper.getInstance().getLoginService().doLogin(map);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            return Observable.error(e);
                         }
                     }
-                }, new Action1<Throwable>() {
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<BilibiliDataResponse<User>>() {
                     @Override
-                    public void call(Throwable throwable) {
-                        ToastUtils.showToastShort("网络异常");
+                    public void onCompleted() {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        ToastUtils.showToastShort("失败");
+                    }
+
+                    @Override
+                    public void onNext(BilibiliDataResponse<User> userBilibiliDataResponse) {
+                        if (userBilibiliDataResponse.isSuccess()) {
+                            ToastUtils.showToastShort("登陆成功");
+                            UserManagerUtils.getInstance().saveUserInfo(getApplicationContext(), userBilibiliDataResponse.getData());
+                            UserManagerUtils.getInstance().readUserInfo(getApplicationContext());
+                            RxBus.getInstance().send(userBilibiliDataResponse.getData());
+                            finish();
+                        }
                     }
                 });
     }

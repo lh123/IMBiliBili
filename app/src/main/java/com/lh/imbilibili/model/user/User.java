@@ -1,13 +1,25 @@
 package com.lh.imbilibili.model.user;
 
+import com.google.gson.annotations.SerializedName;
+
 /**
  * Created by liuhui on 2016/10/8.
  */
 
 public class User {
     private int mid;
-    private String accessKey;
-    private long expires;
+    @SerializedName("access_token")
+    private String accessToken;
+    @SerializedName("refresh_token")
+    private String refreshToken;
+
+    public long getExpiresIn() {
+        return expiresIn;
+    }
+
+    public void setExpiresIn(long expiresIn) {
+        this.expiresIn = expiresIn;
+    }
 
     public int getMid() {
         return mid;
@@ -17,19 +29,22 @@ public class User {
         this.mid = mid;
     }
 
-    public String getAccessKey() {
-        return accessKey;
+    public String getAccessToken() {
+        return accessToken;
     }
 
-    public void setAccessKey(String accessKey) {
-        this.accessKey = accessKey;
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
     }
 
-    public long getExpires() {
-        return expires;
+    public String getRefreshToken() {
+        return refreshToken;
     }
 
-    public void setExpires(long expires) {
-        this.expires = expires;
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
+
+    @SerializedName("expires_in")
+    private long expiresIn;
 }

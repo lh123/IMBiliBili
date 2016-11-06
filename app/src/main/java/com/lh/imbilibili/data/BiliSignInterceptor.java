@@ -18,8 +18,10 @@ public class BiliSignInterceptor implements Interceptor {
         Request finalRequest;
         Request oldlRequest = chain.request();
         HttpUrl.Builder urlBuilder = chain.request().url().newBuilder();
-        String sign = BiliBilliSignUtils.getSign(oldlRequest.url().query(), Constant.SECRETKEY);
-        urlBuilder.addQueryParameter(Constant.QUERY_SIGN, sign);
+        if (!oldlRequest.url().toString().contains("passport.bilibili.com/api/oauth2/login")) {
+            String sign = BiliBilliSignUtils.getSign(oldlRequest.url().query(), Constant.SECRETKEY);
+            urlBuilder.addQueryParameter(Constant.QUERY_SIGN, sign);
+        }
         finalRequest = oldlRequest.newBuilder().url(urlBuilder.build()).build();
         return chain.proceed(finalRequest);
     }

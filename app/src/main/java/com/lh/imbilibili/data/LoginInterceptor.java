@@ -1,10 +1,5 @@
 package com.lh.imbilibili.data;
 
-import android.text.TextUtils;
-
-import com.lh.imbilibili.model.user.User;
-import com.lh.imbilibili.utils.UserManagerUtils;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,11 +11,10 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 /**
- * Created by liuhui on 2016/10/8.
+ * Created by liuhui on 2016/11/5.
  */
 
-public class BilliInterceptor implements Interceptor {
-
+public class LoginInterceptor implements Interceptor {
     @Override
     public Response intercept(Chain chain) throws IOException {
         Request oldRequest = chain.request();
@@ -31,11 +25,7 @@ public class BilliInterceptor implements Interceptor {
             map.put(s, oldRequest.url().queryParameter(s));
             builder.removeAllQueryParameters(s);
         }
-        User user = UserManagerUtils.getInstance().getCurrentUser();
-        if (user != null && !TextUtils.isEmpty(user.getAccessToken())) {
-            builder.addQueryParameter(Constant.QUERY_ACCESS_KEY, user.getAccessToken());
-        }
-        if (!oldRequest.url().toString().contains("passport.bilibili.com/api/oauth2/login")) {
+        if (oldRequest.url().toString().contains("getKey")) {
             builder.addQueryParameter(Constant.QUERY_APP_KEY, Constant.APPKEY);
             builder.addQueryParameter(Constant.QUERY_BUILD, Constant.BUILD);
             builder.addQueryParameter(Constant.QUERY_MOBI_APP, Constant.MOBI_APP);

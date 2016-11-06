@@ -61,6 +61,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     private TextView mTvCurrentTime;
     private TextView mTvTotalTime;
     private TextView mTvTitle;
+    private TextView mTvSource;
     private TextView mTvQualitySelect;
     private TextView mTvVideoInfo;
     private TextView mTvDanmakuShowHide;
@@ -96,6 +97,8 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     private boolean mScrollingSeekBar = false;
     private int mBeforeScrollPosition;
 
+    private boolean mUserPlusSource;
+
     public VideoControlView(Context context) {
         this(context, null, 0);
     }
@@ -107,6 +110,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     public VideoControlView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mShowing = false;
+        mUserPlusSource = false;
         mCurrentPosition = -1;
         setClickable(true);
         LayoutInflater inflater = LayoutInflater.from(context);
@@ -125,6 +129,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         mTvCurrentTime = (TextView) mMediaControlView.findViewById(R.id.current_time);
         mTvTotalTime = (TextView) mMediaControlView.findViewById(R.id.total_time);
         mTvTitle = (TextView) mMediaControlView.findViewById(R.id.title);
+        mTvSource = (TextView) mMediaControlView.findViewById(R.id.source);
         mTvQualitySelect = (TextView) mMediaControlView.findViewById(R.id.quality_select);
         mIvBack = (ImageView) mMediaControlView.findViewById(R.id.back);
         mTvVideoInfo = (TextView) mMediaControlView.findViewById(R.id.video_info);
@@ -135,6 +140,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         for (int i = 0; i < popuView.getChildCount(); i++) {
             popuView.getChildAt(i).setOnClickListener(this);
         }
+
         mQualityPopuWindow = new PopupWindow(popuView, mTvQualitySelect.getLayoutParams().width, ViewGroup.LayoutParams.WRAP_CONTENT);
         mQualityPopuWindow.setBackgroundDrawable(new ColorDrawable(ContextCompat.getColor(getContext(), R.color.black_60_alpha)));
         mQualityPopuWindow.setOutsideTouchable(true);
@@ -144,6 +150,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         mIvPlayPause.setOnClickListener(this);
         mIvBack.setOnClickListener(this);
         mTvQualitySelect.setOnClickListener(this);
+        mTvSource.setOnClickListener(this);
         mTvDanmakuShowHide.setOnClickListener(this);
         mIvFullScreen.setOnClickListener(this);
     }
@@ -467,13 +474,24 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
                 }
                 break;
             case R.id.quality_select:
-                System.out.println("show");
                 mQualityPopuWindow.showAsDropDown(v);
+                break;
+            case R.id.source:
+                if (mOnPlayControlListener != null) {
+                    mUserPlusSource = !mUserPlusSource;
+                    mOnPlayControlListener.onSourceChange();
+                    if (mUserPlusSource) {
+                        mTvSource.setText("三方");
+                    } else {
+                        mTvSource.setText("官方");
+                    }
+                }
                 break;
             case R.id.show_hide_danmaku:
                 if (mOnPlayControlListener != null) {
                     mOnPlayControlListener.onDanamkuShowOrHideClick();
                 }
+                break;
         }
     }
 
@@ -492,6 +510,8 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         void onVideoStart();
 
         void onQualitySelect(int quality);
+
+        void onSourceChange();
 
         void onDanamkuShowOrHideClick();
 
