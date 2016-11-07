@@ -53,11 +53,6 @@ public class BangumiEpAdapter extends RecyclerView.Adapter<BangumiEpAdapter.Epis
     @Override
     public BangumiEpAdapter.EpisodeViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.bangumi_ep_grid_item, parent, false);
-        if (mItemMatchWidth) {
-            ViewGroup.LayoutParams params = view.getLayoutParams();
-            params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-            view.setLayoutParams(params);
-        }
         return new EpisodeViewHolder(view);
     }
 
@@ -134,6 +129,23 @@ public class BangumiEpAdapter extends RecyclerView.Adapter<BangumiEpAdapter.Epis
         public EpisodeViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);
+            if (mItemMatchWidth) {
+                ViewGroup.LayoutParams params = itemView.getLayoutParams();
+                params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                itemView.setLayoutParams(params);
+
+                ViewGroup.LayoutParams indicatorLayoutParams = mIndicator.getLayoutParams();
+                indicatorLayoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                mIndicator.setLayoutParams(indicatorLayoutParams);
+
+                ViewGroup.LayoutParams titleParams = mTitleLayout.getLayoutParams();
+                titleParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                mTitleLayout.setLayoutParams(titleParams);
+
+                ViewGroup.LayoutParams tvIndexParams = mTvIndexTitle.getLayoutParams();
+                tvIndexParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                mTvIndexTitle.setLayoutParams(tvIndexParams);
+            }
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
