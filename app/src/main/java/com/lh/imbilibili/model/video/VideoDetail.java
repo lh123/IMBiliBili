@@ -13,6 +13,7 @@ import java.util.List;
 
 
 public class VideoDetail implements Parcelable {
+
     private String aid;
     private String tid;
     private String tname;

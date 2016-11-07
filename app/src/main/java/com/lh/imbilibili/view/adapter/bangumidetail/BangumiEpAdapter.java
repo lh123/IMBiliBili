@@ -78,8 +78,9 @@ public class BangumiEpAdapter extends RecyclerView.Adapter<BangumiEpAdapter.Epis
             holder.mTvTitle.setText(StringUtils.format("第%s话", episode.getIndex()));
             if (TextUtils.isEmpty(episodes.get(0).getIndexTitle())) {
                 holder.mTvIndexTitle.setVisibility(View.GONE);
+                holder.mTitleLayout.setGravity(Gravity.CENTER);
             } else {
-                holder.mTvTitle.setGravity(Gravity.START);
+                holder.mTitleLayout.setGravity(Gravity.LEFT);
                 holder.mTvIndexTitle.setVisibility(View.VISIBLE);
                 holder.mTvIndexTitle.setText(episode.getIndexTitle());
             }

@@ -70,8 +70,10 @@ public class VideoDetailInfoFragment extends BaseFragment implements VideoPageRe
 
     private VideoDetail mVideoDetail;
     private VideoRelatesRecyclerViewAdapter mAdapter;
+    private VideoTagAdapter mTagAdapter;
     private VideoPageRecyclerViewAdapter mVideoPageAdapter;
     private Subscription mBusSub;
+    private boolean mIsFirstLoad;
 
     public static VideoDetailInfoFragment newInstance() {
         return new VideoDetailInfoFragment();
@@ -80,7 +82,7 @@ public class VideoDetailInfoFragment extends BaseFragment implements VideoPageRe
     @Override
     protected void initView(View view) {
         ButterKnife.bind(this, view);
-//        mFlowLayout.setOnItemClickListener(this);
+        mIsFirstLoad = true;
         initRecyclerView();
     }
 
@@ -95,11 +97,11 @@ public class VideoDetailInfoFragment extends BaseFragment implements VideoPageRe
                         switch (videoStateChangeEvent.state) {
                             case VideoStateChangeEvent.STATE_LOAD_FINISH:
                                 mVideoDetail = videoStateChangeEvent.videoDetail;
-                                bindViewWithData();
+                                if (mIsFirstLoad) {
+                                    bindViewWithData();
+                                }
                                 break;
                             case VideoStateChangeEvent.STATE_PLAY:
-//                                System.out.println("setNestedScrollingEnabled:false");
-//                                mScrollView.setNestedScrollingEnabled(false);
                                 break;
                         }
                     }
@@ -131,9 +133,22 @@ public class VideoDetailInfoFragment extends BaseFragment implements VideoPageRe
         mPageRecyclerView.setLayoutManager(pageLayoutManager);
         mPageRecyclerView.setAdapter(mVideoPageAdapter);
         mVideoPageAdapter.setOnPageClickListener(this);
+
+        mTagAdapter = new VideoTagAdapter();
+        mFlowLayout.addItemDecoration(new FlowItemDecoration(getResources().getDimensionPixelSize(R.dimen.item_half_spacing)));
+        FlowLayoutManager layoutManager = new FlowLayoutManager();
+        mFlowLayout.setLayoutManager(layoutManager);
+        mFlowLayout.setAdapter(mTagAdapter);
+        mTagAdapter.setOnTagClickListener(new VideoTagAdapter.OnTagClickListener() {
+            @Override
+            public void onTagClick(String tagContent) {
+                SearchActivity.startActivity(getContext(), tagContent);
+            }
+        });
     }
 
     private void bindViewWithData() {
+        mIsFirstLoad = false;
         mTvTitle.setText(mVideoDetail.getTitle());
         mTvDanmakus.setText(StringUtils.formateNumber(mVideoDetail.getStat().getDanmaku()));
         mTvPlayCount.setText(StringUtils.formateNumber(mVideoDetail.getStat().getView()));
@@ -154,20 +169,8 @@ public class VideoDetailInfoFragment extends BaseFragment implements VideoPageRe
         } else {
             mPageLayout.setVisibility(View.GONE);
         }
-        if (mVideoDetail.getTags() != null) {
-            VideoTagAdapter tagAdapter = new VideoTagAdapter();
-            tagAdapter.setTags(mVideoDetail.getTags());
-            mFlowLayout.addItemDecoration(new FlowItemDecoration(getResources().getDimensionPixelSize(R.dimen.item_half_spacing)));
-            FlowLayoutManager layoutManager = new FlowLayoutManager();
-            mFlowLayout.setLayoutManager(layoutManager);
-            mFlowLayout.setAdapter(tagAdapter);
-            tagAdapter.setOnTagClickListener(new VideoTagAdapter.OnTagClickListener() {
-                @Override
-                public void onTagClick(String tagContent) {
-                    SearchActivity.startActivity(getContext(), tagContent);
-                }
-            });
-        }
+        mTagAdapter.setTags(mVideoDetail.getTags());
+        mTagAdapter.notifyDataSetChanged();
         mAdapter.setVideoDetails(mVideoDetail.getRelates());
         mAdapter.notifyDataSetChanged();
     }

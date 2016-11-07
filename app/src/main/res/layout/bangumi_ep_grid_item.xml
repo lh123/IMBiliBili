@@ -6,16 +6,17 @@
 
     <FrameLayout
         android:id="@+id/indicator"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/selector_bangumi_ep_bg">
 
         <LinearLayout
             android:id="@+id/title_layout"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:minHeight="44dp"
+            android:minWidth="70dp"
             android:orientation="vertical"
             android:paddingBottom="@dimen/item_half_spacing"
             android:paddingLeft="6dp"

@@ -1,5 +1,4 @@
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clickable="false"
@@ -18,7 +17,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="@dimen/item_spacing"
-            android:src="@drawable/bili_player_back_button"/>
+            android:src="@drawable/bili_player_back_button" />
 
         <com.lh.imbilibili.widget.FocusedTextView
             android:id="@+id/title"
@@ -29,13 +28,13 @@
             android:marqueeRepeatLimit="marquee_forever"
             android:maxLines="1"
             android:singleLine="true"
-            android:textColor="@color/gray"/>
+            android:textColor="@color/gray" />
 
         <android.support.v4.widget.Space
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:padding="@dimen/item_spacing"/>
+            android:padding="@dimen/item_spacing" />
 
         <TextView
             android:id="@+id/show_hide_danmaku"
@@ -45,17 +44,17 @@
             android:gravity="center"
             android:padding="@dimen/item_spacing"
             android:text="隐藏"
-            android:textColor="@color/white"/>
+            android:textColor="@color/white" />
 
         <TextView
             android:id="@+id/source"
-            android:layout_width="50dp"
+            android:layout_width="55dp"
             android:layout_height="match_parent"
             android:background="?selectableItemBackground"
             android:gravity="center"
             android:padding="@dimen/item_spacing"
-            android:text="官方"
-            android:textColor="@color/white" />
+            android:textColor="@color/white"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/quality_select"
@@ -64,7 +63,8 @@
             android:background="?selectableItemBackground"
             android:gravity="center"
             android:padding="@dimen/item_spacing"
-            android:textColor="@color/white"/>
+            android:textColor="@color/white"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/video_info"
@@ -74,7 +74,7 @@
             android:gravity="center"
             android:padding="@dimen/item_spacing"
             android:text="视频信息"
-            android:textColor="@color/white"/>
+            android:textColor="@color/white" />
     </LinearLayout>
 
     <LinearLayout
@@ -93,7 +93,7 @@
             android:background="?selectableItemBackgroundBorderless"
             android:paddingLeft="@dimen/item_spacing"
             android:paddingRight="5dp"
-            android:src="@drawable/player_play_pause"/>
+            android:src="@drawable/player_play_pause" />
 
         <TextView
             android:id="@+id/current_time"
@@ -102,7 +102,7 @@
             android:layout_gravity="center"
             android:gravity="center"
             android:textColor="#ffffffff"
-            android:textSize="13sp"/>
+            android:textSize="13sp" />
 
         <SeekBar
             android:id="@+id/seekbar"
@@ -116,7 +116,7 @@
             android:paddingTop="8dp"
             android:progressDrawable="@drawable/abcp_pink__scrubber_progress_horizontal_holo_light"
             android:thumb="@drawable/player_seekbar_thumb"
-            android:thumbOffset="1dp"/>
+            android:thumbOffset="1dp" />
 
         <TextView
             android:id="@+id/total_time"
@@ -127,7 +127,7 @@
             android:paddingLeft="@dimen/item_spacing"
             android:paddingRight="5dp"
             android:textColor="#ffffffff"
-            android:textSize="13sp"/>
+            android:textSize="13sp" />
 
         <ImageView
             android:id="@+id/btn_full_screen"
@@ -137,7 +137,7 @@
             android:paddingLeft="@dimen/item_spacing"
             android:paddingRight="@dimen/item_spacing"
             android:src="@drawable/ic_portrait_fullscreen"
-            android:visibility="gone"/>
+            android:visibility="gone" />
 
     </LinearLayout>
 

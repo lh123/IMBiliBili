@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="status_bar_view" type="id" />
+
+    <item name="quality_list" type="id" />
+    <item name="source_list" type="id" />
 </resources>

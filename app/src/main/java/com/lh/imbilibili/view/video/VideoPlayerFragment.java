@@ -314,8 +314,8 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     }
 
     @Override
-    public void onQualitySelect(int quality) {
-        mCurrentQuality = quality;
+    public void onQualitySelect(VideoControlView.QualityItem item) {
+        mCurrentQuality = item.getId();
         mLastPlayPosition = mIjkVideoView.getCurrentPosition();
         mTvBuffering.setVisibility(View.VISIBLE);
         mProgressBar.setVisibility(View.VISIBLE);
@@ -323,8 +323,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     }
 
     @Override
-    public void onSourceChange() {
-
+    public void onSourceChange(int index) {
     }
 
     public void changeVideo(String aid, String cid, String title) {

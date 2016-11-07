@@ -1,6 +1,5 @@
 package com.lh.imbilibili.widget.media;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
@@ -16,9 +15,12 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
@@ -28,13 +30,14 @@ import com.lh.imbilibili.R;
 import com.lh.imbilibili.utils.StringUtils;
 
 import java.lang.ref.WeakReference;
+import java.util.List;
 
 /**
  * Created by lh on 2016/8/6.
  * 视频播放界面
  */
 @SuppressWarnings("FieldCanBeLocal")
-public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarChangeListener, View.OnClickListener {
+public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarChangeListener, View.OnClickListener, AdapterView.OnItemClickListener {
 
     public static final int MSG_HIDE_UI = 1;
     public static final int MSG_HIDE_VOLUME_BAR = 2;
@@ -61,7 +64,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     private TextView mTvCurrentTime;
     private TextView mTvTotalTime;
     private TextView mTvTitle;
-    private TextView mTvSource;
+    private TextView mTvSourceSelect;
     private TextView mTvQualitySelect;
     private TextView mTvVideoInfo;
     private TextView mTvDanmakuShowHide;
@@ -78,7 +81,8 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     private GestureDetector mGestureDetector;
     private GestureType mGestureType = GestureType.None;
 
-    private PopupWindow mQualityPopuWindow;
+    private PopupWindow mQualityPopupWindow;
+    private PopupWindow mSourcePopupWindow;
 
     private boolean mShowing;
 
@@ -90,14 +94,15 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     private float mTotalBrightnessOffset;
     private float mTotalPlayPositionOffset;
 
-    private int mCurrentQuality;
+    private String[] mSourceList;
+    private boolean mCurrentDanmakuState;
 
     private OnPlayControlListener mOnPlayControlListener;
     private OnMediaControlViewVisibleChangeListener mOnMediaControlViewVisibleChangeListener;
     private boolean mScrollingSeekBar = false;
     private int mBeforeScrollPosition;
 
-    private boolean mUserPlusSource;
+    private ArrayAdapter<QualityItem> mQualityAdapter;
 
     public VideoControlView(Context context) {
         this(context, null, 0);
@@ -110,8 +115,8 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     public VideoControlView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mShowing = false;
-        mUserPlusSource = false;
         mCurrentPosition = -1;
+        mCurrentDanmakuState = true;
         setClickable(true);
         LayoutInflater inflater = LayoutInflater.from(context);
         initMediaControlView(inflater);
@@ -129,28 +134,36 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         mTvCurrentTime = (TextView) mMediaControlView.findViewById(R.id.current_time);
         mTvTotalTime = (TextView) mMediaControlView.findViewById(R.id.total_time);
         mTvTitle = (TextView) mMediaControlView.findViewById(R.id.title);
-        mTvSource = (TextView) mMediaControlView.findViewById(R.id.source);
+        mTvSourceSelect = (TextView) mMediaControlView.findViewById(R.id.source);
         mTvQualitySelect = (TextView) mMediaControlView.findViewById(R.id.quality_select);
         mIvBack = (ImageView) mMediaControlView.findViewById(R.id.back);
         mTvVideoInfo = (TextView) mMediaControlView.findViewById(R.id.video_info);
         mTvDanmakuShowHide = (TextView) mMediaControlView.findViewById(R.id.show_hide_danmaku);
         mIvFullScreen = (ImageView) mMediaControlView.findViewById(R.id.btn_full_screen);
 
-        @SuppressLint("InflateParams") ViewGroup popuView = (ViewGroup) inflater.inflate(R.layout.popu_quality_select_view, null);
-        for (int i = 0; i < popuView.getChildCount(); i++) {
-            popuView.getChildAt(i).setOnClickListener(this);
-        }
+        ListView qualityListView = new ListView(getContext());
+        mQualityAdapter = new ArrayAdapter<>(getContext(), R.layout.video_popup_item, R.id.popup_txt);
+        qualityListView.setAdapter(mQualityAdapter);
+        qualityListView.setId(R.id.quality_list);
+        qualityListView.setOnItemClickListener(this);
+        mQualityPopupWindow = new PopupWindow(qualityListView, mTvQualitySelect.getLayoutParams().width, ViewGroup.LayoutParams.WRAP_CONTENT);
+        mQualityPopupWindow.setBackgroundDrawable(new ColorDrawable(ContextCompat.getColor(getContext(), R.color.black_60_alpha)));
+        mQualityPopupWindow.setOutsideTouchable(true);
 
-        mQualityPopuWindow = new PopupWindow(popuView, mTvQualitySelect.getLayoutParams().width, ViewGroup.LayoutParams.WRAP_CONTENT);
-        mQualityPopuWindow.setBackgroundDrawable(new ColorDrawable(ContextCompat.getColor(getContext(), R.color.black_60_alpha)));
-        mQualityPopuWindow.setOutsideTouchable(true);
+        ListView sourceListView = new ListView(getContext());
+        sourceListView.setId(R.id.source_list);
+        sourceListView.setOnItemClickListener(this);
+        mSourcePopupWindow = new PopupWindow(sourceListView, mTvSourceSelect.getLayoutParams().width, ViewGroup.LayoutParams.WRAP_CONTENT);
+        mSourcePopupWindow.setBackgroundDrawable(new ColorDrawable(ContextCompat.getColor(getContext(), R.color.black_60_alpha)));
+        mSourcePopupWindow.setOutsideTouchable(true);
+
         mSeekBar.setOnSeekBarChangeListener(this);
         addView(mMediaControlView);
         mTvVideoInfo.setOnClickListener(this);
         mIvPlayPause.setOnClickListener(this);
         mIvBack.setOnClickListener(this);
         mTvQualitySelect.setOnClickListener(this);
-        mTvSource.setOnClickListener(this);
+        mTvSourceSelect.setOnClickListener(this);
         mTvDanmakuShowHide.setOnClickListener(this);
         mIvFullScreen.setOnClickListener(this);
     }
@@ -198,11 +211,6 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         mOnMediaControlViewVisibleChangeListener = listener;
     }
 
-    public void setCurrentVideoQuality(int quality) {
-        mCurrentQuality = quality;
-        mTvQualitySelect.setText(qualityCodeForString(mCurrentQuality));
-    }
-
     public void setCurrentDanmakuState(boolean isShow) {
         mTvDanmakuShowHide.setText(isShow ? "隐藏" : "显示");
     }
@@ -213,6 +221,40 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
 
     public void setFullScreenButtonVisible(boolean state) {
         mIvFullScreen.setVisibility(state ? VISIBLE : GONE);
+    }
+
+    public void setQualityList(List<QualityItem> qualityList) {
+        if (qualityList == null) {
+            return;
+        }
+        if (mQualityAdapter == null || mQualityAdapter.isEmpty()) {
+            int currentId = 0;
+            int index = 0;
+            for (int i = 0; i < qualityList.size(); i++) {
+                if (currentId < qualityList.get(i).getId()) {
+                    currentId = qualityList.get(i).getId();
+                    index = i;
+                }
+            }
+            mTvQualitySelect.setText(qualityList.get(index).getName());
+        }
+        mTvQualitySelect.setVisibility(VISIBLE);
+        mQualityAdapter.clear();
+        mQualityAdapter.addAll(qualityList);
+        ListView listView = (ListView) mQualityPopupWindow.getContentView();
+        listView.setAdapter(mQualityAdapter);
+    }
+
+    public void setSourceList(String[] sourceList, int defaultIndex) {
+        mTvSourceSelect.setVisibility(VISIBLE);
+        mSourceList = sourceList;
+        mTvSourceSelect.setText(sourceList[defaultIndex]);
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(getContext(), R.layout.video_popup_item, R.id.popup_txt);
+        for (String source : mSourceList) {
+            arrayAdapter.add(source);
+        }
+        ListView listView = (ListView) mSourcePopupWindow.getContentView();
+        listView.setAdapter(arrayAdapter);
     }
 
     @Override
@@ -311,16 +353,6 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         }
     }
 
-    private String qualityCodeForString(int quality) {
-        if (quality == 1) {
-            return "流畅";
-        } else if (quality == 2) {
-            return "高清";
-        } else {
-            return "超清";
-        }
-    }
-
     private void setFastBackwardForwardGestureInfo(int afterTime, int preTime, int totalTime) {
         mHandler.removeMessages(MSG_HIDE_GESTUREINFO_VIEW);
         mGestureInfoGroup.setVisibility(VISIBLE);
@@ -377,7 +409,6 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     }
 
     private void setBrightness(float percent) {
-        System.out.println(percent);
         mHandler.removeMessages(MSG_HIDE_BRIGHTNESS_BAR);
         if (getContext() instanceof Activity) {
             Activity activity = (Activity) getContext();
@@ -448,15 +479,6 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.smooth_quality:
-            case R.id.high_quality:
-            case R.id.super_high_quality:
-                mQualityPopuWindow.dismiss();
-                mHandler.sendEmptyMessage(MSG_HIDE_MEDIA_CONTROL);
-                if (mOnPlayControlListener != null) {
-                    mOnPlayControlListener.onQualitySelect(Integer.parseInt((String) v.getTag()));
-                }
-                break;
             case R.id.play_pause_toggle:
                 playOrPause();
                 break;
@@ -474,24 +496,32 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
                 }
                 break;
             case R.id.quality_select:
-                mQualityPopuWindow.showAsDropDown(v);
+                mQualityPopupWindow.showAsDropDown(v);
                 break;
             case R.id.source:
-                if (mOnPlayControlListener != null) {
-                    mUserPlusSource = !mUserPlusSource;
-                    mOnPlayControlListener.onSourceChange();
-                    if (mUserPlusSource) {
-                        mTvSource.setText("三方");
-                    } else {
-                        mTvSource.setText("官方");
-                    }
-                }
+                mSourcePopupWindow.showAsDropDown(v);
                 break;
             case R.id.show_hide_danmaku:
                 if (mOnPlayControlListener != null) {
+                    mCurrentDanmakuState = !mCurrentDanmakuState;
+                    setCurrentDanmakuState(mCurrentDanmakuState);
                     mOnPlayControlListener.onDanamkuShowOrHideClick();
                 }
                 break;
+        }
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        if (mOnPlayControlListener == null) {
+            return;
+        }
+        if (parent.getId() == R.id.quality_list) {
+            mTvQualitySelect.setText(mQualityAdapter.getItem(position).getName());
+            mOnPlayControlListener.onQualitySelect(mQualityAdapter.getItem(position));
+        } else if (parent.getId() == R.id.source_list) {
+            mTvSourceSelect.setText(mSourceList[position]);
+            mOnPlayControlListener.onSourceChange(position);
         }
     }
 
@@ -509,9 +539,9 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
 
         void onVideoStart();
 
-        void onQualitySelect(int quality);
+        void onQualitySelect(QualityItem item);
 
-        void onSourceChange();
+        void onSourceChange(int index);
 
         void onDanamkuShowOrHideClick();
 
@@ -542,7 +572,7 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
                         mVideoControlView.get().hideBrightnessBar();
                         break;
                     case MSG_HIDE_MEDIA_CONTROL:
-                        if (!mVideoControlView.get().mQualityPopuWindow.isShowing()) {
+                        if (!mVideoControlView.get().mQualityPopupWindow.isShowing() && !mVideoControlView.get().mSourcePopupWindow.isShowing()) {
                             mVideoControlView.get().hideMediaControlView();
                         }
                         break;
@@ -629,6 +659,37 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
                 setFastBackwardForwardGestureInfo(mCurrentPosition, mBeforeScrollPosition, mMediaControl.getDuration());
             }
             return true;
+        }
+    }
+
+    public static class QualityItem {
+        private String name;
+        private int id;
+
+        public QualityItem(String name, int id) {
+            this.name = name;
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public String toString() {
+            return name;
         }
     }
 }

@@ -141,7 +141,7 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
             View view = inflater.inflate(R.layout.bangumi_detail_season_list_item, parent, false);
             holder = new SeasonListViewHolder(view);
         } else if (viewType == TYPE_EPOSIDE) {
-            View view = inflater.inflate(R.layout.bangumi_detail_eposide_item, parent, false);
+            View view = inflater.inflate(R.layout.bangumi_detail_episode_item, parent, false);
             holder = new EposideViewHolder(view);
         } else if (viewType == TYPE_DESC) {
             View view = inflater.inflate(R.layout.bangumi_detail_desc_item, parent, false);
