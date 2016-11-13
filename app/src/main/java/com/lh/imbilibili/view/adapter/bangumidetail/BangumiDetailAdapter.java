@@ -1,6 +1,7 @@
 package com.lh.imbilibili.view.adapter.bangumidetail;
 
 import android.content.Context;
+import android.support.annotation.DrawableRes;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -184,6 +185,12 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
                 }
                 headViewHolder.mTvText2.setText(StringUtils.format("播放：%s", StringUtils.formateNumber(mBangumiDetail.getPlayCount())));
                 headViewHolder.mTvText3.setText(StringUtils.format("追番：%s", StringUtils.formateNumber(mBangumiDetail.getFavorites())));
+                if (mBangumiDetail.getUserSeason() != null) {
+                    BangumiDetail.UserSeason userSeason = mBangumiDetail.getUserSeason();
+                    int resId = userSeason.getAttention().equals("1") ? R.drawable.ic_bangumi_followed : R.drawable.ic_bangumi_follow;
+                    String text = userSeason.getAttention().equals("1") ? "已追" : "追番";
+                    headViewHolder.setActionData(headViewHolder.mActionSubscribe, resId, text);
+                }
             }
         } else if (itemType == TYPE_SEASON_LIST) {
             SeasonListViewHolder viewHolder = (SeasonListViewHolder) holder;
@@ -273,7 +280,7 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
     }
 
     @SuppressWarnings("WeakerAccess")
-    class HeadViewHolder extends RecyclerView.ViewHolder {
+    class HeadViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         @BindView(R.id.cover)
         ScalableImageView mIvCover;
@@ -288,9 +295,28 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
         @BindView(R.id.text3)
         TextView mTvText3;
 
+        @BindView(R.id.action_subscribe)
+        ViewGroup mActionSubscribe;
+
+
         public HeadViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);
+            mActionSubscribe.setOnClickListener(this);
+        }
+
+        private void setActionData(View root, @DrawableRes int resId, String title) {
+            ImageView imageView = (ImageView) root.findViewById(R.id.icon);
+            TextView textView = (TextView) root.findViewById(R.id.title);
+            imageView.setImageResource(resId);
+            textView.setText(title);
+        }
+
+        @Override
+        public void onClick(View v) {
+            if (mOnItemClickListener != null) {
+                mOnItemClickListener.onHeadActionClick(v);
+            }
         }
     }
 
@@ -534,5 +560,7 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
         void onItemClick(int type, int position);
 
         void onHeadClick(int type);
+
+        void onHeadActionClick(View view);
     }
 }

@@ -37,4 +37,7 @@
     <string name="author_space_header_my_videos">我的投稿</string>
     <string name="author_space_header_videos">全部投稿</string>
 
+    <string name="bangumi_subscribe_success">自己追的番就要好好看完哟\\^o^/</string>
+    <string name="bangumi_unsubscribe_success">哼！竟然真的抛弃了人家(>_&lt;)</string>
+
 </resources>

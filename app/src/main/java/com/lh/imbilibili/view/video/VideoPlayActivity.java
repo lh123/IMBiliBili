@@ -294,7 +294,6 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                             public Observable<?> call(Throwable throwable) {
                                 if (!haveRetry) {
                                     haveRetry = true;
-                                    System.out.println(Thread.currentThread().getName());
                                     return RetrofitHelper.getInstance().getPlusVideoPlayService().updateInfo(mSourceData.getAvId(), 1).subscribeOn(Schedulers.io());
                                 } else {
                                     return Observable.error(throwable);
@@ -302,7 +301,8 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                             }
                         });
                     }
-                }).observeOn(AndroidSchedulers.mainThread())
+                })
+                .observeOn(AndroidSchedulers.mainThread())
                 .doOnNext(new Action1<String>() {
                     @Override
                     public void call(String s) {

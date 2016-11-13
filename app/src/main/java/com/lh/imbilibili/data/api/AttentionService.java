@@ -33,4 +33,11 @@ public interface AttentionService {
     Observable<FollowBangumiResponse<List<FollowBangumi>>> getConcernedBangumi(@Query("page") int page,
                                                                                @Query("pagesize") int pageSize,
                                                                                @Query("ts") long ts);
+
+    @GET(Constant.UNCONCERN_SEASON)
+    Observable<BilibiliDataResponse> unConcernSeason(@Query("season_id") String seasonId);
+
+    @GET(Constant.CONCERN_SEASON)
+    Observable<BilibiliDataResponse> concernSeason(@Query("season_id") String seasonId);
+
 }

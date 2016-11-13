@@ -96,8 +96,8 @@ public class VideoDetailInfoFragment extends BaseFragment implements VideoPageRe
                     public void call(VideoStateChangeEvent videoStateChangeEvent) {
                         switch (videoStateChangeEvent.state) {
                             case VideoStateChangeEvent.STATE_LOAD_FINISH:
-                                mVideoDetail = videoStateChangeEvent.videoDetail;
                                 if (mIsFirstLoad) {
+                                    mVideoDetail = videoStateChangeEvent.videoDetail;
                                     bindViewWithData();
                                 }
                                 break;

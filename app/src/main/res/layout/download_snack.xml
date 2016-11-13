@@ -4,7 +4,7 @@
               android:layout_width="fill_parent"
               android:layout_height="wrap_content"
               android:layout_gravity="bottom"
-              android:background="@drawable/shape_rectangle_pink_trans_nocorner"
+    android:background="@drawable/shape_rectangle_primary_trans_nocorner"
               android:orientation="horizontal"
               android:padding="@dimen/item_spacing"
               android:visibility="gone">

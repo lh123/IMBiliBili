@@ -103,7 +103,7 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
                         }
                     }
                 });
-        if (mUserCenterProvider != null && mUserCenter == null) {
+        if (mUserCenterProvider != null) {
             mUserCenter = mUserCenterProvider.getUserCenter();
             initData();
         }

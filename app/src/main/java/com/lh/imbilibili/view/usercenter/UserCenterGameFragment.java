@@ -82,7 +82,7 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
                         }
                     }
                 });
-        if (mUserCenterProvider != null && mUserCenter == null) {
+        if (mUserCenterProvider != null) {
             mUserCenter = mUserCenterProvider.getUserCenter();
             initData();
         }

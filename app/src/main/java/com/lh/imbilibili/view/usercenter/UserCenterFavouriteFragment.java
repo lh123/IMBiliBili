@@ -45,6 +45,7 @@ public class UserCenterFavouriteFragment extends BaseFragment {
     @Override
     protected void initView(View view) {
         ButterKnife.bind(this, view);
+        System.out.println("initView");
         mIsInitData = false;
         if (getActivity() instanceof UserCenterDataProvider) {
             mUserCenterProvider = (UserCenterDataProvider) getActivity();
@@ -66,7 +67,7 @@ public class UserCenterFavouriteFragment extends BaseFragment {
                         }
                     }
                 });
-        if (mUserCenterProvider != null && mUserCenter == null) {
+        if (mUserCenterProvider != null) {
             mUserCenter = mUserCenterProvider.getUserCenter();
             initData();
         }

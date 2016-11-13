@@ -48,8 +48,6 @@ public class BangumiDetail implements Parcelable {
     @SerializedName("play_time")
     private String playTime;
     private Rank rank;
-    //    @SerializedName("related_season")
-//    private Object relatedSeason;
     @SerializedName("season_id")
     private String seasonId;
     @SerializedName("season_title")
@@ -65,12 +63,107 @@ public class BangumiDetail implements Parcelable {
     private String title;
     @SerializedName("total_count")
     private String totalCount;
+    @SerializedName("user_season")
+    private UserSeason userSeason;
     private int viewRank;
     private String watchingCount;
     private String weekday;
 
-    public BangumiDetail() {
+    protected BangumiDetail(Parcel in) {
+        actor = in.createTypedArrayList(Actor.CREATOR);
+        alias = in.readString();
+        allowBp = in.readString();
+        allowDownload = in.readString();
+        area = in.readString();
+        arealimit = in.readInt();
+        bangumiId = in.readString();
+        bangumiTitle = in.readString();
+        brief = in.readString();
+        coins = in.readString();
+        copyright = in.readString();
+        cover = in.readString();
+        danmakuCount = in.readString();
+        episodes = in.createTypedArrayList(Episode.CREATOR);
+        evaluate = in.readString();
+        favorites = in.readString();
+        isFinish = in.readString();
+        jpTitle = in.readString();
+        newestEpId = in.readString();
+        newestEpIndex = in.readString();
+        playCount = in.readString();
+        playTime = in.readString();
+        rank = in.readParcelable(Rank.class.getClassLoader());
+        seasonId = in.readString();
+        seasonTitle = in.readString();
+        seasons = in.createTypedArrayList(Bangumi.CREATOR);
+        shareUrl = in.readString();
+        squareCover = in.readString();
+        staff = in.readString();
+        tags = in.createTypedArrayList(Tag.CREATOR);
+        title = in.readString();
+        totalCount = in.readString();
+        userSeason = in.readParcelable(UserSeason.class.getClassLoader());
+        viewRank = in.readInt();
+        watchingCount = in.readString();
+        weekday = in.readString();
     }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeTypedList(actor);
+        dest.writeString(alias);
+        dest.writeString(allowBp);
+        dest.writeString(allowDownload);
+        dest.writeString(area);
+        dest.writeInt(arealimit);
+        dest.writeString(bangumiId);
+        dest.writeString(bangumiTitle);
+        dest.writeString(brief);
+        dest.writeString(coins);
+        dest.writeString(copyright);
+        dest.writeString(cover);
+        dest.writeString(danmakuCount);
+        dest.writeTypedList(episodes);
+        dest.writeString(evaluate);
+        dest.writeString(favorites);
+        dest.writeString(isFinish);
+        dest.writeString(jpTitle);
+        dest.writeString(newestEpId);
+        dest.writeString(newestEpIndex);
+        dest.writeString(playCount);
+        dest.writeString(playTime);
+        dest.writeParcelable(rank, flags);
+        dest.writeString(seasonId);
+        dest.writeString(seasonTitle);
+        dest.writeTypedList(seasons);
+        dest.writeString(shareUrl);
+        dest.writeString(squareCover);
+        dest.writeString(staff);
+        dest.writeTypedList(tags);
+        dest.writeString(title);
+        dest.writeString(totalCount);
+        dest.writeParcelable(userSeason, flags);
+        dest.writeInt(viewRank);
+        dest.writeString(watchingCount);
+        dest.writeString(weekday);
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    public static final Creator<BangumiDetail> CREATOR = new Creator<BangumiDetail>() {
+        @Override
+        public BangumiDetail createFromParcel(Parcel in) {
+            return new BangumiDetail(in);
+        }
+
+        @Override
+        public BangumiDetail[] newArray(int size) {
+            return new BangumiDetail[size];
+        }
+    };
 
     public List<Actor> getActor() {
         return actor;
@@ -334,6 +427,14 @@ public class BangumiDetail implements Parcelable {
 
     public void setTotalCount(String totalCount) {
         this.totalCount = totalCount;
+    }
+
+    public UserSeason getUserSeason() {
+        return userSeason;
+    }
+
+    public void setUserSeason(UserSeason userSeason) {
+        this.userSeason = userSeason;
     }
 
     public int getViewRank() {
@@ -717,97 +818,85 @@ public class BangumiDetail implements Parcelable {
         }
     }
 
-    @Override
-    public int describeContents() {
-        return 0;
-    }
+    public static class UserSeason implements Parcelable {
+        private String attention;
+        private int bp;
+        private String lastEpId;
+        private String lastEpIndex;
+        private String lastTime;
 
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeTypedList(this.actor);
-        dest.writeString(this.alias);
-        dest.writeString(this.allowBp);
-        dest.writeString(this.allowDownload);
-        dest.writeString(this.area);
-        dest.writeInt(this.arealimit);
-        dest.writeString(this.bangumiId);
-        dest.writeString(this.bangumiTitle);
-        dest.writeString(this.brief);
-        dest.writeString(this.coins);
-        dest.writeString(this.copyright);
-        dest.writeString(this.cover);
-        dest.writeString(this.danmakuCount);
-        dest.writeTypedList(this.episodes);
-        dest.writeString(this.evaluate);
-        dest.writeString(this.favorites);
-        dest.writeString(this.isFinish);
-        dest.writeString(this.jpTitle);
-        dest.writeString(this.newestEpId);
-        dest.writeString(this.newestEpIndex);
-        dest.writeString(this.playCount);
-        dest.writeString(this.playTime);
-        dest.writeParcelable(this.rank, flags);
-        dest.writeString(this.seasonId);
-        dest.writeString(this.seasonTitle);
-        dest.writeTypedList(this.seasons);
-        dest.writeString(this.shareUrl);
-        dest.writeString(this.squareCover);
-        dest.writeString(this.staff);
-        dest.writeTypedList(this.tags);
-        dest.writeString(this.title);
-        dest.writeString(this.totalCount);
-        dest.writeInt(this.viewRank);
-        dest.writeString(this.watchingCount);
-        dest.writeString(this.weekday);
-    }
+        protected UserSeason(Parcel in) {
+            attention = in.readString();
+            bp = in.readInt();
+            lastEpId = in.readString();
+            lastEpIndex = in.readString();
+            lastTime = in.readString();
+        }
 
-    protected BangumiDetail(Parcel in) {
-        this.actor = in.createTypedArrayList(Actor.CREATOR);
-        this.alias = in.readString();
-        this.allowBp = in.readString();
-        this.allowDownload = in.readString();
-        this.area = in.readString();
-        this.arealimit = in.readInt();
-        this.bangumiId = in.readString();
-        this.bangumiTitle = in.readString();
-        this.brief = in.readString();
-        this.coins = in.readString();
-        this.copyright = in.readString();
-        this.cover = in.readString();
-        this.danmakuCount = in.readString();
-        this.episodes = in.createTypedArrayList(Episode.CREATOR);
-        this.evaluate = in.readString();
-        this.favorites = in.readString();
-        this.isFinish = in.readString();
-        this.jpTitle = in.readString();
-        this.newestEpId = in.readString();
-        this.newestEpIndex = in.readString();
-        this.playCount = in.readString();
-        this.playTime = in.readString();
-        this.rank = in.readParcelable(Rank.class.getClassLoader());
-        this.seasonId = in.readString();
-        this.seasonTitle = in.readString();
-        this.seasons = in.createTypedArrayList(Bangumi.CREATOR);
-        this.shareUrl = in.readString();
-        this.squareCover = in.readString();
-        this.staff = in.readString();
-        this.tags = in.createTypedArrayList(Tag.CREATOR);
-        this.title = in.readString();
-        this.totalCount = in.readString();
-        this.viewRank = in.readInt();
-        this.watchingCount = in.readString();
-        this.weekday = in.readString();
-    }
+        public static final Creator<UserSeason> CREATOR = new Creator<UserSeason>() {
+            @Override
+            public UserSeason createFromParcel(Parcel in) {
+                return new UserSeason(in);
+            }
 
-    public static final Creator<BangumiDetail> CREATOR = new Creator<BangumiDetail>() {
-        @Override
-        public BangumiDetail createFromParcel(Parcel source) {
-            return new BangumiDetail(source);
+            @Override
+            public UserSeason[] newArray(int size) {
+                return new UserSeason[size];
+            }
+        };
+
+        public String getAttention() {
+            return attention;
+        }
+
+        public void setAttention(String attention) {
+            this.attention = attention;
+        }
+
+        public int getBp() {
+            return bp;
+        }
+
+        public void setBp(int bp) {
+            this.bp = bp;
+        }
+
+        public String getLastEpId() {
+            return lastEpId;
+        }
+
+        public void setLastEpId(String lastEpId) {
+            this.lastEpId = lastEpId;
+        }
+
+        public String getLastEpIndex() {
+            return lastEpIndex;
+        }
+
+        public void setLastEpIndex(String lastEpIndex) {
+            this.lastEpIndex = lastEpIndex;
+        }
+
+        public String getLastTime() {
+            return lastTime;
+        }
+
+        public void setLastTime(String lastTime) {
+            this.lastTime = lastTime;
         }
 
         @Override
-        public BangumiDetail[] newArray(int size) {
-            return new BangumiDetail[size];
+        public int describeContents() {
+            return 0;
         }
-    };
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            dest.writeString(attention);
+            dest.writeInt(bp);
+            dest.writeString(lastEpId);
+            dest.writeString(lastEpIndex);
+            dest.writeString(lastTime);
+        }
+    }
 }

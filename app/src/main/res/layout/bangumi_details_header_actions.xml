@@ -1,12 +1,12 @@
 <?xml version="1" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:id="@+id/action_bar"
-              android:layout_width="fill_parent"
-              android:layout_height="wrap_content"
-              android:layout_alignBottom="@+id/cover"
-              android:layout_toRightOf="@+id/cover"
-              android:orientation="horizontal"
-              android:weightSum="3">
+    android:id="@+id/action_bar"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:layout_alignBottom="@+id/cover"
+    android:layout_toRightOf="@+id/cover"
+    android:orientation="horizontal"
+    android:weightSum="3">
 
     <com.lh.imbilibili.widget.ForegroundLinearLayout
         android:id="@+id/action_share"
@@ -30,6 +30,7 @@
             android:src="@drawable/ic_share_green"/>
 
         <TextView
+            android:id="@+id/title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
@@ -60,7 +61,7 @@
             android:src="@drawable/ic_bangumi_follow"/>
 
         <TextView
-            android:id="@+id/title"
+            android:id="@id/title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
@@ -90,6 +91,7 @@
             android:src="@drawable/ic_download"/>
 
         <TextView
+            android:id="@id/title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"

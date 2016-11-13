@@ -1,11 +1,13 @@
 package com.lh.imbilibili.view.bangumi;
 
+import android.animation.AnimatorSet;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.annotation.StringRes;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
@@ -82,6 +84,8 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
     FloatingActionButton mFab;
     @BindView(R.id.loading_view)
     ProgressBar mLoadingView;
+    @BindView(R.id.bottom_tips)
+    TextView mBottomTip;
 
     private int mHeadHeight;
 
@@ -572,6 +576,85 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
         } else if (type == BangumiDetailAdapter.TYPE_FEEDBACK_HEAD) {
             showEpFragment(EpisodeChooseFragment.MODE_FEEDBACK);
         }
+    }
+
+    @Override
+    public void onHeadActionClick(View view) {
+        switch (view.getId()) {
+            case R.id.action_subscribe:
+                concernOrUnConcernSeason();
+                break;
+        }
+    }
+
+    private void concernOrUnConcernSeason() {
+        if (mBangumiDetail.getUserSeason() == null) {
+            return;
+        }
+        Observable.just(mBangumiDetail.getUserSeason().getAttention())
+                .flatMap(new Func1<String, Observable<BilibiliDataResponse>>() {
+                    @Override
+                    public Observable<BilibiliDataResponse> call(String s) {
+                        if (s.equals("1")) {
+                            return RetrofitHelper.getInstance().getAttentionService().unConcernSeason(mBangumiDetail.getSeasonId());
+                        } else {
+                            return RetrofitHelper.getInstance().getAttentionService().concernSeason(mBangumiDetail.getSeasonId());
+                        }
+                    }
+                }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<BilibiliDataResponse>() {
+                    @Override
+                    public void onCompleted() {
+                        if (mBangumiDetail.getUserSeason().getAttention().equals("1")) {
+                            mBangumiDetail.getUserSeason().setAttention("0");
+                            showBottomTip(R.string.bangumi_unsubscribe_success);
+                        } else {
+                            mBangumiDetail.getUserSeason().setAttention("1");
+                            showBottomTip(R.string.bangumi_subscribe_success);
+                        }
+                        mAdapter.notifyItemChanged(0);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onNext(BilibiliDataResponse o) {
+
+                    }
+                });
+    }
+
+    private void showBottomTip(@StringRes int msg) {
+        mBottomTip.setText(msg);
+        AnimatorSet set = new AnimatorSet();
+        ValueAnimator showAnimator = ValueAnimator.ofFloat(0, 1);
+        showAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float value = (float) animation.getAnimatedValue();
+                mBottomTip.setAlpha(value);
+                if (value == 0) {
+                    mBottomTip.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+        ValueAnimator hideAnimator = ValueAnimator.ofFloat(1, 0);
+        hideAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float value = (float) animation.getAnimatedValue();
+                mBottomTip.setAlpha(value);
+                if (value < 0.1) {
+                    mBottomTip.setVisibility(View.GONE);
+                }
+            }
+        });
+        set.play(hideAnimator).after(1000).after(showAnimator);
+        set.start();
     }
 
     @Override

@@ -12,7 +12,7 @@ import rx.Observable;
 
 public interface PlusVideoPlayService {
 
-    @GET("https://www.biliplus.com/api/geturl")
+    @GET("https://www.bilipluxs.com/api/geturl")
     Observable<PlusVideoPlayerData> getPlayData(@Query("bangumi") int bangumi,
                                                 @Query("av") String av,
                                                 @Query("page") String page);

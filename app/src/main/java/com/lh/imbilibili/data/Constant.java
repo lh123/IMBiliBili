@@ -29,6 +29,8 @@ public class Constant {
     public static final String MY_FOLLOWS = "/api/my_follows";
     public static final String MY_CONCERNED_SEASON = "/api/get_concerned_season";
     public static final String REPORT_WATCH = "/api/report_watch";
+    public static final String UNCONCERN_SEASON = "/api/unconcern_season";
+    public static final String CONCERN_SEASON = "/api/concern_season";
 
     public static final String FEEDBACK = "/x/reply";
     public static final String REPLY_COUNT = "/x/reply/count";
