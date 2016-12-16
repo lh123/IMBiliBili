@@ -7,7 +7,7 @@ import android.view.View;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.home.IndexBangumiRecommend;
 import com.lh.imbilibili.model.home.IndexPage;
@@ -150,7 +150,7 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
 
     //加载主页数据
     private Observable<IndexPage> loadIndexData() {
-        return RetrofitHelper.getInstance()
+        return CommonHelper.getInstance()
                 .getBangumiService()
                 .getIndexPage(System.currentTimeMillis())
                 .compose(new CacheTransformer<BiliBiliResultResponse<IndexPage>>("index_page", mNeedForeRefresh) {
@@ -169,7 +169,7 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
     }
 
     private Observable<List<IndexBangumiRecommend>> loadBangumiRecommendData(final String cursor, int pageSize) {
-        return RetrofitHelper.getInstance()
+        return CommonHelper.getInstance()
                 .getBangumiService()
                 .getBangumiRecommend(cursor, pageSize, System.currentTimeMillis())
                 .compose(new CacheTransformer<BiliBiliResultResponse<List<IndexBangumiRecommend>>>("index_page_recommend") {

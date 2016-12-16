@@ -147,14 +147,14 @@ public class VideoControlView extends FrameLayout implements SeekBar.OnSeekBarCh
         qualityListView.setId(R.id.quality_list);
         qualityListView.setOnItemClickListener(this);
         mQualityPopupWindow = new PopupWindow(qualityListView, mTvQualitySelect.getLayoutParams().width, ViewGroup.LayoutParams.WRAP_CONTENT);
-        mQualityPopupWindow.setBackgroundDrawable(new ColorDrawable(ContextCompat.getColor(getContext(), R.color.black_60_alpha)));
+        mQualityPopupWindow.setBackgroundDrawable(new ColorDrawable(ContextCompat.getColor(getContext(), R.color.black_alpha60)));
         mQualityPopupWindow.setOutsideTouchable(true);
 
         ListView sourceListView = new ListView(getContext());
         sourceListView.setId(R.id.source_list);
         sourceListView.setOnItemClickListener(this);
         mSourcePopupWindow = new PopupWindow(sourceListView, mTvSourceSelect.getLayoutParams().width, ViewGroup.LayoutParams.WRAP_CONTENT);
-        mSourcePopupWindow.setBackgroundDrawable(new ColorDrawable(ContextCompat.getColor(getContext(), R.color.black_60_alpha)));
+        mSourcePopupWindow.setBackgroundDrawable(new ColorDrawable(ContextCompat.getColor(getContext(), R.color.black_alpha60)));
         mSourcePopupWindow.setOutsideTouchable(true);
 
         mSeekBar.setOnSeekBarChangeListener(this);

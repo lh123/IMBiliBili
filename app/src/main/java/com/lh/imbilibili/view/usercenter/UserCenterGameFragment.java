@@ -107,7 +107,7 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
             mEmptyView.setText(R.string.space_tips_no_permission);
             return;
         }
-        if (mUserCenter.getGame().getCount() == 0) {
+        if (mUserCenter.getGame() == null || mUserCenter.getGame().getCount() == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
             mEmptyView.setVisibility(View.VISIBLE);
@@ -129,7 +129,7 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
 
     //接口错误
 //    private void loadGame() {
-//        mGameCall = RetrofitHelper.getInstance().getUserService().getUserGame(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()));
+//        mGameCall = CommonHelper.getInstance().getUserService().getUserGame(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()));
 //        mGameCall.enqueue(new Callback<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Game>>>() {
 //            @Override
 //            public void onResponse(Call<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Game>>> call, Response<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Game>>> response) {

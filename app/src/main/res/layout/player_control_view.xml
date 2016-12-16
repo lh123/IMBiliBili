@@ -8,7 +8,7 @@
         android:id="@+id/top_contorol"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/black_60_alpha"
+        android:background="@color/black_alpha60"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -82,7 +82,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="@color/black_60_alpha"
+        android:background="@color/black_alpha60"
         android:orientation="horizontal">
 
         <ImageView

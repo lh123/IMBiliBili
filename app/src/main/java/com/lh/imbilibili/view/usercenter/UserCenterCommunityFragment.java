@@ -5,7 +5,7 @@ import android.view.View;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.UserCenter;
 import com.lh.imbilibili.utils.RxBus;
@@ -114,7 +114,7 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
             mEmptyView.setText(R.string.space_tips_no_permission);
             return;
         }
-        if (mUserCenter.getCommunity().getCount() == 0) {
+        if (mUserCenter.getCommunity() == null || mUserCenter.getCommunity().getCount() == 0) {
             mRecyclerView.setEnableLoadMore(false);
             mRecyclerView.setShowLoadingView(false);
             mEmptyView.setVisibility(View.VISIBLE);
@@ -135,7 +135,7 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
     }
 
     private void loadCommunity() {
-        mUserCommunitySub = RetrofitHelper.getInstance()
+        mUserCommunitySub = CommonHelper.getInstance()
                 .getUserService()
                 .getUserCommunity(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()))
                 .subscribeOn(Schedulers.io())

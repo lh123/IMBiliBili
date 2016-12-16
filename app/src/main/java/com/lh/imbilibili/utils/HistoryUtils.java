@@ -1,6 +1,6 @@
 package com.lh.imbilibili.utils;
 
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 
 import rx.Subscriber;
@@ -12,7 +12,7 @@ import rx.schedulers.Schedulers;
 
 public class HistoryUtils {
     public static void addHistory(String id) {
-        RetrofitHelper.getInstance()
+        CommonHelper.getInstance()
                 .getHistoryService()
                 .addHistory(id)
                 .subscribeOn(Schedulers.io())

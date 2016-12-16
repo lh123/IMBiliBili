@@ -5,6 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by liuhui on 2016/7/8.
@@ -29,6 +30,18 @@ public class BiliBilliSignUtils {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static String getSign(Map<String, String> map, String secret) {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            stringBuilder.append(entry.getKey());
+            stringBuilder.append("=");
+            stringBuilder.append(entry.getValue());
+            stringBuilder.append("&");
+        }
+        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+        return getSign(stringBuilder.toString(), secret);
     }
 
     private static String sortQueryParams(String params) {

@@ -8,7 +8,7 @@ import android.view.View;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.partion.PartionHome;
 import com.lh.imbilibili.model.partion.PartionVideo;
@@ -86,7 +86,7 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
     }
 
     private void loadAllData() {
-        mPartionAllDataSub = Observable.mergeDelayError(RetrofitHelper.getInstance()
+        mPartionAllDataSub = Observable.mergeDelayError(CommonHelper.getInstance()
                 .getPartionService()
                 .getPartionInfo(mPartionModel.getId(), "*")
                 .compose(new CacheTransformer<BilibiliDataResponse<PartionHome>>("partion_home_" + mPartionModel.getId(), mNeedForeRefresh) {
@@ -142,7 +142,7 @@ public class PartionHomeFragment extends LazyLoadFragment implements LoadMoreRec
     }
 
     private Observable<List<PartionVideo>> loadDynamicData() {
-        return RetrofitHelper.getInstance()
+        return CommonHelper.getInstance()
                 .getPartionService()
                 .getPartionDynamic(mPartionModel.getId(), mCurrentPage, PAGE_SIZE)
                 .compose(new CacheTransformer<BilibiliDataResponse<List<PartionVideo>>>("partion_home_dynamic" + mPartionModel.getId(), mNeedForeRefresh) {

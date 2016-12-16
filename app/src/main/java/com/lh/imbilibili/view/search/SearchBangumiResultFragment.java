@@ -7,7 +7,7 @@ import android.widget.ImageView;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.search.BangumiSearchResult;
 import com.lh.imbilibili.utils.LoadAnimationUtils;
@@ -96,7 +96,7 @@ public class SearchBangumiResultFragment extends LazyLoadFragment implements Loa
         if (mIsFirstLoad) {
             LoadAnimationUtils.startLoadAnimate(mIvLoading, R.drawable.anim_search_loading);
         }
-        mSearchSub = RetrofitHelper.getInstance()
+        mSearchSub = CommonHelper.getInstance()
                 .getSearchService()
                 .getBangumiSearchResult(mKeyWord, mCurrentPage, 20, 1)
                 .flatMap(new Func1<BilibiliDataResponse<BangumiSearchResult>, Observable<BangumiSearchResult>>() {

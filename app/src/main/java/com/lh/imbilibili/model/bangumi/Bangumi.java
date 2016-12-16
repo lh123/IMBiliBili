@@ -33,7 +33,7 @@ public class Bangumi implements Comparable<Bangumi>, Parcelable {
     private String favourites;
     private int favorites;
     @SerializedName("pub_time")
-    private long pubTime;
+    private String pubTime;
     @SerializedName("update_time")
     private long updateTime;
     private String version;
@@ -155,11 +155,11 @@ public class Bangumi implements Comparable<Bangumi>, Parcelable {
         this.favorites = favorites;
     }
 
-    public long getPubTime() {
+    public String getPubTime() {
         return pubTime;
     }
 
-    public void setPubTime(long pubTime) {
+    public void setPubTime(String pubTime) {
         this.pubTime = pubTime;
     }
 
@@ -225,7 +225,7 @@ public class Bangumi implements Comparable<Bangumi>, Parcelable {
         dest.writeString(this.follow);
         dest.writeString(this.favourites);
         dest.writeInt(this.favorites);
-        dest.writeLong(this.pubTime);
+        dest.writeString(this.pubTime);
         dest.writeLong(this.updateTime);
         dest.writeString(this.version);
         dest.writeString(this.week);
@@ -247,7 +247,7 @@ public class Bangumi implements Comparable<Bangumi>, Parcelable {
         this.follow = in.readString();
         this.favourites = in.readString();
         this.favorites = in.readInt();
-        this.pubTime = in.readLong();
+        this.pubTime = in.readString();
         this.updateTime = in.readLong();
         this.version = in.readString();
         this.week = in.readString();

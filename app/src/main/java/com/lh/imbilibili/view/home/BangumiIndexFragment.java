@@ -14,7 +14,7 @@ import android.widget.TextView;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.bangumi.BangumiIndex;
 import com.lh.imbilibili.model.bangumi.BangumiIndexCond;
@@ -284,7 +284,7 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
      * @param version      类型：0全部 1Tv版 2OVA·OAD 3剧场版 4其他
      */
     private void loadData(int indexSort, int indexType, String isFinish, int page, int pageSize, int quarter, final int startYear, final String tagId, int updatePeriod, String version) {
-        mBangumiIndexSub = RetrofitHelper.getInstance()
+        mBangumiIndexSub = CommonHelper.getInstance()
                 .getBangumiService().getBangumiIndex(
                         indexSort, indexType, "", isFinish, page, pageSize,
                         quarter, startYear, tagId, System.currentTimeMillis(), updatePeriod, version)
@@ -329,7 +329,7 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
     }
 
     private void loadBangumiIndexCond(int type) {
-        mBangumiIndexCondSub = RetrofitHelper.getInstance()
+        mBangumiIndexCondSub = CommonHelper.getInstance()
                 .getBangumiService()
                 .getBangumiIndexCond(System.currentTimeMillis(), type)
                 .flatMap(new Func1<BiliBiliResultResponse<BangumiIndexCond>, Observable<BangumiIndexCond>>() {

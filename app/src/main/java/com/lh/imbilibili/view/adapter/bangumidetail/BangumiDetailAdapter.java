@@ -143,7 +143,7 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
             holder = new SeasonListViewHolder(view);
         } else if (viewType == TYPE_EPOSIDE) {
             View view = inflater.inflate(R.layout.bangumi_detail_episode_item, parent, false);
-            holder = new EposideViewHolder(view);
+            holder = new EpisodeViewHolder(view);
         } else if (viewType == TYPE_DESC) {
             View view = inflater.inflate(R.layout.bangumi_detail_desc_item, parent, false);
             holder = new DescViewHolder(view);
@@ -200,7 +200,7 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
                 viewHolder.mRecyclerView.scrollToPosition(viewHolder.mAdapter.getSelectPosition());
             }
         } else if (itemType == TYPE_EPOSIDE) {
-            EposideViewHolder viewHolder = (EposideViewHolder) holder;
+            EpisodeViewHolder viewHolder = (EpisodeViewHolder) holder;
             if (mEpSelectPosition != viewHolder.mAdapter.getSelectPosition()) {
                 viewHolder.mAdapter.setSelectPosition(mEpSelectPosition);
                 viewHolder.mRecyclerView.scrollToPosition(mEpSelectPosition);
@@ -297,12 +297,15 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
 
         @BindView(R.id.action_subscribe)
         ViewGroup mActionSubscribe;
+        @BindView(R.id.action_download)
+        ViewGroup mActionDownload;
 
 
         public HeadViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);
             mActionSubscribe.setOnClickListener(this);
+            mActionDownload.setOnClickListener(this);
         }
 
         private void setActionData(View root, @DrawableRes int resId, String title) {
@@ -357,7 +360,7 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
     }
 
     @SuppressWarnings("WeakerAccess")
-    class EposideViewHolder extends RecyclerView.ViewHolder implements BangumiEpAdapter.OnEpClickListener, View.OnClickListener {
+    class EpisodeViewHolder extends RecyclerView.ViewHolder implements BangumiEpAdapter.OnEpClickListener, View.OnClickListener {
 
         @BindView(R.id.head_container)
         ViewGroup mHeadContainer;
@@ -371,7 +374,7 @@ public class BangumiDetailAdapter extends RecyclerView.Adapter {
         private BangumiEpAdapter mAdapter;
         private List<BangumiDetail.Episode> mEpisodes;
 
-        public EposideViewHolder(View itemView) {
+        public EpisodeViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);
             mAdapter = new BangumiEpAdapter();

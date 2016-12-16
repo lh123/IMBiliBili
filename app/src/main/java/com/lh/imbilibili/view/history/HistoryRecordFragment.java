@@ -9,7 +9,7 @@ import android.widget.Button;
 import android.widget.ProgressBar;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.history.History;
 import com.lh.imbilibili.utils.CallUtils;
@@ -127,7 +127,7 @@ public class HistoryRecordFragment extends BaseFragment {
     }
 
     private void loadHistory() {
-        mHistoryCall = RetrofitHelper.getInstance().getHistoryService().getHistory(1, 200);
+        mHistoryCall = CommonHelper.getInstance().getHistoryService().getHistory(1, 200);
         mHistoryCall.enqueue(new Callback<BilibiliDataResponse<List<History>>>() {
             @Override
             public void onResponse(Call<BilibiliDataResponse<List<History>>> call, Response<BilibiliDataResponse<List<History>>> response) {

@@ -19,7 +19,7 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.BiliBiliDataFunc;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.user.UserCenter;
 import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
@@ -168,7 +168,7 @@ public class UserCenterActivity extends BaseActivity implements UserCenterDataPr
     }
 
     private void loadUserInfo() {
-        mUserInfoSubscription = RetrofitHelper.getInstance()
+        mUserInfoSubscription = CommonHelper.getInstance()
                 .getUserService()
                 .getUserSpaceInfo(PAGE_SIZE, System.currentTimeMillis(), mId)
                 .subscribeOn(Schedulers.io())

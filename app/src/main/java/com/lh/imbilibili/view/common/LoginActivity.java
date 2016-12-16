@@ -13,7 +13,7 @@ import android.widget.TextView;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.Constant;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.LoginHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.RsaData;
 import com.lh.imbilibili.model.user.User;
@@ -104,7 +104,7 @@ public class LoginActivity extends BaseActivity implements View.OnFocusChangeLis
     }
 
     private void login(final String username, final String password) {
-        mLoginSub = RetrofitHelper.getInstance()
+        mLoginSub = LoginHelper.getInstance()
                 .getLoginService()
                 .getRsaKey(System.currentTimeMillis())
                 .flatMap(new Func1<BilibiliDataResponse<RsaData>, Observable<BilibiliDataResponse<User>>>() {
@@ -146,7 +146,7 @@ public class LoginActivity extends BaseActivity implements View.OnFocusChangeLis
                             }
                             String sign = BiliBilliSignUtils.getSign(bodyBuilder.toString(), Constant.SECRETKEY);
                             map.put("sign", sign);
-                            return RetrofitHelper.getInstance().getLoginService().doLogin(map);
+                            return LoginHelper.getInstance().getLoginService().doLogin(map);
                         } catch (Exception e) {
                             e.printStackTrace();
                             return Observable.error(e);

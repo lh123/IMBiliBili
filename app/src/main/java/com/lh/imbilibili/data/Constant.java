@@ -8,16 +8,15 @@ public class Constant {
     public static final String APPKEY = "1d8b6e7d45233436";
     public static final String SECRETKEY = "560c52ccd288fed045859ed18bffd973";
 
+    public static final String MINILOAD_SECRETKEY = "1c15888dc316e05a15fdd0a02ed6584f";
+
     public static final String BASE_URL = "http://bangumi.bilibili.com";
     public static final String API_URL = "http://api.bilibili.com";
     public static final String API_URLS = "https://api.bilibili.com";
     public static final String APP_URL = "http://app.bilibili.com";
     public static final String APP_URLS = "https://app.bilibili.com";
-    public static final String INTERFACE_URL = "http://interface.bilibili.com";
     public static final String COMMENT_URL = "http://comment.bilibili.com";
     public static final String ACCOUNT_URL = "https://account.bilibili.com";
-
-    public static final String PASSWORD_URL = "https://passport.bilibili.com";
 
     public static final String BANGUMI_RECOMMEND = "/api/bangumi_recommend";
     public static final String INDEX_PAGE = "/api/app_index_page_v4";

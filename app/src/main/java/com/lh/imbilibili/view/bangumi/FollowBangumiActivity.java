@@ -11,7 +11,7 @@ import android.view.View;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.attention.FollowBangumi;
 import com.lh.imbilibili.model.attention.FollowBangumiResponse;
 import com.lh.imbilibili.utils.StatusBarUtils;
@@ -86,7 +86,7 @@ public class FollowBangumiActivity extends BaseActivity implements LoadMoreRecyc
     }
 
     private void loadConcernedBangumi() {
-        mConcernedBangumiSub = RetrofitHelper.getInstance()
+        mConcernedBangumiSub = CommonHelper.getInstance()
                 .getAttentionService()
                 .getConcernedBangumi(mCurrentPage, PAGE_SIZE, System.currentTimeMillis())
                 .subscribeOn(Schedulers.io())

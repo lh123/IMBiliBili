@@ -15,7 +15,7 @@ import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.user.User;
 import com.lh.imbilibili.model.user.UserDetailInfo;
 import com.lh.imbilibili.utils.RxBus;
@@ -162,7 +162,7 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
     }
 
     public void loadUserInfo() {
-        mUserInfoSub = RetrofitHelper.getInstance()
+        mUserInfoSub = CommonHelper.getInstance()
                 .getUserService()
                 .getUserDetailInfo()
                 .compose(new CacheTransformer<UserDetailInfo>(USER_DETAIL_CACHE_NAME, USER_DATAIL_CACHE_TIME, false) {

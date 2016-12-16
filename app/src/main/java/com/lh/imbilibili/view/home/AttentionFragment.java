@@ -8,7 +8,7 @@ import android.widget.Button;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.cache.CacheTransformer;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.attention.DynamicVideo;
 import com.lh.imbilibili.model.attention.FollowBangumi;
@@ -202,7 +202,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     }
 
     private Observable<List<FollowBangumi>> loadAttentionBangumiData() {
-        return RetrofitHelper.getInstance()
+        return CommonHelper.getInstance()
                 .getAttentionService()
                 .getFollowBangumi(UserManagerUtils.getInstance().getCurrentUser().getMid(), System.currentTimeMillis())
                 .compose(new CacheTransformer<FollowBangumiResponse<List<FollowBangumi>>>("follow_bangumi", mNeedForceFresh) {
@@ -221,7 +221,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     }
 
     private Observable<DynamicVideo> loadDynamicVideoData() {
-        return RetrofitHelper.getInstance()
+        return CommonHelper.getInstance()
                 .getAttentionService()
                 .getDynamicVideo(mCurrentPage, PAGE_SIZE, 0)
                 .compose(new CacheTransformer<BilibiliDataResponse<DynamicVideo>>("attention_dynamic") {

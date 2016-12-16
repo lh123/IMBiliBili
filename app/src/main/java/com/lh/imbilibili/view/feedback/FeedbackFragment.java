@@ -8,7 +8,7 @@ import android.widget.TextView;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.bangumi.BangumiDetail;
 import com.lh.imbilibili.model.feedback.FeedbackData;
@@ -84,7 +84,7 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
     }
 
     private void loadReplyCount(String id) {
-        mReplyCountSub = RetrofitHelper.getInstance()
+        mReplyCountSub = CommonHelper.getInstance()
                 .getReplyService()
                 .getReplyCount(id, 1)
                 .subscribeOn(Schedulers.io())
@@ -113,7 +113,7 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
     }
 
     private void loadFeedbackData(String id, int page) {
-        RetrofitHelper.getInstance()
+        CommonHelper.getInstance()
                 .getReplyService()
                 .getFeedback(0, id, page, PAGE_SIZE, 0, 1)
                 .subscribeOn(Schedulers.io())

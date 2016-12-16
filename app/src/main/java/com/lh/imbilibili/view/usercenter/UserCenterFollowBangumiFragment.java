@@ -5,7 +5,7 @@ import android.view.View;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.UserCenter;
 import com.lh.imbilibili.utils.RxBus;
@@ -148,7 +148,7 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
     }
 
     private void loadBangumiData() {
-        mUserBangumiSub = RetrofitHelper.getInstance()
+        mUserBangumiSub = CommonHelper.getInstance()
                 .getUserService()
                 .getUserBangumi(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()))
                 .subscribeOn(Schedulers.io())

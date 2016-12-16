@@ -6,7 +6,7 @@ import android.view.View;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.search.SearchResult;
 import com.lh.imbilibili.utils.SubscriptionUtils;
@@ -82,7 +82,7 @@ public class SearchResultFragment extends LazyLoadFragment implements LoadMoreRe
     }
 
     private void loadSearchPage() {
-        mSearchSub = RetrofitHelper.getInstance()
+        mSearchSub = CommonHelper.getInstance()
                 .getSearchService()
                 .getSearchResult(0, mKeyWord, mCurrentPage, PAGE_SIZE)
                 .flatMap(new Func1<BilibiliDataResponse<SearchResult>, Observable<SearchResult>>() {

@@ -26,9 +26,17 @@
     <color name="gray_trans">#44999999</color>
     <color name="gray_trans_lighter">#22999999</color>
 
-    <color name="black">#ff000000</color>
     <color name="black_1">#ff4a4a4a</color>
-    <color name="black_60_alpha">#99000000</color>
+    <color name="black">#ff000000</color>
+    <color name="black_alpha15">#26000000</color>
+    <color name="black_alpha25">#3c000000</color>
+    <color name="black_alpha30">#4c000000</color>
+    <color name="black_alpha40">#66000000</color>
+    <color name="black_alpha50">#7f000000</color>
+    <color name="black_alpha60">#99000000</color>
+    <color name="black_alpha70">#b4000000</color>
+    <color name="black_alpha80">#cc000000</color>
+
     <color name="black_dark">#ff232323</color>
     <color name="black_darker">#ff212121</color>
     <color name="black_half_alpha">#7f000000</color>

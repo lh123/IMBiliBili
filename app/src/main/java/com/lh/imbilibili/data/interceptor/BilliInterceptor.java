@@ -1,12 +1,13 @@
-package com.lh.imbilibili.data;
+package com.lh.imbilibili.data.interceptor;
 
 import android.text.TextUtils;
 
+import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.model.user.User;
 import com.lh.imbilibili.utils.UserManagerUtils;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,7 +26,7 @@ public class BilliInterceptor implements Interceptor {
     public Response intercept(Chain chain) throws IOException {
         Request oldRequest = chain.request();
         HttpUrl.Builder builder = chain.request().url().newBuilder();
-        HashMap<String, String> map = new HashMap<>();
+        Map<String, String> map = new LinkedHashMap<>();
         Set<String> params = oldRequest.url().queryParameterNames();
         for (String s : params) {
             map.put(s, oldRequest.url().queryParameter(s));
@@ -35,12 +36,10 @@ public class BilliInterceptor implements Interceptor {
         if (user != null && !TextUtils.isEmpty(user.getAccessToken())) {
             builder.addQueryParameter(Constant.QUERY_ACCESS_KEY, user.getAccessToken());
         }
-        if (!oldRequest.url().toString().contains("passport.bilibili.com/api/oauth2/login")) {
-            builder.addQueryParameter(Constant.QUERY_APP_KEY, Constant.APPKEY);
-            builder.addQueryParameter(Constant.QUERY_BUILD, Constant.BUILD);
-            builder.addQueryParameter(Constant.QUERY_MOBI_APP, Constant.MOBI_APP);
-            builder.addQueryParameter(Constant.QUERY_PLATFORM, Constant.PLATFORM);
-        }
+        builder.addQueryParameter(Constant.QUERY_APP_KEY, Constant.APPKEY);
+        builder.addQueryParameter(Constant.QUERY_BUILD, Constant.BUILD);
+        builder.addQueryParameter(Constant.QUERY_MOBI_APP, Constant.MOBI_APP);
+        builder.addQueryParameter(Constant.QUERY_PLATFORM, Constant.PLATFORM);
         for (Map.Entry<String, String> entry : map.entrySet()) {
             builder.addQueryParameter(entry.getKey(), entry.getValue());
         }

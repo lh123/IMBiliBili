@@ -25,7 +25,7 @@ import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.Constant;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.video.VideoDetail;
 import com.lh.imbilibili.utils.RxBus;
@@ -153,7 +153,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
     }
 
     private void loadVideoDetail() {
-        mVideoDetailSub = RetrofitHelper.getInstance()
+        mVideoDetailSub = CommonHelper.getInstance()
                 .getVideoService()
                 .getVideoDetail(mAid, Constant.PLAT, System.currentTimeMillis())
                 .subscribeOn(Schedulers.io())

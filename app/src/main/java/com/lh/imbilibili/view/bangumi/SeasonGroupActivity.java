@@ -15,7 +15,7 @@ import android.widget.TextView;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.bangumi.SeasonGroup;
 import com.lh.imbilibili.utils.StatusBarUtils;
@@ -132,7 +132,7 @@ public class SeasonGroupActivity extends BaseActivity implements SeasonYearAdapt
     }
 
     private void loadData() {
-        mSeasonGroupSub = RetrofitHelper.getInstance()
+        mSeasonGroupSub = CommonHelper.getInstance()
                 .getBangumiService()
                 .getSeasonGroup(System.currentTimeMillis())
                 .flatMap(new Func1<BiliBiliResultResponse<List<SeasonGroup>>, Observable<List<SeasonGroup>>>() {

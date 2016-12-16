@@ -6,7 +6,7 @@ import android.view.View;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.feedback.FeedbackData;
 import com.lh.imbilibili.utils.RxBus;
@@ -95,7 +95,7 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
     }
 
     private void loadFeedbackData() {
-        mFeedbackSub = RetrofitHelper.getInstance()
+        mFeedbackSub = CommonHelper.getInstance()
                 .getReplyService()
                 .getFeedback(0, mId, mCurrentPage, PAGE_SIZE, 0, 1)
                 .subscribeOn(Schedulers.io())

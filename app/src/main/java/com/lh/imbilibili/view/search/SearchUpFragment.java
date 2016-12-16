@@ -7,7 +7,7 @@ import android.widget.ImageView;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.search.UpSearchResult;
 import com.lh.imbilibili.utils.LoadAnimationUtils;
@@ -90,7 +90,7 @@ public class SearchUpFragment extends LazyLoadFragment implements LoadMoreRecycl
         if (mIsFirstLoad) {
             LoadAnimationUtils.startLoadAnimate(mIvLoading, R.drawable.anim_search_loading);
         }
-        mSearchSub = RetrofitHelper.getInstance()
+        mSearchSub = CommonHelper.getInstance()
                 .getSearchService()
                 .getUpSearchResult(mKeyWord, mCurrentPage, 20, 2)
                 .flatMap(new Func1<BilibiliDataResponse<UpSearchResult>, Observable<UpSearchResult>>() {

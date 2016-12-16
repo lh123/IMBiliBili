@@ -23,7 +23,7 @@ import android.widget.TextView;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.Constant;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.bangumi.Bangumi;
@@ -315,6 +315,7 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
 
                     @Override
                     public void onError(Throwable e) {
+                        e.printStackTrace();
                         ToastUtils.showToastShort(R.string.load_error);
                         mRecyclerView.setEnableLoadMore(false);
                         mRecyclerView.setShowLoadingView(false);
@@ -328,7 +329,7 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
     }
 
     private Observable<Object> loadBangumiAndFeedbackData() {
-        return RetrofitHelper
+        return CommonHelper
                 .getInstance()
                 .getBangumiService()
                 .getBangumiDetail(mSeasonId, System.currentTimeMillis(), Constant.TYPE_BANGUMI)
@@ -353,7 +354,7 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
     }
 
     private Observable<List<Bangumi>> loadBangumiRecommendData() {
-        return RetrofitHelper
+        return CommonHelper
                 .getInstance()
                 .getBangumiService()
                 .getSeasonRecommend(mSeasonId, System.currentTimeMillis())
@@ -410,7 +411,7 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
         } else {
             mHotFeedback = null;
         }
-        return RetrofitHelper
+        return CommonHelper
                 .getInstance()
                 .getReplyService()
                 .getFeedback(noHot ? 1 : 0, avId, mCurrentPage, noHot ? PAGE_SIZE : 3, noHot ? 0 : 2, 1)
@@ -434,7 +435,7 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
     }
 
     private Observable<Integer> loadReplyCount(String id) {
-        return RetrofitHelper.getInstance()
+        return CommonHelper.getInstance()
                 .getReplyService()
                 .getReplyCount(id, 1)
                 .flatMap(new Func1<BilibiliDataResponse<ReplyCount>, Observable<Integer>>() {
@@ -584,6 +585,9 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
             case R.id.action_subscribe:
                 concernOrUnConcernSeason();
                 break;
+            case R.id.action_download:
+                showBottomFragment();
+                break;
         }
     }
 
@@ -596,9 +600,9 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                     @Override
                     public Observable<BilibiliDataResponse> call(String s) {
                         if (s.equals("1")) {
-                            return RetrofitHelper.getInstance().getAttentionService().unConcernSeason(mBangumiDetail.getSeasonId());
+                            return CommonHelper.getInstance().getAttentionService().unConcernSeason(mBangumiDetail.getSeasonId());
                         } else {
-                            return RetrofitHelper.getInstance().getAttentionService().concernSeason(mBangumiDetail.getSeasonId());
+                            return CommonHelper.getInstance().getAttentionService().concernSeason(mBangumiDetail.getSeasonId());
                         }
                     }
                 }).subscribeOn(Schedulers.io())
@@ -677,6 +681,14 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                 .replace(R.id.container, EpisodeChooseFragment
                                 .newInstance(mBangumiDetail, mAdapter.getEpSelectPosition(), mode),
                         EpisodeChooseFragment.TAG)
+                .commit();
+    }
+
+    private void showBottomFragment() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.container, BottomSheetFragment.newInstance(),
+                        BottomSheetFragment.TAG)
                 .commit();
     }
 }

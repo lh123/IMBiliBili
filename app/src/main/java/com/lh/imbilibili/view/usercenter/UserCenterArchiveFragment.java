@@ -6,7 +6,7 @@ import android.view.View;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
-import com.lh.imbilibili.data.RetrofitHelper;
+import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.user.UserCenter;
 import com.lh.imbilibili.utils.RxBus;
@@ -155,9 +155,9 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
                     @Override
                     public Observable<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Archive>>> call(Boolean aBoolean) {
                         if (aBoolean) {
-                            return RetrofitHelper.getInstance().getUserService().getUserCoinArchive(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()));
+                            return CommonHelper.getInstance().getUserService().getUserCoinArchive(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()));
                         } else {
-                            return RetrofitHelper.getInstance().getUserService().getUserArchive(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()));
+                            return CommonHelper.getInstance().getUserService().getUserArchive(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()));
                         }
                     }
                 })

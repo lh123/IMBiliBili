@@ -101,7 +101,7 @@ public class BangumiIndexAdapter extends RecyclerView.Adapter {
         } else if (mIndexSortType == 0) {
             bangumiHolder.tvFavourite.setText(StringUtils.format("%s更新", timeToStr(bangumi.getUpdateTime())));
         } else if (mIndexSortType == 2) {
-            bangumiHolder.tvFavourite.setText(StringUtils.format("%s放送", timeToStr(bangumi.getPubTime())));
+            bangumiHolder.tvFavourite.setText(StringUtils.format("%s放送", timeToStr(Long.parseLong(bangumi.getPubTime()))));
         }
     }
 
