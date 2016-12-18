@@ -221,14 +221,14 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
             if (mVideoPlayerFragment == null) {
                 initVideoView(mCurrentSelectVideoPage);
             } else {
-                mVideoPlayerFragment.changeVideo(mAid, mVideoDetail.getPages().get(page).getCid() + "", mVideoDetail.getTitle());
+                mVideoPlayerFragment.changeVideo(page);
             }
         }
     }
 
-    private void initVideoView(final int page) {
+    private void initVideoView(int page) {
         initPlayerLayout();
-        mVideoPlayerFragment = VideoPlayerFragment.newInstance(mVideoDetail.getAid(), mVideoDetail.getPages().get(page).getCid() + "", mVideoDetail.getTitle());
+        mVideoPlayerFragment = VideoPlayerFragment.newInstance(mVideoDetail, page);
         mVideoContainer.setVisibility(View.VISIBLE);
         mVideoPlayerFragment.setOnFullScreemButtonClick(VideoDetailActivity.this);
         getSupportFragmentManager().beginTransaction().replace(R.id.video_view_container, mVideoPlayerFragment).commit();

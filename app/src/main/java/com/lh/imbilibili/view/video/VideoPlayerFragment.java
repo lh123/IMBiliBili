@@ -4,6 +4,7 @@ import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -14,6 +15,8 @@ import com.lh.danmakulibrary.DanmakuView;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.helper.VideoPlayerHelper;
+import com.lh.imbilibili.model.video.PlusVideoPlayerData;
+import com.lh.imbilibili.model.video.VideoDetail;
 import com.lh.imbilibili.model.video.VideoPlayData;
 import com.lh.imbilibili.utils.DanmakuUtils;
 import com.lh.imbilibili.utils.VideoUtils;
@@ -24,6 +27,7 @@ import com.lh.imbilibili.widget.media.VideoPlayerView;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -58,13 +62,10 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     @BindView(R.id.danmaku_view)
     DanmakuView mDanmakuView;
 
-    private String mAid;
-    private String mCid;
-
-    private String mTitle;
+    private VideoDetail mVideoDetail;
+    private int mPage;
 
     private ArrayList<Danmaku> mDanmakus;
-
 
     private VideoHandler mHandler;
     private OnVideoFragmentStateListener mOnVideoFragmentStateListener;
@@ -73,13 +74,15 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     private int mCurrentQuality = 3;
 
     private StringBuilder mPreMsgBuilder;
+    private PlusVideoPlayerData mPlusPlayerData;
+    private int mCurrentSourceIndex;
+    private String[] mSourcesList;
 
-    public static VideoPlayerFragment newInstance(String aid, String cid, String title) {
+    public static VideoPlayerFragment newInstance(VideoDetail detail, int page) {
         VideoPlayerFragment fragment = new VideoPlayerFragment();
         Bundle bundle = new Bundle();
-        bundle.putString("aid", aid);
-        bundle.putString("cid", cid);
-        bundle.putString("title", title);
+        bundle.putParcelable("data", detail);
+        bundle.putInt("page", page);
         fragment.setArguments(bundle);
         return fragment;
     }
@@ -93,10 +96,10 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
         mHandler = new VideoHandler(new WeakReference<>(this));
         ButterKnife.bind(this, view);
         mDanmakuView.setShowDebugInfo(false);
-        mAid = getArguments().getString("aid");
-        mCid = getArguments().getString("cid");
-        mTitle = getArguments().getString("title");
+        mVideoDetail = getArguments().getParcelable("data");
+        mPage = getArguments().getInt("page");
         mLastPlayPosition = 0;
+        mCurrentSourceIndex = 1;
         initIjkPlayer();
         mVideoControlView.setVideoView(mIjkVideoView);
         mVideoControlView.setFullScreenButtonVisible(true);
@@ -113,7 +116,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
         mPreMsgBuilder = new StringBuilder();
         mPreMsgBuilder.append("初始化播放器...");
         mPrePlayMsg.setText(mPreMsgBuilder);
-        mVideoControlView.setVideoTitle(mTitle);
+        mVideoControlView.setVideoTitle(mVideoDetail.getTitle());
         mIjkVideoView.setKeepScreenOn(true);
         mIjkVideoView.setOnPreparedListener(this);
         mIjkVideoView.setOnInfoListener(this);
@@ -124,11 +127,13 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
 
     //加载视频播放所需的所有数据
     private void preparePlay() {
+        mSourcesList = new String[]{"官方", "PLUS"};
+        mVideoControlView.setSourceList(mSourcesList, mCurrentSourceIndex);
         mPreMsgBuilder.append("【完成】\n解析视频信息...【完成】\n" +
                 "解析视频地址...\n" +
                 "全舰弹幕填装...");
         mPrePlayMsg.setText(mPreMsgBuilder);
-        Observable.merge(loadVideoInfo(), downloadDanmaku())
+        Observable.merge(loadVideoInfoAccordSource(), downloadDanmaku())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Subscriber<Object>() {
@@ -147,15 +152,39 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
                 });
     }
 
+    private Observable<String> loadVideoInfoAccordSource() {
+        if (mCurrentSourceIndex != 0) {
+            return loadVideoInfoFromPlus();
+        } else {
+            return loadVideoInfo();
+        }
+    }
+
     private Observable<String> loadVideoInfo() {
         return VideoPlayerHelper.getInstance()
                 .getOfficialService()
-                .getPlayData(mAid, 0, 0, 0, mCid, mCurrentQuality, "json")
+                .getPlayData(mVideoDetail.getAid(), 0, 0, 0, mVideoDetail.getPages().get(mPage).getCid() + "", mCurrentQuality, "json")
                 .flatMap(new Func1<VideoPlayData, Observable<String>>() {
                     @Override
                     public Observable<String> call(VideoPlayData videoPlayData) {
                         if (videoPlayData.getDurl() != null && !videoPlayData.getDurl().isEmpty()) {
-                            return VideoUtils.concatVideo(videoPlayData.getDurl());
+                            int[] qualities = videoPlayData.getAcceptQuality();
+                            List<VideoControlView.QualityItem> qualityItems = new ArrayList<>();
+                            for (int quality : qualities) {
+                                String name;
+                                if (quality == 1) {
+                                    name = "流畅";
+                                } else if (quality == 2) {
+                                    name = "高清";
+                                } else if (quality == 3) {
+                                    name = "超清";
+                                } else {
+                                    name = "1080p";
+                                }
+                                qualityItems.add(new VideoControlView.QualityItem(name, quality));
+                            }
+                            mVideoControlView.setQualityList(qualityItems);
+                            return VideoUtils.concatVideo(videoPlayData.getDurl()).subscribeOn(Schedulers.io());
                         } else {
                             return Observable.error(new ApiException(-1));
                         }
@@ -183,8 +212,102 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
                 });
     }
 
+    private Observable<String> loadVideoInfoFromPlus() {
+        return VideoPlayerHelper.getInstance()
+                .getPlusService()
+                .getPlayData(mVideoDetail.getSeason() == null ? 0 : 1, mVideoDetail.getAid(), mVideoDetail.getPages().get(mPage).getPage() + "")
+                .subscribeOn(Schedulers.io())
+                .compose(new Observable.Transformer<PlusVideoPlayerData, PlusVideoPlayerData>() {
+                    @Override
+                    public Observable<PlusVideoPlayerData> call(Observable<PlusVideoPlayerData> plusVideoPlayerDataObservable) {
+                        if (mPlusPlayerData != null) {
+                            return Observable.just(mPlusPlayerData);
+                        } else {
+                            return plusVideoPlayerDataObservable;
+                        }
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .flatMap(new Func1<PlusVideoPlayerData, Observable<String>>() {
+                    @Override
+                    public Observable<String> call(PlusVideoPlayerData plusVideoPlayerData) {
+                        mPlusPlayerData = plusVideoPlayerData;
+                        if (!plusVideoPlayerData.getMode().equals("error")) {
+                            List<PlusVideoPlayerData.Data> datas = plusVideoPlayerData.getData();
+                            List<VideoControlView.QualityItem> qualityItems = new ArrayList<>();
+                            for (int i = 0; i < datas.size(); i++) {
+                                if (datas.get(i).getName().contains("超清")) {
+                                    qualityItems.add(new VideoControlView.QualityItem("超清", 3));
+                                } else if (datas.get(i).getName().contains("高清")) {
+                                    qualityItems.add(new VideoControlView.QualityItem("高清", 2));
+                                } else if (datas.get(i).getName().contains("低清")) {
+                                    qualityItems.add(new VideoControlView.QualityItem("流畅", 1));
+                                }
+                            }
+                            mVideoControlView.setQualityList(qualityItems);
+                            int index = 0;
+                            for (int i = 0; i < qualityItems.size(); i++) {
+                                if (qualityItems.get(i).getId() == mCurrentQuality) {
+                                    index = i;
+                                    break;
+                                }
+                            }
+                            if (TextUtils.isEmpty(plusVideoPlayerData.getData().get(index).getUrl())) {
+                                return VideoUtils.concatPlusVideo(plusVideoPlayerData.getData().get(index).getParts()).subscribeOn(Schedulers.io());
+                            } else {
+                                return Observable.just(plusVideoPlayerData.getData().get(index).getUrl());
+                            }
+                        } else {
+                            return Observable.error(new ApiException(-1, plusVideoPlayerData.getMode()));
+                        }
+                    }
+                })
+                .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
+
+                    boolean haveRetry = false;
+
+                    @Override
+                    public Observable<?> call(Observable<? extends Throwable> observable) {
+                        return observable.flatMap(new Func1<Throwable, Observable<?>>() {
+                            @Override
+                            public Observable<?> call(Throwable throwable) {
+                                System.out.println("retryWhen：" + haveRetry);
+                                if (!haveRetry) {
+                                    haveRetry = true;
+                                    System.out.println("updateInfo");
+                                    return VideoPlayerHelper.getInstance().getPlusService().updateInfo(mVideoDetail.getAid(), 1).subscribeOn(Schedulers.io());
+                                } else {
+                                    return Observable.error(throwable);
+                                }
+                            }
+                        });
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnNext(new Action1<String>() {
+                    @Override
+                    public void call(String s) {
+                        System.out.println("Next" + Thread.currentThread().getName());
+                        String target = "解析视频地址...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                        mIjkVideoView.setVideoPath(s);
+                    }
+                })
+                .doOnError(new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        String target = "解析视频地址...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                    }
+                });
+    }
+
     private Observable<InputStream> downloadDanmaku() {
-        return DanmakuUtils.downLoadDanmaku(mCid)
+        return DanmakuUtils.downLoadDanmaku(mVideoDetail.getPages().get(mPage).getCid() + "")
                 .doOnNext(new Action1<InputStream>() {
                     @Override
                     public void call(InputStream inputStream) {
@@ -315,22 +438,41 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
 
     @Override
     public void onQualitySelect(VideoControlView.QualityItem item) {
+        if (item.getId() == mCurrentQuality) {
+            return;
+        }
         mCurrentQuality = item.getId();
+        mPreMsgBuilder.delete(0, mPreMsgBuilder.length());
+        mPreMsgBuilder.append("初始化播放器...");
+        mPrePlayMsg.setText(mPreMsgBuilder);
         mLastPlayPosition = mIjkVideoView.getCurrentPosition();
         mTvBuffering.setVisibility(View.VISIBLE);
         mProgressBar.setVisibility(View.VISIBLE);
         mDanmakuView.pause();
+        mIjkVideoView.release(true);
+        preparePlay();
     }
 
     @Override
     public void onSourceChange(int index) {
+        if (mCurrentSourceIndex == index) {
+            return;
+        }
+        mCurrentSourceIndex = index;
+        mPreMsgBuilder.delete(0, mPreMsgBuilder.length());
+        mPreMsgBuilder.append("初始化播放器...");
+        mPrePlayMsg.setText(mPreMsgBuilder);
+        mLastPlayPosition = mIjkVideoView.getCurrentPosition();
+        mTvBuffering.setVisibility(View.VISIBLE);
+        mProgressBar.setVisibility(View.VISIBLE);
+        mDanmakuView.pause();
+        mIjkVideoView.release(true);
+        preparePlay();
     }
 
-    public void changeVideo(String aid, String cid, String title) {
-        mAid = aid;
-        mCid = cid;
-        mTitle = title;
-        mVideoControlView.setVideoTitle(mTitle);
+    public void changeVideo(int page) {
+        mPage = page;
+        mVideoControlView.setVideoTitle(mVideoDetail.getTitle());
         mTvBuffering.setVisibility(View.VISIBLE);
         mProgressBar.setVisibility(View.VISIBLE);
         mIjkVideoView.release(true);

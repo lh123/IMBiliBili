@@ -2,14 +2,15 @@ package com.lh.imbilibili.widget.media;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.SurfaceTexture;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.support.v7.app.AlertDialog;
 import android.util.AttributeSet;
 import android.view.Gravity;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+import android.view.Surface;
+import android.view.TextureView;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
@@ -59,8 +60,8 @@ public class VideoPlayerView extends FrameLayout implements MediaPlayerControl {
     private int mWindowsWidth;
     private int mWindowsHeight;
 
-    private SurfaceView mSurfaceView;
-    private SurfaceHolder mSurfaceHolder;
+    private TextureView mTextureView;
+    private Surface mSurface;
     private IjkMediaPlayer mMediaPlayer;
 
     private int mSeekWhenPrepared;
@@ -90,11 +91,11 @@ public class VideoPlayerView extends FrameLayout implements MediaPlayerControl {
         mVideoWidth = 0;
         mVideoHeight = 0;
         mCurrentState = STATE_IDLE;
-        mSurfaceView = new SurfaceView(context);
+        mTextureView = new TextureView(context);
         LayoutParams params = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER);
-        mSurfaceView.setLayoutParams(params);
-        addView(mSurfaceView);
-        mSurfaceView.getHolder().addCallback(mSHCallback);
+        mTextureView.setLayoutParams(params);
+        addView(mTextureView);
+        mTextureView.setSurfaceTextureListener(mTHListener);
         setFocusable(true);
         setFocusableInTouchMode(true);
         requestFocus();
@@ -109,7 +110,7 @@ public class VideoPlayerView extends FrameLayout implements MediaPlayerControl {
     }
 
     private void openVideo() throws IllegalArgumentException {
-        if (mUri == null || mSurfaceHolder == null) {
+        if (mUri == null || mSurface == null) {
             return;
         }
         release(false);
@@ -130,7 +131,7 @@ public class VideoPlayerView extends FrameLayout implements MediaPlayerControl {
         mMediaPlayer.setOnErrorListener(mErrorListener);
         mMediaPlayer.setOnInfoListener(mInfoListener);
         mMediaPlayer.setOnBufferingUpdateListener(mBufferingUpdateListener);
-        mMediaPlayer.setDisplay(mSurfaceHolder);
+        mMediaPlayer.setSurface(mSurface);
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mMediaPlayer.setScreenOnWhilePlaying(true);
         try {
@@ -360,17 +361,16 @@ public class VideoPlayerView extends FrameLayout implements MediaPlayerControl {
     }
 
     private void setLayoutSize() {
-        LayoutParams params = (LayoutParams) mSurfaceView.getLayoutParams();
+        LayoutParams params = (LayoutParams) mTextureView.getLayoutParams();
         if (mVideoWidth != 0 && mVideoHeight != 0) {
             float videoRatio = (float) mVideoWidth / mVideoHeight;
             float windowsRatio = (float) mWindowsWidth / mWindowsHeight;
             if (mVideoSarNum > 0 && mVideoSarDen > 0) {
                 videoRatio = videoRatio * mVideoSarNum / mVideoSarDen;
             }
-            mSurfaceView.getHolder().setFixedSize(mVideoWidth, mVideoHeight);
             params.width = videoRatio > windowsRatio ? mWindowsWidth : (int) (mWindowsHeight * videoRatio);
             params.height = videoRatio < windowsRatio ? mWindowsHeight : (int) (mWindowsWidth / videoRatio);
-            mSurfaceView.setLayoutParams(params);
+            mTextureView.setLayoutParams(params);
         }
     }
 
@@ -382,12 +382,21 @@ public class VideoPlayerView extends FrameLayout implements MediaPlayerControl {
         mOnInfoListener = l;
     }
 
-    SurfaceHolder.Callback mSHCallback = new SurfaceHolder.Callback() {
-        public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
-            mSurfaceWidth = w;
-            mSurfaceHeight = h;
+    TextureView.SurfaceTextureListener mTHListener = new TextureView.SurfaceTextureListener() {
+        @Override
+        public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+            mSurface = new Surface(surface);
+            mSurfaceWidth = width;
+            mSurfaceHeight = height;
+            openVideo();
+        }
+
+        @Override
+        public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+            mSurfaceWidth = width;
+            mSurfaceHeight = height;
             boolean isValidState = (mTargetState == STATE_PLAYING);
-            boolean hasValidSize = (mVideoWidth == w && mVideoHeight == h);
+            boolean hasValidSize = width > 0 && height > 0;
             if (mMediaPlayer != null && isValidState && hasValidSize) {
                 if (mSeekWhenPrepared != 0) {
                     seekTo(mSeekWhenPrepared);
@@ -396,14 +405,19 @@ public class VideoPlayerView extends FrameLayout implements MediaPlayerControl {
             }
         }
 
-        public void surfaceCreated(SurfaceHolder holder) {
-            mSurfaceHolder = holder;
-            openVideo();
+        @Override
+        public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+            if (mSurface != null) {
+                mSurface.release();
+                mSurface = null;
+            }
+            release(true);
+            return true;
         }
 
-        public void surfaceDestroyed(SurfaceHolder holder) {
-            mSurfaceHolder = null;
-            release(true);
+        @Override
+        public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+
         }
     };
 
@@ -415,7 +429,7 @@ public class VideoPlayerView extends FrameLayout implements MediaPlayerControl {
                     mVideoSarDen = mp.getVideoSarDen();
                     mVideoSarNum = mp.getVideoSarNum();
                     if (mVideoWidth != 0 && mVideoHeight != 0) {
-                        mSurfaceView.getHolder().setFixedSize(mVideoWidth, mVideoHeight);
+                        mTextureView.getSurfaceTexture().setDefaultBufferSize(mVideoWidth, mVideoHeight);
                         requestLayout();
                     }
                 }
@@ -440,11 +454,9 @@ public class VideoPlayerView extends FrameLayout implements MediaPlayerControl {
                 seekTo(seekToPosition);
             }
             if (mVideoWidth != 0 && mVideoHeight != 0) {
-                mSurfaceView.getHolder().setFixedSize(mVideoWidth, mVideoHeight);
-                if (mSurfaceWidth == mVideoWidth && mSurfaceHeight == mVideoHeight) {
-                    if (mTargetState == STATE_PLAYING) {
-                        start();
-                    }
+                mTextureView.getSurfaceTexture().setDefaultBufferSize(mVideoWidth, mVideoHeight);
+                if (mTargetState == STATE_PLAYING) {
+                    start();
                 }
             } else {
                 if (mTargetState == STATE_PLAYING) {

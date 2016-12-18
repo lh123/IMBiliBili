@@ -33,10 +33,8 @@ public class VideoDetail implements Parcelable {
     private List<Page> pages;
     @SerializedName("req_user")
     private ReqUser reqUser;
+    private Season season;
     private List<VideoDetail> relates;
-
-    public VideoDetail() {
-    }
 
     protected VideoDetail(Parcel in) {
         aid = in.readString();
@@ -57,6 +55,7 @@ public class VideoDetail implements Parcelable {
         stat = in.readParcelable(Stat.class.getClassLoader());
         pages = in.createTypedArrayList(Page.CREATOR);
         reqUser = in.readParcelable(ReqUser.class.getClassLoader());
+        season = in.readParcelable(Season.class.getClassLoader());
         relates = in.createTypedArrayList(VideoDetail.CREATOR);
     }
 
@@ -224,6 +223,14 @@ public class VideoDetail implements Parcelable {
         this.relates = relates;
     }
 
+    public Season getSeason() {
+        return season;
+    }
+
+    public void setSeason(Season season) {
+        this.season = season;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -249,6 +256,7 @@ public class VideoDetail implements Parcelable {
         dest.writeParcelable(stat, flags);
         dest.writeTypedList(pages);
         dest.writeParcelable(reqUser, flags);
+        dest.writeParcelable(season, flags);
         dest.writeTypedList(relates);
     }
 
@@ -700,6 +708,67 @@ public class VideoDetail implements Parcelable {
         public void writeToParcel(Parcel dest, int flags) {
             dest.writeInt(attention);
             dest.writeInt(favorite);
+        }
+    }
+
+    public static class Season implements Parcelable {
+        @SerializedName("season_id")
+        private String seasonId;
+        private String title;
+        private String cover;
+
+        protected Season(Parcel in) {
+            seasonId = in.readString();
+            title = in.readString();
+            cover = in.readString();
+        }
+
+        public static final Creator<Season> CREATOR = new Creator<Season>() {
+            @Override
+            public Season createFromParcel(Parcel in) {
+                return new Season(in);
+            }
+
+            @Override
+            public Season[] newArray(int size) {
+                return new Season[size];
+            }
+        };
+
+        public String getSeasonId() {
+            return seasonId;
+        }
+
+        public void setSeasonId(String seasonId) {
+            this.seasonId = seasonId;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public String getCover() {
+            return cover;
+        }
+
+        public void setCover(String cover) {
+            this.cover = cover;
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            dest.writeString(seasonId);
+            dest.writeString(title);
+            dest.writeString(cover);
         }
     }
 }

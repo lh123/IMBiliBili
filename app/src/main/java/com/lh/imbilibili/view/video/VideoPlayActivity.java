@@ -26,7 +26,6 @@ import com.lh.imbilibili.model.video.PlusVideoPlayerData;
 import com.lh.imbilibili.model.video.SourceData;
 import com.lh.imbilibili.model.video.VideoPlayData;
 import com.lh.imbilibili.utils.DanmakuUtils;
-import com.lh.imbilibili.utils.FlashVideoXmlDecoder;
 import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.VideoUtils;
@@ -41,7 +40,6 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import okhttp3.ResponseBody;
 import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
@@ -176,7 +174,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
 
     private Observable<String> loadVideoInfoAccordSource() {
         if (mCurrentSourceIndex != 0) {
-            return loadVideoInfoFromFlash();
+            return loadVideoInfoFromPlus();
         } else {
             return loadVideoInfo();
         }
@@ -187,66 +185,6 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                 .getOfficialService()
                 .getPlayData(mSourceData.getAvId(), 0, 0, 0, mSourceData.getCid(), mCurrentQuality, "json")
                 .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .flatMap(new Func1<VideoPlayData, Observable<String>>() {
-                    @Override
-                    public Observable<String> call(VideoPlayData videoPlayData) {
-                        if (videoPlayData.getDurl() != null && !videoPlayData.getDurl().isEmpty()) {
-                            int[] qualities = videoPlayData.getAcceptQuality();
-                            List<VideoControlView.QualityItem> qualityItems = new ArrayList<>();
-                            for (int quality : qualities) {
-                                String name;
-                                if (quality == 1) {
-                                    name = "流畅";
-                                } else if (quality == 2) {
-                                    name = "高清";
-                                } else if (quality == 3) {
-                                    name = "超清";
-                                } else {
-                                    name = "1080p";
-                                }
-                                qualityItems.add(new VideoControlView.QualityItem(name, quality));
-                            }
-                            mVideoControlView.setQualityList(qualityItems);
-                            return VideoUtils.concatVideo(videoPlayData.getDurl()).subscribeOn(Schedulers.io());
-                        } else {
-                            return Observable.error(new ApiException(-1));
-                        }
-                    }
-                })
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext(new Action1<String>() {
-                    @Override
-                    public void call(String s) {
-                        String target = "解析视频地址...";
-                        int startPosition = mPreMsgBuilder.indexOf(target);
-                        mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
-                        mPrePlayMsg.setText(mPreMsgBuilder);
-                        mIjkVideoView.setVideoPath(s);
-                    }
-                })
-                .doOnError(new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        String target = "解析视频地址...";
-                        int startPosition = mPreMsgBuilder.indexOf(target);
-                        mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
-                        mPrePlayMsg.setText(mPreMsgBuilder);
-                    }
-                });
-    }
-
-    private Observable<String> loadVideoInfoFromFlash() {
-        return VideoPlayerHelper.getInstance()
-                .getOfficialService()
-                .getPlayData(mSourceData.getCid(), 1, mCurrentQuality, System.currentTimeMillis())
-                .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<retrofit2.Response<ResponseBody>, Observable<VideoPlayData>>() {
-                    @Override
-                    public Observable<VideoPlayData> call(retrofit2.Response<ResponseBody> responseBodyResponse) {
-                        return FlashVideoXmlDecoder.decodeFromXml(responseBodyResponse.body().byteStream());
-                    }
-                })
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(new Func1<VideoPlayData, Observable<String>>() {
                     @Override
