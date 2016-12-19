@@ -417,16 +417,16 @@ public class Feedback {
         }
 
         public static class Pendant {
-            private int expire;
+            private float expire;
             private String image;
             private String name;
             private int pid;
 
-            public int getExpire() {
+            public float getExpire() {
                 return expire;
             }
 
-            public void setExpire(int expire) {
+            public void setExpire(float expire) {
                 this.expire = expire;
             }
 

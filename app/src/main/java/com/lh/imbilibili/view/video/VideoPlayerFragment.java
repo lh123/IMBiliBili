@@ -14,6 +14,7 @@ import com.lh.danmakulibrary.Danmaku;
 import com.lh.danmakulibrary.DanmakuView;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.helper.PlusHelper;
 import com.lh.imbilibili.data.helper.VideoPlayerHelper;
 import com.lh.imbilibili.model.video.PlusVideoPlayerData;
 import com.lh.imbilibili.model.video.VideoDetail;
@@ -213,7 +214,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
     }
 
     private Observable<String> loadVideoInfoFromPlus() {
-        return VideoPlayerHelper.getInstance()
+        return PlusHelper.getInstance()
                 .getPlusService()
                 .getPlayData(mVideoDetail.getSeason() == null ? 0 : 1, mVideoDetail.getAid(), mVideoDetail.getPages().get(mPage).getPage() + "")
                 .subscribeOn(Schedulers.io())
@@ -275,7 +276,7 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
                                 if (!haveRetry) {
                                     haveRetry = true;
                                     System.out.println("updateInfo");
-                                    return VideoPlayerHelper.getInstance().getPlusService().updateInfo(mVideoDetail.getAid(), 1).subscribeOn(Schedulers.io());
+                                    return PlusHelper.getInstance().getPlusService().updateInfo(mVideoDetail.getAid(), 1).subscribeOn(Schedulers.io());
                                 } else {
                                     return Observable.error(throwable);
                                 }

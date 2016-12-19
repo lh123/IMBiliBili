@@ -4,7 +4,6 @@ import android.text.TextUtils;
 
 import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.lh.imbilibili.data.Constant;
-import com.lh.imbilibili.data.api.PlusVideoPlayService;
 import com.lh.imbilibili.data.api.VideoPlayService;
 import com.lh.imbilibili.model.user.User;
 import com.lh.imbilibili.utils.BiliBilliSignUtils;
@@ -35,7 +34,6 @@ public class VideoPlayerHelper extends BaseHelper {
     private static final String PLUS_URL = "https://www.biliplus.com";
 
     private VideoPlayService mService;
-    private PlusVideoPlayService mPlusService;
 
     private static VideoPlayerHelper mHelper;
 
@@ -47,27 +45,6 @@ public class VideoPlayerHelper extends BaseHelper {
     }
 
     private VideoPlayerHelper() {
-        initOfficialService();
-        initPlusService();
-    }
-
-    private void initPlusService() {
-        OkHttpClient client = new OkHttpClient.Builder()
-                .writeTimeout(15000, TimeUnit.MILLISECONDS)
-                .readTimeout(15000, TimeUnit.MILLISECONDS)
-                .connectTimeout(15000, TimeUnit.MILLISECONDS)
-                .addInterceptor(mLog)
-                .addInterceptor(new StethoInterceptor())
-                .build();
-        Retrofit retrofit = new Retrofit.Builder().baseUrl(PLUS_URL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
-                .client(client)
-                .build();
-        mPlusService = retrofit.create(PlusVideoPlayService.class);
-    }
-
-    private void initOfficialService() {
         OkHttpClient client = new OkHttpClient.Builder().writeTimeout(3000, TimeUnit.MILLISECONDS)
                 .readTimeout(3000, TimeUnit.MILLISECONDS)
                 .connectTimeout(3000, TimeUnit.MILLISECONDS)
@@ -88,9 +65,6 @@ public class VideoPlayerHelper extends BaseHelper {
         return mService;
     }
 
-    public PlusVideoPlayService getPlusService() {
-        return mPlusService;
-    }
 
     private static class VideoInterceptor implements Interceptor {
         @Override

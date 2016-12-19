@@ -24,6 +24,7 @@ import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.helper.CommonHelper;
+import com.lh.imbilibili.data.helper.PlusHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.BilibiliDataResponse;
 import com.lh.imbilibili.model.bangumi.Bangumi;
@@ -333,6 +334,25 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                 .getInstance()
                 .getBangumiService()
                 .getBangumiDetail(mSeasonId, System.currentTimeMillis(), Constant.TYPE_BANGUMI)
+                .flatMap(new Func1<BiliBiliResultResponse<BangumiDetail>, Observable<BiliBiliResultResponse<BangumiDetail>>>() {
+                    @Override
+                    public Observable<BiliBiliResultResponse<BangumiDetail>> call(BiliBiliResultResponse<BangumiDetail> bangumiDetailBiliBiliResultResponse) {
+                        if (!bangumiDetailBiliBiliResultResponse.isSuccess() || bangumiDetailBiliBiliResultResponse.getResult().getEpisodes().isEmpty()) {
+                            return PlusHelper.getInstance().getPlusService().getBangumiDetailFromPlus(mSeasonId)
+                                    .map(new Func1<BiliBiliResultResponse<BangumiDetail>, BiliBiliResultResponse<BangumiDetail>>() {
+                                        @Override
+                                        public BiliBiliResultResponse<BangumiDetail> call(BiliBiliResultResponse<BangumiDetail> bangumiDetailBiliBiliResultResponse) {
+                                            if (bangumiDetailBiliBiliResultResponse.isSuccess()) {
+                                                bangumiDetailBiliBiliResultResponse.getResult().setCover("http:" + bangumiDetailBiliBiliResultResponse.getResult().getCover());
+                                            }
+                                            return bangumiDetailBiliBiliResultResponse;
+                                        }
+                                    });
+                        } else {
+                            return Observable.just(bangumiDetailBiliBiliResultResponse);
+                        }
+                    }
+                })
                 .flatMap(new Func1<BiliBiliResultResponse<BangumiDetail>, Observable<Object>>() {
                     @Override
                     public Observable<Object> call(BiliBiliResultResponse<BangumiDetail> bangumiDetailBiliBiliResultResponse) {

@@ -18,6 +18,7 @@ import com.lh.danmakulibrary.DanmakuView;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.helper.CommonHelper;
+import com.lh.imbilibili.data.helper.PlusHelper;
 import com.lh.imbilibili.data.helper.VideoPlayerHelper;
 import com.lh.imbilibili.model.BiliBiliResultResponse;
 import com.lh.imbilibili.model.BilibiliDataResponse;
@@ -235,7 +236,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     }
 
     private Observable<String> loadVideoInfoFromPlus() {
-        return VideoPlayerHelper.getInstance()
+        return PlusHelper.getInstance()
                 .getPlusService()
                 .getPlayData(1, mSourceData.getAvId(), mEpisode.getPage())
                 .subscribeOn(Schedulers.io())
@@ -293,11 +294,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                         return observable.flatMap(new Func1<Throwable, Observable<?>>() {
                             @Override
                             public Observable<?> call(Throwable throwable) {
-                                System.out.println("retryWhen：" + haveRetry);
                                 if (!haveRetry) {
                                     haveRetry = true;
-                                    System.out.println("updateInfo");
-                                    return VideoPlayerHelper.getInstance().getPlusService().updateInfo(mSourceData.getAvId(), 1).subscribeOn(Schedulers.io());
+                                    return PlusHelper.getInstance().getPlusService().updateInfo(mSourceData.getAvId(), 1).subscribeOn(Schedulers.io());
                                 } else {
                                     return Observable.error(throwable);
                                 }
@@ -309,7 +308,6 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                 .doOnNext(new Action1<String>() {
                     @Override
                     public void call(String s) {
-                        System.out.println("Next" + Thread.currentThread().getName());
                         String target = "解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
@@ -321,6 +319,86 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                     @Override
                     public void call(Throwable throwable) {
                         String target = "解析视频地址...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                    }
+                })
+                .onErrorResumeNext(new Func1<Throwable, Observable<? extends String>>() {
+                    @Override
+                    public Observable<? extends String> call(Throwable throwable) {
+                        mPreMsgBuilder.append("\n海外解析视频地址...");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                        return loadVideoInfoFromPlusUnBlock();
+                    }
+                });
+    }
+
+    private Observable<String> loadVideoInfoFromPlusUnBlock() {
+        return PlusHelper.getInstance()
+                .getPlusService()
+                .getPlayDataUnBlock(1, mSourceData.getAvId(), mEpisode.getPage())
+                .subscribeOn(Schedulers.io())
+                .compose(new Observable.Transformer<PlusVideoPlayerData, PlusVideoPlayerData>() {
+                    @Override
+                    public Observable<PlusVideoPlayerData> call(Observable<PlusVideoPlayerData> plusVideoPlayerDataObservable) {
+                        if (mPlusPlayerData != null) {
+                            return Observable.just(mPlusPlayerData);
+                        } else {
+                            return plusVideoPlayerDataObservable;
+                        }
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .flatMap(new Func1<PlusVideoPlayerData, Observable<String>>() {
+                    @Override
+                    public Observable<String> call(PlusVideoPlayerData plusVideoPlayerData) {
+                        mPlusPlayerData = plusVideoPlayerData;
+                        if (!plusVideoPlayerData.getMode().equals("error")) {
+                            List<PlusVideoPlayerData.Data> datas = plusVideoPlayerData.getData();
+                            List<VideoControlView.QualityItem> qualityItems = new ArrayList<>();
+                            for (int i = 0; i < datas.size(); i++) {
+                                if (datas.get(i).getName().contains("超清")) {
+                                    qualityItems.add(new VideoControlView.QualityItem("超清", 3));
+                                } else if (datas.get(i).getName().contains("高清")) {
+                                    qualityItems.add(new VideoControlView.QualityItem("高清", 2));
+                                } else if (datas.get(i).getName().contains("低清")) {
+                                    qualityItems.add(new VideoControlView.QualityItem("流畅", 1));
+                                }
+                            }
+                            mVideoControlView.setQualityList(qualityItems);
+                            int index = 0;
+                            for (int i = 0; i < qualityItems.size(); i++) {
+                                if (qualityItems.get(i).getId() == mCurrentQuality) {
+                                    index = i;
+                                    break;
+                                }
+                            }
+                            if (TextUtils.isEmpty(plusVideoPlayerData.getData().get(index).getUrl())) {
+                                return VideoUtils.concatPlusVideo(plusVideoPlayerData.getData().get(index).getParts()).subscribeOn(Schedulers.io());
+                            } else {
+                                return Observable.just(plusVideoPlayerData.getData().get(index).getUrl());
+                            }
+                        } else {
+                            return Observable.error(new ApiException(-1, plusVideoPlayerData.getMode()));
+                        }
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnNext(new Action1<String>() {
+                    @Override
+                    public void call(String s) {
+                        String target = "海外解析视频地址...";
+                        int startPosition = mPreMsgBuilder.indexOf(target);
+                        mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
+                        mPrePlayMsg.setText(mPreMsgBuilder);
+                        mIjkVideoView.setVideoPath(s);
+                    }
+                })
+                .doOnError(new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        String target = "海外解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
                         mPrePlayMsg.setText(mPreMsgBuilder);
