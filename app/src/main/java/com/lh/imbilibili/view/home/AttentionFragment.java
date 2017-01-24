@@ -5,15 +5,18 @@ import android.support.v7.widget.GridLayoutManager;
 import android.view.View;
 import android.widget.Button;
 
+import com.lh.cachelibrary.strategy.CacheStrategy;
+import com.lh.cachelibrary.strategy.Strategy;
+import com.lh.cachelibrary.utils.TypeBuilder;
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.cache.CacheTransformer;
-import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.attention.DynamicVideo;
 import com.lh.imbilibili.model.attention.FollowBangumi;
 import com.lh.imbilibili.model.attention.FollowBangumiResponse;
-import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.DisposableUtils;
+import com.lh.imbilibili.utils.RxCacheUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.lh.imbilibili.view.BaseFragment;
@@ -25,17 +28,18 @@ import com.lh.imbilibili.view.common.LoginActivity;
 import com.lh.imbilibili.view.video.VideoDetailActivity;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 
+import java.lang.reflect.Type;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.observers.DisposableCompletableObserver;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/10.
@@ -57,8 +61,8 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
 
     private AttentionRecyclerViewAdapter mAdapter;
     private int mCurrentPage;
-    private Subscription mAllDataSub;
-    private Subscription mDynamicDataSub;
+    private Disposable mAllDataSub;
+    private Disposable mDynamicDataSub;
 
     private boolean mNeedLoadData;
     private boolean mNeedForceFresh;
@@ -136,9 +140,10 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
         mAllDataSub = Observable.mergeDelayError(loadAttentionBangumiData(), loadDynamicVideoData())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<Object>() {
+                .ignoreElements()
+                .subscribeWith(new DisposableCompletableObserver() {
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         finishTask();
                     }
 
@@ -148,10 +153,6 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
                         mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
                         mRecyclerView.setEnableLoadMore(false);
                         ToastUtils.showToastShort(R.string.load_error);
-                    }
-
-                    @Override
-                    public void onNext(Object o) {
                     }
                 });
     }
@@ -175,10 +176,11 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
 
     private void loadDynamicData() {
         mDynamicDataSub = loadDynamicVideoData().subscribeOn(Schedulers.io())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<DynamicVideo>() {
+                .subscribeWith(new DisposableSingleObserver<DynamicVideo>() {
                     @Override
-                    public void call(DynamicVideo dynamicVideo) {
+                    public void onSuccess(DynamicVideo dynamicVideo) {
                         mRecyclerView.setLoading(false);
                         if (dynamicVideo.getFeeds().size() == 0) {
                             mRecyclerView.setEnableLoadMore(false);
@@ -191,9 +193,9 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
                             mCurrentPage++;
                         }
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
+                    public void onError(Throwable e) {
                         mRecyclerView.setLoading(false);
                         mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
                         ToastUtils.showToastShort(R.string.load_error);
@@ -202,43 +204,41 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     }
 
     private Observable<List<FollowBangumi>> loadAttentionBangumiData() {
-        return CommonHelper.getInstance()
+        Type type = TypeBuilder.newBuilder(BiliBiliResponse.class)
+                .beginNestedType(List.class)
+                .addParamType(FollowBangumi.class)
+                .endNestedType()
+                .build();
+        return CommonHelper
+                .getInstance()
                 .getAttentionService()
                 .getFollowBangumi(UserManagerUtils.getInstance().getCurrentUser().getMid(), System.currentTimeMillis())
-                .compose(new CacheTransformer<FollowBangumiResponse<List<FollowBangumi>>>("follow_bangumi", mNeedForceFresh) {
-                })
-                .flatMap(new Func1<FollowBangumiResponse<List<FollowBangumi>>, Observable<List<FollowBangumi>>>() {
+                .compose(RxCacheUtils.getInstance().<FollowBangumiResponse<List<FollowBangumi>>>transformer("follow_bangumi", CacheStrategy.priorityRemote(),type ))
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<List<FollowBangumi>>, List<FollowBangumi>>handlerResult())
+                .map(new Function<List<FollowBangumi>, List<FollowBangumi>>() {
                     @Override
-                    public Observable<List<FollowBangumi>> call(FollowBangumiResponse<List<FollowBangumi>> listFollowBangumiResponse) {
-                        if (listFollowBangumiResponse.isSuccess()) {
-                            mFollowBangumis = listFollowBangumiResponse.getResult();
-                            return Observable.just(listFollowBangumiResponse.getResult());
-                        } else {
-                            return Observable.error(new ApiException(listFollowBangumiResponse.getCode()));
-                        }
+                    public List<FollowBangumi> apply(List<FollowBangumi> followBangumis) throws Exception {
+                        mFollowBangumis = followBangumis;
+                        return mFollowBangumis;
                     }
                 });
     }
 
     private Observable<DynamicVideo> loadDynamicVideoData() {
+        Type type = TypeBuilder.newBuilder(BiliBiliResponse.class)
+                .addParamType(DynamicVideo.class)
+                .build();
+        Strategy strategy = mCurrentPage == 1?CacheStrategy.priorityCache():CacheStrategy.noneCache();
         return CommonHelper.getInstance()
                 .getAttentionService()
                 .getDynamicVideo(mCurrentPage, PAGE_SIZE, 0)
-                .compose(new CacheTransformer<BilibiliDataResponse<DynamicVideo>>("attention_dynamic") {
+                .compose(RxCacheUtils.getInstance().<BiliBiliResponse<DynamicVideo>>transformer("attention_dynamic",strategy,type))
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<DynamicVideo>, DynamicVideo>handlerResult())
+                .map(new Function<DynamicVideo, DynamicVideo>() {
                     @Override
-                    protected boolean canCache() {
-                        return mCurrentPage == 1;
-                    }
-                })
-                .flatMap(new Func1<BilibiliDataResponse<DynamicVideo>, Observable<DynamicVideo>>() {
-                    @Override
-                    public Observable<DynamicVideo> call(BilibiliDataResponse<DynamicVideo> dynamicVideoBilibiliDataResponse) {
-                        if (dynamicVideoBilibiliDataResponse.isSuccess()) {
-                            mDynamicVideo = dynamicVideoBilibiliDataResponse.getData();
-                            return Observable.just(dynamicVideoBilibiliDataResponse.getData());
-                        } else {
-                            return Observable.error(new ApiException(dynamicVideoBilibiliDataResponse.getCode()));
-                        }
+                    public DynamicVideo apply(DynamicVideo dynamicVideo) throws Exception {
+                        mDynamicVideo = dynamicVideo;
+                        return mDynamicVideo;
                     }
                 });
     }
@@ -246,7 +246,7 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     @Override
     public void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mAllDataSub, mDynamicDataSub);
+        DisposableUtils.dispose(mAllDataSub, mDynamicDataSub);
     }
 
     @Override

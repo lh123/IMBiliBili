@@ -5,12 +5,11 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.view.View;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.RxBus;
-import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.LinearLayoutItemDecoration;
@@ -18,16 +17,19 @@ import com.lh.imbilibili.view.adapter.usercenter.ArchiveRecyclerViewAdapter;
 import com.lh.imbilibili.view.video.VideoDetailActivity;
 import com.lh.imbilibili.widget.EmptyView;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
+import com.lh.rxbuslibrary.RxBus;
+import com.lh.rxbuslibrary.annotation.Subscribe;
+import com.lh.rxbuslibrary.event.EventThread;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.observers.DisposableObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/17.
@@ -49,10 +51,8 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
     private UserCenter mUserCenter;
 
     private int mCurrentPage;
-    private Subscription mArchiveSub;
+    private Disposable mArchiveSub;
     private UserCenterDataProvider mUserCenterProvider;
-
-    private Subscription mBusSub;
 
     private boolean mIsInitData;
 
@@ -67,25 +67,23 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
     @Override
     public void onStart() {
         super.onStart();
-        mBusSub = RxBus.getInstance()
-                .toObserverable(UserCenter.class)
-                .subscribe(new Action1<UserCenter>() {
-                    @Override
-                    public void call(UserCenter userCenter) {
-                        mUserCenter = userCenter;
-                        initData();
-                    }
-                });
+        RxBus.getInstance().register(this);
         if (mUserCenterProvider != null) {
             mUserCenter = mUserCenterProvider.getUserCenter();
             initData();
         }
     }
 
+    @Subscribe(scheduler = EventThread.UI)
+    public void OnUserCenterInfoReceiver(UserCenter userCenter){
+        mUserCenter = userCenter;
+        initData();
+    }
+
     @Override
     public void onStop() {
         super.onStop();
-        SubscriptionUtils.unsubscribe(mBusSub);
+        RxBus.getInstance().unRegister(this);
     }
 
     @Override
@@ -151,9 +149,9 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
 
     private void loadArchiveData() {
         mArchiveSub = Observable.just(mIsCoin)
-                .flatMap(new Func1<Boolean, Observable<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Archive>>>>() {
+                .flatMap(new Function<Boolean, ObservableSource<BiliBiliResponse<UserCenter.CenterList<UserCenter.Archive>>>>() {
                     @Override
-                    public Observable<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Archive>>> call(Boolean aBoolean) {
+                    public ObservableSource<BiliBiliResponse<UserCenter.CenterList<UserCenter.Archive>>> apply(Boolean aBoolean) throws Exception {
                         if (aBoolean) {
                             return CommonHelper.getInstance().getUserService().getUserCoinArchive(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()));
                         } else {
@@ -162,29 +160,9 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
                     }
                 })
                 .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Archive>>, Observable<UserCenter.CenterList<UserCenter.Archive>>>() {
-                    @Override
-                    public Observable<UserCenter.CenterList<UserCenter.Archive>> call(BilibiliDataResponse<UserCenter.CenterList<UserCenter.Archive>> centerListBilibiliDataResponse) {
-                        if (centerListBilibiliDataResponse.isSuccess()) {
-                            return Observable.just(centerListBilibiliDataResponse.getData());
-                        } else {
-                            return Observable.error(new ApiException(centerListBilibiliDataResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<UserCenter.CenterList<UserCenter.Archive>>, UserCenter.CenterList<UserCenter.Archive>>handlerResult())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<UserCenter.CenterList<UserCenter.Archive>>() {
-                    @Override
-                    public void onCompleted() {
-                        mRecyclerView.setLoading(false);
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        mRecyclerView.setLoading(false);
-                        ToastUtils.showToastShort(R.string.load_error);
-                    }
-
+                .subscribeWith(new DisposableObserver<UserCenter.CenterList<UserCenter.Archive>>() {
                     @Override
                     public void onNext(UserCenter.CenterList<UserCenter.Archive> archiveCenterList) {
                         if (archiveCenterList.getCount() < PAGE_SIZE) {
@@ -196,6 +174,17 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
                             mAdapter.notifyItemRangeInserted(startPosition, archiveCenterList.getItem().size());
                             mCurrentPage++;
                         }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        mRecyclerView.setLoading(false);
+                        ToastUtils.showToastShort(R.string.load_error);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        mRecyclerView.setLoading(false);
                     }
                 });
     }
@@ -213,7 +202,7 @@ public class UserCenterArchiveFragment extends BaseFragment implements LoadMoreR
     @Override
     public void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mArchiveSub);
+        DisposableUtils.dispose(mArchiveSub);
     }
 
     @Override

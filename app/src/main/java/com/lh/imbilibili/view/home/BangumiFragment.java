@@ -4,14 +4,17 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.view.View;
 
+import com.lh.cachelibrary.strategy.CacheStrategy;
+import com.lh.cachelibrary.strategy.Strategy;
+import com.lh.cachelibrary.utils.TypeBuilder;
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.cache.CacheTransformer;
-import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BiliBiliResultResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.home.IndexBangumiRecommend;
 import com.lh.imbilibili.model.home.IndexPage;
-import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.DisposableUtils;
+import com.lh.imbilibili.utils.RxCacheUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.bangumi.BangumiAdapter;
@@ -22,18 +25,19 @@ import com.lh.imbilibili.view.bangumi.SeasonGroupActivity;
 import com.lh.imbilibili.view.common.WebViewActivity;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 
+import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.observers.DisposableCompletableObserver;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/7/6.
@@ -56,8 +60,8 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
     private String mCursor;
     private boolean mNeedForeRefresh;
 
-    private Subscription mAllDataSub;
-    private Subscription mRecommendSub;
+    private Disposable mAllDataSub;
+    private Disposable mRecommendSub;
 
     public static BangumiFragment newInstance() {
         return new BangumiFragment();
@@ -81,9 +85,10 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
         mAllDataSub = Observable.mergeDelayError(loadIndexData(), loadBangumiRecommendData(mCursor, PAGE_SIZE))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<Object>() {
+                .ignoreElements()
+                .subscribeWith(new DisposableCompletableObserver(){
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         finishTask();
                     }
 
@@ -93,11 +98,6 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
                         recyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
                         recyclerView.setEnableLoadMore(false);
                         ToastUtils.showToastShort(R.string.load_error);
-                    }
-
-                    @Override
-                    public void onNext(Object o) {
-
                     }
                 });
     }
@@ -150,43 +150,42 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
 
     //加载主页数据
     private Observable<IndexPage> loadIndexData() {
+        Strategy strategy = mNeedForeRefresh ? CacheStrategy.onlyRemote() : CacheStrategy.priorityCache();
+        Type type = TypeBuilder.newBuilder(BiliBiliResponse.class)
+                .addParamType(IndexPage.class)
+                .build();
         return CommonHelper.getInstance()
                 .getBangumiService()
                 .getIndexPage(System.currentTimeMillis())
-                .compose(new CacheTransformer<BiliBiliResultResponse<IndexPage>>("index_page", mNeedForeRefresh) {
-                })
-                .flatMap(new Func1<BiliBiliResultResponse<IndexPage>, Observable<IndexPage>>() {
+                .compose(RxCacheUtils.getInstance().<BiliBiliResponse<IndexPage>>transformer("index_page", strategy, type))
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<IndexPage>, IndexPage>handlerResult())
+                .map(new Function<IndexPage, IndexPage>() {
                     @Override
-                    public Observable<IndexPage> call(BiliBiliResultResponse<IndexPage> indexPageBiliBiliResultResponse) {
-                        if (indexPageBiliBiliResultResponse.isSuccess()) {
-                            mIndexData = indexPageBiliBiliResultResponse.getResult();
-                            return Observable.just(mIndexData);
-                        } else {
-                            return Observable.error(new ApiException(indexPageBiliBiliResultResponse.getCode()));
-                        }
+                    public IndexPage apply(IndexPage indexPage) throws Exception {
+                        mIndexData = indexPage;
+                        return mIndexData;
                     }
                 });
+
     }
 
     private Observable<List<IndexBangumiRecommend>> loadBangumiRecommendData(final String cursor, int pageSize) {
+        Strategy strategy = "-1".equals(cursor)?CacheStrategy.priorityRemote():CacheStrategy.noneCache();
+        Type type = TypeBuilder.newBuilder(BiliBiliResponse.class)
+                .beginNestedType(List.class)
+                .addParamType(IndexBangumiRecommend.class)
+                .endNestedType()
+                .build();
         return CommonHelper.getInstance()
                 .getBangumiService()
                 .getBangumiRecommend(cursor, pageSize, System.currentTimeMillis())
-                .compose(new CacheTransformer<BiliBiliResultResponse<List<IndexBangumiRecommend>>>("index_page_recommend") {
+                .compose(RxCacheUtils.getInstance().<BiliBiliResponse<List<IndexBangumiRecommend>>>transformer("index_page_"+cursor,strategy,type))
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<List<IndexBangumiRecommend>>, List<IndexBangumiRecommend>>handlerResult())
+                .map(new Function<List<IndexBangumiRecommend>, List<IndexBangumiRecommend>>() {
                     @Override
-                    protected boolean canCache() {
-                        return "-1".equals(cursor);
-                    }
-                })
-                .flatMap(new Func1<BiliBiliResultResponse<List<IndexBangumiRecommend>>, Observable<List<IndexBangumiRecommend>>>() {
-                    @Override
-                    public Observable<List<IndexBangumiRecommend>> call(BiliBiliResultResponse<List<IndexBangumiRecommend>> listBiliBiliResultResponse) {
-                        if (listBiliBiliResultResponse.isSuccess()) {
-                            mBangumiRecommends = listBiliBiliResultResponse.getResult();
-                            return Observable.just(listBiliBiliResultResponse.getResult());
-                        } else {
-                            return Observable.error(new ApiException(listBiliBiliResultResponse.getCode()));
-                        }
+                    public List<IndexBangumiRecommend> apply(List<IndexBangumiRecommend> indexBangumiRecommends) throws Exception {
+                        mBangumiRecommends = indexBangumiRecommends;
+                        return mBangumiRecommends;
                     }
                 });
     }
@@ -208,10 +207,11 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
     public void onLoadMore() {
         mRecommendSub = loadBangumiRecommendData(mCursor, 10)
                 .subscribeOn(Schedulers.io())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<List<IndexBangumiRecommend>>() {
+                .subscribeWith(new DisposableSingleObserver<List<IndexBangumiRecommend>>(){
                     @Override
-                    public void call(List<IndexBangumiRecommend> indexBangumiRecommends) {
+                    public void onSuccess(List<IndexBangumiRecommend> indexBangumiRecommends) {
                         recyclerView.setLoading(false);
                         if (indexBangumiRecommends.size() == 0) {
                             recyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
@@ -223,9 +223,9 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
                             mCursor = indexBangumiRecommends.get(indexBangumiRecommends.size() - 1).getCursor();
                         }
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
+                    public void onError(Throwable e) {
                         recyclerView.setLoading(false);
                         recyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_FAIL);
                         ToastUtils.showToastShort(R.string.load_error);
@@ -258,6 +258,6 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
     @Override
     public void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mAllDataSub, mRecommendSub);
+        DisposableUtils.dispose(mAllDataSub, mRecommendSub);
     }
 }

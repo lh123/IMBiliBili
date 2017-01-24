@@ -4,6 +4,8 @@ import android.app.Application;
 import android.os.Handler;
 
 import com.facebook.stetho.Stetho;
+import com.lh.cachelibrary.RxCache;
+import com.lh.cachelibrary.convert.GsonDiskConverter;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;

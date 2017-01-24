@@ -10,12 +10,12 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.attention.FollowBangumi;
 import com.lh.imbilibili.model.attention.FollowBangumiResponse;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
-import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.adapter.attention.AttentionBangumiRecyclerViewAdapter;
@@ -26,12 +26,10 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/14.
@@ -50,7 +48,7 @@ public class FollowBangumiActivity extends BaseActivity implements LoadMoreRecyc
     private int mCurrentPage;
     private AttentionBangumiRecyclerViewAdapter mAdapter;
 
-    private Subscription mConcernedBangumiSub;
+    private Disposable mConcernedBangumiSub;
 
     public static void startActivity(Context context) {
         Intent intent = new Intent(context, FollowBangumiActivity.class);
@@ -90,20 +88,12 @@ public class FollowBangumiActivity extends BaseActivity implements LoadMoreRecyc
                 .getAttentionService()
                 .getConcernedBangumi(mCurrentPage, PAGE_SIZE, System.currentTimeMillis())
                 .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<FollowBangumiResponse<List<FollowBangumi>>, Observable<List<FollowBangumi>>>() {
-                    @Override
-                    public Observable<List<FollowBangumi>> call(FollowBangumiResponse<List<FollowBangumi>> listFollowBangumiResponse) {
-                        if (listFollowBangumiResponse.isSuccess()) {
-                            return Observable.just(listFollowBangumiResponse.getResult());
-                        } else {
-                            return Observable.error(new ApiException(listFollowBangumiResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<FollowBangumiResponse<List<FollowBangumi>>, List<FollowBangumi>>handlerResult())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<List<FollowBangumi>>() {
+                .firstOrError()
+                .subscribeWith(new DisposableSingleObserver<List<FollowBangumi>>(){
                     @Override
-                    public void call(List<FollowBangumi> followBangumis) {
+                    public void onSuccess(List<FollowBangumi> followBangumis) {
                         mRecyclerView.setLoading(false);
                         if (followBangumis.isEmpty()) {
                             mRecyclerView.setEnableLoadMore(false);
@@ -119,9 +109,9 @@ public class FollowBangumiActivity extends BaseActivity implements LoadMoreRecyc
                             mCurrentPage++;
                         }
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
+                    public void onError(Throwable e) {
                         mRecyclerView.setLoading(false);
                         ToastUtils.showToastShort(R.string.load_error);
                     }
@@ -136,7 +126,7 @@ public class FollowBangumiActivity extends BaseActivity implements LoadMoreRecyc
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mConcernedBangumiSub);
+        DisposableUtils.dispose(mConcernedBangumiSub);
     }
 
     @Override

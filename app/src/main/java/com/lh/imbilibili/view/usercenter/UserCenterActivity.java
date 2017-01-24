@@ -18,25 +18,28 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.BiliBiliDataFunc;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.RxBus;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
-import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.transformation.CircleTransformation;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.usercenter.ViewPagerAdapter;
+import com.lh.rxbuslibrary.RxBus;
+import com.lh.rxbuslibrary.annotation.Subscribe;
+import com.lh.rxbuslibrary.event.EventThread;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/15.
@@ -97,9 +100,7 @@ public class UserCenterActivity extends BaseActivity implements UserCenterDataPr
     private UserCenter mUserCenter;
     private String[] mtitles;
     private int mDefaultPage;
-    private Subscription mUserInfoSubscription;
-
-    private Subscription mBusSub;
+    private Disposable mUserInfoSubscription;
 
     /**
      * @param context Context
@@ -135,22 +136,20 @@ public class UserCenterActivity extends BaseActivity implements UserCenterDataPr
     @Override
     protected void onStart() {
         super.onStart();
-        mBusSub = RxBus.getInstance()
-                .toObserverable(UserCenterHomeFragment.ItemClickEvent.class)
-                .subscribe(new Action1<UserCenterHomeFragment.ItemClickEvent>() {
-                    @Override
-                    public void call(UserCenterHomeFragment.ItemClickEvent itemClickEvent) {
-                        if (itemClickEvent.position >= 0 && itemClickEvent.position < mtitles.length) {
-                            mViewPager.setCurrentItem(itemClickEvent.position);
-                        }
-                    }
-                });
+        RxBus.getInstance().register(this);
+    }
+
+    @Subscribe(scheduler = EventThread.UI)
+    public void OnUserCenterItemClick(UserCenterHomeFragment.ItemClickEvent event){
+        if (event.position >= 0 && event.position < mtitles.length) {
+            mViewPager.setCurrentItem(event.position);
+        }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        SubscriptionUtils.unsubscribe(mBusSub);
+        RxBus.getInstance().unRegister(this);
     }
 
     private void initViewPager() {
@@ -172,24 +171,25 @@ public class UserCenterActivity extends BaseActivity implements UserCenterDataPr
                 .getUserService()
                 .getUserSpaceInfo(PAGE_SIZE, System.currentTimeMillis(), mId)
                 .subscribeOn(Schedulers.io())
-                .map(new BiliBiliDataFunc<UserCenter>())
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<UserCenter>, UserCenter>handlerResult())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<UserCenter>() {
+                .subscribeWith(new DisposableSingleObserver<UserCenter>() {
                     @Override
-                    public void call(UserCenter userCenter) {
+                    public void onSuccess(UserCenter userCenter) {
                         mUserCenter = userCenter;
                         bindViewData(mUserCenter);
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
+                    public void onError(Throwable e) {
                         ToastUtils.showToastShort("加载失败");
                     }
                 });
     }
 
     private void bindViewData(UserCenter userCenter) {
-        RxBus.getInstance().send(userCenter);
+        RxBus.getInstance().post(userCenter);
         modifyTabsTitle(userCenter);
         mToolbar.setTitle(userCenter.getCard().getName());
         if (!TextUtils.isEmpty(userCenter.getImages().getImgUrl())) {
@@ -249,9 +249,7 @@ public class UserCenterActivity extends BaseActivity implements UserCenterDataPr
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mUserInfoSubscription != null && !mUserInfoSubscription.isUnsubscribed()) {
-            mUserInfoSubscription.unsubscribe();
-        }
+        DisposableUtils.dispose(mUserInfoSubscription);
     }
 
     @Override

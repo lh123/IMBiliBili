@@ -1,6 +1,7 @@
 package com.lh.imbilibili.data.helper;
 
 import com.facebook.stetho.okhttp3.StethoInterceptor;
+import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.api.LoginService;
 import com.lh.imbilibili.utils.BiliBilliSignUtils;
@@ -17,7 +18,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import retrofit2.Retrofit;
-import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
@@ -51,7 +51,7 @@ public class LoginHelper extends BaseHelper {
         mService = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
-                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .client(client)
                 .build()
                 .create(LoginService.class);

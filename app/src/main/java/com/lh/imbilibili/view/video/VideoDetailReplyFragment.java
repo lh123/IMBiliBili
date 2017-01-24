@@ -5,25 +5,25 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.view.View;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.feedback.FeedbackData;
-import com.lh.imbilibili.utils.RxBus;
-import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.feedback.FeedbackAdapter;
 import com.lh.imbilibili.view.adapter.feedback.FeedbackItemDecoration;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
+import com.lh.rxbuslibrary.RxBus;
+import com.lh.rxbuslibrary.annotation.Subscribe;
+import com.lh.rxbuslibrary.event.EventThread;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/2.
@@ -38,8 +38,7 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
     LoadMoreRecyclerView mRecyclerView;
 
     private int mCurrentPage;
-    private Subscription mFeedbackSub;
-    private Subscription mBusSub;
+    private Disposable mFeedbackSub;
 
     private FeedbackAdapter mFeedbackAdapter;
 
@@ -68,30 +67,28 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
     @Override
     public void onStart() {
         super.onStart();
-        mBusSub = RxBus.getInstance()
-                .toObserverable(VideoStateChangeEvent.class)
-                .subscribe(new Action1<VideoStateChangeEvent>() {
-                    @Override
-                    public void call(VideoStateChangeEvent videoStateChangeEvent) {
-                        switch (videoStateChangeEvent.state) {
-                            case VideoStateChangeEvent.STATE_LOAD_FINISH:
-                                mId = videoStateChangeEvent.videoDetail.getAid();
-                                if (mIsFirstLoad) {
-                                    loadFeedbackData();
-                                }
-                                break;
-                            case VideoStateChangeEvent.STATE_PLAY:
-//                                mRecyclerView.setNestedScrollingEnabled(false);
-                                break;
-                        }
-                    }
-                });
+        RxBus.getInstance().register(this);
+    }
+
+    @Subscribe(scheduler = EventThread.UI)
+    public void VideoStateChange(VideoStateChangeEvent event){
+        switch (event.state) {
+            case VideoStateChangeEvent.STATE_LOAD_FINISH:
+                mId = event.videoDetail.getAid();
+                if (mIsFirstLoad) {
+                    loadFeedbackData();
+                }
+                break;
+            case VideoStateChangeEvent.STATE_PLAY:
+//              mRecyclerView.setNestedScrollingEnabled(false);
+                break;
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        SubscriptionUtils.unsubscribe(mBusSub);
+        RxBus.getInstance().unRegister(this);
     }
 
     private void loadFeedbackData() {
@@ -99,20 +96,12 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
                 .getReplyService()
                 .getFeedback(0, mId, mCurrentPage, PAGE_SIZE, 0, 1)
                 .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<BilibiliDataResponse<FeedbackData>, Observable<FeedbackData>>() {
-                    @Override
-                    public Observable<FeedbackData> call(BilibiliDataResponse<FeedbackData> feedbackDataBilibiliDataResponse) {
-                        if (feedbackDataBilibiliDataResponse.isSuccess()) {
-                            return Observable.just(feedbackDataBilibiliDataResponse.getData());
-                        } else {
-                            return Observable.error(new ApiException(feedbackDataBilibiliDataResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<FeedbackData>, FeedbackData>handlerResult())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<FeedbackData>() {
+                .subscribeWith(new DisposableSingleObserver<FeedbackData>() {
                     @Override
-                    public void call(FeedbackData feedbackData) {
+                    public void onSuccess(FeedbackData feedbackData) {
                         mRecyclerView.setLoading(false);
                         if (feedbackData.getReplies().isEmpty()) {
                             mRecyclerView.setEnableLoadMore(false);
@@ -130,9 +119,9 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
                         }
                         mCurrentPage++;
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
+                    public void onError(Throwable e) {
                         mRecyclerView.setLoading(false);
                         mRecyclerView.setEnableLoadMore(false);
                         mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_RETRY);
@@ -144,7 +133,7 @@ public class VideoDetailReplyFragment extends BaseFragment implements LoadMoreRe
     @Override
     public void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mFeedbackSub);
+        DisposableUtils.dispose(mFeedbackSub);
     }
 
     @Override

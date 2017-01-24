@@ -1,11 +1,14 @@
 package com.lh.imbilibili.model;
 
+import com.google.gson.annotations.SerializedName;
+
 /**
  * Created by liuhui on 2016/7/8.
  */
-public class BiliBiliResultResponse<T> {
+public class BiliBiliResponse<T> {
     private int code;
     private String message;
+    @SerializedName(value = "result",alternate = "data")
     private T result;
 
     public int getCode() {

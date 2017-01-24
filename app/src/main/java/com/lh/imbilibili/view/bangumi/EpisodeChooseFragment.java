@@ -11,11 +11,11 @@ import android.view.ViewGroup;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.model.bangumi.BangumiDetail;
-import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.GridLayoutItemDecoration;
 import com.lh.imbilibili.view.adapter.bangumidetail.BangumiEpAdapter;
+import com.lh.rxbuslibrary.RxBus;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -112,7 +112,7 @@ public class EpisodeChooseFragment extends BaseFragment implements BangumiEpAdap
         if (mMode == MODE_FEEDBACK) {
             getFragmentManager().beginTransaction().remove(this).commit();
         }
-        RxBus.getInstance().send(event);
+        RxBus.getInstance().post(event);
     }
 
     public class EpisodeClickEvent {

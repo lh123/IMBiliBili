@@ -12,16 +12,15 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.lh.cachelibrary.strategy.CacheStrategy;
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.cache.CacheTransformer;
-import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.model.user.User;
 import com.lh.imbilibili.model.user.UserDetailInfo;
-import com.lh.imbilibili.utils.RxBus;
+import com.lh.imbilibili.utils.DisposableUtils;
+import com.lh.imbilibili.utils.RxCacheUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
-import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.lh.imbilibili.utils.transformation.CircleTransformation;
@@ -29,18 +28,19 @@ import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.common.LoginActivity;
 import com.lh.imbilibili.view.history.HistoryRecordFragment;
 import com.lh.imbilibili.view.usercenter.UserCenterActivity;
+import com.lh.rxbuslibrary.RxBus;
+import com.lh.rxbuslibrary.annotation.Subscribe;
+import com.lh.rxbuslibrary.event.EventThread;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 public class MainActivity extends BaseActivity implements IDrawerLayoutActivity, View.OnClickListener {
 
-    private static final int USER_DATAIL_CACHE_TIME = 24 * 60 * 60 * 1000;
     private static final String USER_DETAIL_CACHE_NAME = "user_detail";
 
     @BindView(R.id.drawer_layout)
@@ -58,8 +58,7 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
 
     private UserDetailInfo mUserDetailInfo;
     private boolean isShowHome;
-    private Subscription mUserInfoSub;
-    private Subscription mBusSub;
+    private Disposable mUserInfoSub;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,14 +74,7 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
         mTvCoinCount = (TextView) headView.findViewById(R.id.user_coin_count);
         initView();
         switchFragment(0);
-        mBusSub = RxBus.getInstance()
-                .toObserverable(User.class)
-                .subscribe(new Action1<User>() {
-                    @Override
-                    public void call(User user) {
-                        loadUserInfo();
-                    }
-                });
+        RxBus.getInstance().register(this);
     }
 
     private void initView() {
@@ -161,34 +153,30 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
         }
     }
 
+    @Subscribe(scheduler = EventThread.UI)
+    public void onUserInfoReceiver(User user){
+        loadUserInfo();
+    }
+
     public void loadUserInfo() {
         mUserInfoSub = CommonHelper.getInstance()
                 .getUserService()
                 .getUserDetailInfo()
-                .compose(new CacheTransformer<UserDetailInfo>(USER_DETAIL_CACHE_NAME, USER_DATAIL_CACHE_TIME, false) {
-                })
+                .compose(RxCacheUtils.getInstance().<UserDetailInfo>transformer(USER_DETAIL_CACHE_NAME, CacheStrategy.priorityRemote(),UserDetailInfo.class))
                 .subscribeOn(Schedulers.io())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .map(new Func1<UserDetailInfo, UserDetailInfo>() {
+                .subscribeWith(new DisposableSingleObserver<UserDetailInfo>() {
                     @Override
-                    public UserDetailInfo call(UserDetailInfo userDetailInfo) {
-                        if (userDetailInfo == null) {
-                            throw new ApiException(1);
-                        }
-                        return userDetailInfo;
-                    }
-                })
-                .subscribe(new Action1<UserDetailInfo>() {
-                    @Override
-                    public void call(UserDetailInfo userDetailInfo) {
+                    public void onSuccess(UserDetailInfo userDetailInfo) {
                         mUserDetailInfo = userDetailInfo;
                         UserManagerUtils.getInstance().setUserDetailInfo(mUserDetailInfo);
-                        RxBus.getInstance().send(mUserDetailInfo);
+                        RxBus.getInstance().post(mUserDetailInfo);
                         bindUserInfoViewWithData();
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
+                    public void onError(Throwable e) {
                         ToastUtils.showToastShort("加载用户信息失败");
                     }
                 });
@@ -224,6 +212,7 @@ public class MainActivity extends BaseActivity implements IDrawerLayoutActivity,
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mUserInfoSub, mBusSub);
+        RxBus.getInstance().unRegister(this);
+        DisposableUtils.dispose(mUserInfoSub);
     }
 }

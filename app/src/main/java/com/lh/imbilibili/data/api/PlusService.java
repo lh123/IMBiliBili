@@ -1,12 +1,12 @@
 package com.lh.imbilibili.data.api;
 
-import com.lh.imbilibili.model.BiliBiliResultResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.bangumi.BangumiDetail;
 import com.lh.imbilibili.model.video.PlusVideoPlayerData;
 
+import io.reactivex.Observable;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
-import rx.Observable;
 
 /**
  * Created by liuhui on 2016/11/5.
@@ -25,7 +25,7 @@ public interface PlusService {
                                   @Query("update") int update);
 
     @GET("/api/bangumi")
-    Observable<BiliBiliResultResponse<BangumiDetail>> getBangumiDetailFromPlus(@Query("season") String seasonid);
+    Observable<BiliBiliResponse<BangumiDetail>> getBangumiDetailFromPlus(@Query("season") String seasonid);
 
     @GET("http://biliplus.ipcjsdev.tk/api/geturl")
     Observable<PlusVideoPlayerData> getPlayDataUnBlock(@Query("bangumi") int bangumi,

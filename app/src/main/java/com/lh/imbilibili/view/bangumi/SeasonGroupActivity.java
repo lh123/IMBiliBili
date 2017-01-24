@@ -14,12 +14,13 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BiliBiliResultResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.bangumi.SeasonGroup;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
-import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.adapter.GridLayoutItemDecoration;
 import com.lh.imbilibili.view.adapter.seasongroup.SeasonGroupAdapter;
@@ -31,12 +32,10 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by home on 2016/8/8.
@@ -66,7 +65,7 @@ public class SeasonGroupActivity extends BaseActivity implements SeasonYearAdapt
     private List<SeasonGroup> mSeasonGroups;
     private List<Integer> mYears;
 
-    private Subscription mSeasonGroupSub;
+    private Disposable mSeasonGroupSub;
 
     public static void startActivity(Context context) {
         Intent intent = new Intent(context, SeasonGroupActivity.class);
@@ -135,21 +134,13 @@ public class SeasonGroupActivity extends BaseActivity implements SeasonYearAdapt
         mSeasonGroupSub = CommonHelper.getInstance()
                 .getBangumiService()
                 .getSeasonGroup(System.currentTimeMillis())
-                .flatMap(new Func1<BiliBiliResultResponse<List<SeasonGroup>>, Observable<List<SeasonGroup>>>() {
-                    @Override
-                    public Observable<List<SeasonGroup>> call(BiliBiliResultResponse<List<SeasonGroup>> listBiliBiliResultResponse) {
-                        if (listBiliBiliResultResponse.isSuccess()) {
-                            return Observable.just(listBiliBiliResultResponse.getResult());
-                        } else {
-                            return Observable.error(new ApiException(listBiliBiliResultResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<List<SeasonGroup>>, List<SeasonGroup>>handlerResult())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<List<SeasonGroup>>() {
+                .firstOrError()
+                .subscribeWith(new DisposableSingleObserver<List<SeasonGroup>>(){
                     @Override
-                    public void call(List<SeasonGroup> seasonGroups) {
+                    public void onSuccess(List<SeasonGroup> seasonGroups) {
                         mSeasonGroups = seasonGroups;
                         mYears = canculateYear(mSeasonGroups);
                         mTvYear.setText(String.valueOf(mYears.get(0)));
@@ -157,6 +148,11 @@ public class SeasonGroupActivity extends BaseActivity implements SeasonYearAdapt
                         mSeasonGroupAdapter.notifyDataSetChanged();
                         mSeasonYearAdapter.setYears(mYears);
                         mSeasonYearAdapter.notifyDataSetChanged();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        ToastUtils.showToastShort(R.string.load_error);
                     }
                 });
     }
@@ -186,7 +182,7 @@ public class SeasonGroupActivity extends BaseActivity implements SeasonYearAdapt
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mSeasonGroupSub);
+        DisposableUtils.dispose(mSeasonGroupSub);
     }
 
     @Override

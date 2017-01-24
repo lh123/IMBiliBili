@@ -11,9 +11,7 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.model.video.VideoDetail;
-import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StringUtils;
-import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.transformation.CircleTransformation;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.FlowItemDecoration;
@@ -24,11 +22,12 @@ import com.lh.imbilibili.view.adapter.videodetail.VideoTagAdapter;
 import com.lh.imbilibili.view.search.SearchActivity;
 import com.lh.imbilibili.view.usercenter.UserCenterActivity;
 import com.lh.imbilibili.widget.layoutmanager.FlowLayoutManager;
+import com.lh.rxbuslibrary.RxBus;
+import com.lh.rxbuslibrary.annotation.Subscribe;
+import com.lh.rxbuslibrary.event.EventThread;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Subscription;
-import rx.functions.Action1;
 
 /**
  * Created by liuhui on 2016/10/2.
@@ -72,7 +71,6 @@ public class VideoDetailInfoFragment extends BaseFragment implements VideoPageRe
     private VideoRelatesRecyclerViewAdapter mAdapter;
     private VideoTagAdapter mTagAdapter;
     private VideoPageRecyclerViewAdapter mVideoPageAdapter;
-    private Subscription mBusSub;
     private boolean mIsFirstLoad;
 
     public static VideoDetailInfoFragment newInstance() {
@@ -89,29 +87,27 @@ public class VideoDetailInfoFragment extends BaseFragment implements VideoPageRe
     @Override
     public void onStart() {
         super.onStart();
-        mBusSub = RxBus.getInstance()
-                .toObserverable(VideoStateChangeEvent.class)
-                .subscribe(new Action1<VideoStateChangeEvent>() {
-                    @Override
-                    public void call(VideoStateChangeEvent videoStateChangeEvent) {
-                        switch (videoStateChangeEvent.state) {
-                            case VideoStateChangeEvent.STATE_LOAD_FINISH:
-                                if (mIsFirstLoad) {
-                                    mVideoDetail = videoStateChangeEvent.videoDetail;
-                                    bindViewWithData();
-                                }
-                                break;
-                            case VideoStateChangeEvent.STATE_PLAY:
-                                break;
-                        }
-                    }
-                });
+        RxBus.getInstance().register(this);
+    }
+
+    @Subscribe(scheduler = EventThread.UI)
+    public void VideoStateChange(VideoStateChangeEvent event){
+        switch (event.state) {
+            case VideoStateChangeEvent.STATE_LOAD_FINISH:
+                if (mIsFirstLoad) {
+                    mVideoDetail = event.videoDetail;
+                    bindViewWithData();
+                }
+                break;
+            case VideoStateChangeEvent.STATE_PLAY:
+                break;
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        SubscriptionUtils.unsubscribe(mBusSub);
+        RxBus.getInstance().unRegister(this);
     }
 
     private void initRecyclerView() {

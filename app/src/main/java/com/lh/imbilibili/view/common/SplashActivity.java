@@ -12,7 +12,7 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.IMBilibiliApplication;
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.home.Splash;
 import com.lh.imbilibili.utils.DisplayUtils;
 import com.lh.imbilibili.view.BaseActivity;
@@ -36,7 +36,7 @@ public class SplashActivity extends BaseActivity {
     @BindView(R.id.skip)
     TextView tvSkip;
 
-    private Call<BilibiliDataResponse<Splash>> call;
+    private Call<BiliBiliResponse<Splash>> call;
     private Intent intent;
     private Bitmap splashBitmap;
     private Bitmap splashIcoBitmap;

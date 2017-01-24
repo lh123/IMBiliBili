@@ -1,12 +1,12 @@
 package com.lh.imbilibili.model.attention;
 
-import com.lh.imbilibili.model.BiliBiliResultResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 
 /**
  * Created by liuhui on 2016/10/10.
  */
 
-public class FollowBangumiResponse<T> extends BiliBiliResultResponse<T> {
+public class FollowBangumiResponse<T> extends BiliBiliResponse<T> {
     private String count;
     private String pages;
 

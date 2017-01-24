@@ -4,27 +4,27 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.view.View;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.RxBus;
-import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.LinearLayoutItemDecoration;
 import com.lh.imbilibili.view.adapter.usercenter.CommunityRecyclerViewAdapter;
 import com.lh.imbilibili.widget.EmptyView;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
+import com.lh.rxbuslibrary.RxBus;
+import com.lh.rxbuslibrary.annotation.Subscribe;
+import com.lh.rxbuslibrary.event.EventThread;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/17.
@@ -45,11 +45,9 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
     private CommunityRecyclerViewAdapter mAdapter;
 
     private int mCurrentPage;
-    private Subscription mUserCommunitySub;
+    private Disposable mUserCommunitySub;
 
     private UserCenterDataProvider mUserCenterProvider;
-
-    private Subscription mBusSub;
 
     private boolean mIsInitData;
 
@@ -80,25 +78,23 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
     @Override
     public void onStart() {
         super.onStart();
-        mBusSub = RxBus.getInstance()
-                .toObserverable(UserCenter.class)
-                .subscribe(new Action1<UserCenter>() {
-                    @Override
-                    public void call(UserCenter userCenter) {
-                        mUserCenter = userCenter;
-                        initData();
-                    }
-                });
+        RxBus.getInstance().register(this);
         if (mUserCenterProvider != null) {
             mUserCenter = mUserCenterProvider.getUserCenter();
             initData();
         }
     }
 
+    @Subscribe(scheduler = EventThread.UI)
+    public void OnUserCenterInfoReceiver(UserCenter userCenter){
+        mUserCenter = userCenter;
+        initData();
+    }
+
     @Override
     public void onStop() {
         super.onStop();
-        SubscriptionUtils.unsubscribe(mBusSub);
+        RxBus.getInstance().unRegister(this);
     }
 
     public void initData() {
@@ -139,20 +135,12 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
                 .getUserService()
                 .getUserCommunity(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()))
                 .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Community>>, Observable<UserCenter.CenterList<UserCenter.Community>>>() {
-                    @Override
-                    public Observable<UserCenter.CenterList<UserCenter.Community>> call(BilibiliDataResponse<UserCenter.CenterList<UserCenter.Community>> centerListBilibiliDataResponse) {
-                        if (centerListBilibiliDataResponse.isSuccess()) {
-                            return Observable.just(centerListBilibiliDataResponse.getData());
-                        } else {
-                            return Observable.error(new ApiException(centerListBilibiliDataResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<UserCenter.CenterList<UserCenter.Community>>, UserCenter.CenterList<UserCenter.Community>>handlerResult())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<UserCenter.CenterList<UserCenter.Community>>() {
+                .subscribeWith(new DisposableSingleObserver<UserCenter.CenterList<UserCenter.Community>>() {
                     @Override
-                    public void call(UserCenter.CenterList<UserCenter.Community> communityCenterList) {
+                    public void onSuccess(UserCenter.CenterList<UserCenter.Community> communityCenterList) {
                         mRecyclerView.setLoading(false);
                         if (communityCenterList.getCount() < PAGE_SIZE) {
                             mRecyclerView.setEnableLoadMore(false);
@@ -164,9 +152,9 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
                             mCurrentPage++;
                         }
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
+                    public void onError(Throwable e) {
                         mRecyclerView.setLoading(false);
                         ToastUtils.showToastShort(R.string.load_error);
                     }
@@ -181,7 +169,7 @@ public class UserCenterCommunityFragment extends BaseFragment implements LoadMor
     @Override
     public void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mUserCommunitySub);
+        DisposableUtils.dispose(mUserCommunitySub);
     }
 
     @Override

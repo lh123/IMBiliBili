@@ -7,14 +7,14 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.bangumi.BangumiDetail;
 import com.lh.imbilibili.model.feedback.FeedbackData;
 import com.lh.imbilibili.model.feedback.ReplyCount;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.StringUtils;
-import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.feedback.FeedbackAdapter;
@@ -24,12 +24,10 @@ import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by home on 2016/8/2.
@@ -51,8 +49,7 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
     private int mCurrentPage;
     private FeedbackAdapter mAdapter;
 
-    private Subscription mFeedbackSub;
-    private Subscription mReplyCountSub;
+    private Disposable mReplyCountSub;
 
     private int mSelectPosition;
     private boolean mNeedRefresh;
@@ -88,25 +85,17 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
                 .getReplyService()
                 .getReplyCount(id, 1)
                 .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<BilibiliDataResponse<ReplyCount>, Observable<ReplyCount>>() {
-                    @Override
-                    public Observable<ReplyCount> call(BilibiliDataResponse<ReplyCount> replyCountBilibiliDataResponse) {
-                        if (replyCountBilibiliDataResponse.isSuccess()) {
-                            return Observable.just(replyCountBilibiliDataResponse.getData());
-                        } else {
-                            return Observable.error(new ApiException(replyCountBilibiliDataResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<ReplyCount>, ReplyCount>handlerResult())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<ReplyCount>() {
+                .subscribeWith(new DisposableSingleObserver<ReplyCount>() {
                     @Override
-                    public void call(ReplyCount replyCount) {
+                    public void onSuccess(ReplyCount replyCount) {
                         mTvCommentCount.setText(StringUtils.format("%d楼", replyCount.getCount()));
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
+                    public void onError(Throwable e) {
                         ToastUtils.showToastShort(R.string.load_error);
                     }
                 });
@@ -117,20 +106,12 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
                 .getReplyService()
                 .getFeedback(0, id, page, PAGE_SIZE, 0, 1)
                 .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<BilibiliDataResponse<FeedbackData>, Observable<FeedbackData>>() {
-                    @Override
-                    public Observable<FeedbackData> call(BilibiliDataResponse<FeedbackData> feedbackDataBilibiliDataResponse) {
-                        if (feedbackDataBilibiliDataResponse.isSuccess()) {
-                            return Observable.just(feedbackDataBilibiliDataResponse.getData());
-                        } else {
-                            return Observable.error(new ApiException(feedbackDataBilibiliDataResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<FeedbackData>, FeedbackData>handlerResult())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<FeedbackData>() {
+                .subscribeWith(new DisposableSingleObserver<FeedbackData>() {
                     @Override
-                    public void call(FeedbackData feedbackData) {
+                    public void onSuccess(FeedbackData feedbackData) {
                         if (mNeedRefresh) {
                             mNeedRefresh = false;
                             mAdapter.clear();
@@ -143,9 +124,9 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
                         }
                         mCurrentPage++;
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
+                    public void onError(Throwable e) {
                         mRecyclerView.setEnableLoadMore(false);
                         mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_RETRY);
                     }
@@ -174,7 +155,7 @@ public class FeedbackFragment extends BaseFragment implements LoadMoreRecyclerVi
     @Override
     public void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mFeedbackSub, mReplyCountSub);
+        DisposableUtils.dispose(mReplyCountSub);
     }
 
     @Override

@@ -32,12 +32,14 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscriber;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.observers.DisposableCompletableObserver;
+import io.reactivex.schedulers.Schedulers;
 import tv.danmaku.ijk.media.player.IMediaPlayer;
 
 /**
@@ -136,19 +138,17 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
         mPrePlayMsg.setText(mPreMsgBuilder);
         Observable.merge(loadVideoInfoAccordSource(), downloadDanmaku())
                 .subscribeOn(Schedulers.io())
+                .ignoreElements()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<Object>() {
+                .subscribeWith(new DisposableCompletableObserver() {
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         startPlaying();
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                    }
 
-                    @Override
-                    public void onNext(Object o) {
                     }
                 });
     }
@@ -165,9 +165,9 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
         return VideoPlayerHelper.getInstance()
                 .getOfficialService()
                 .getPlayData(mVideoDetail.getAid(), 0, 0, 0, mVideoDetail.getPages().get(mPage).getCid() + "", mCurrentQuality, "json")
-                .flatMap(new Func1<VideoPlayData, Observable<String>>() {
+                .flatMap(new Function<VideoPlayData, ObservableSource<String>>() {
                     @Override
-                    public Observable<String> call(VideoPlayData videoPlayData) {
+                    public ObservableSource<String> apply(VideoPlayData videoPlayData) {
                         if (videoPlayData.getDurl() != null && !videoPlayData.getDurl().isEmpty()) {
                             int[] qualities = videoPlayData.getAcceptQuality();
                             List<VideoControlView.QualityItem> qualityItems = new ArrayList<>();
@@ -192,9 +192,9 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
                     }
                 }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext(new Action1<String>() {
+                .doOnNext(new Consumer<String>() {
                     @Override
-                    public void call(String s) {
+                    public void accept(String s) throws Exception {
                         String target = "解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
@@ -202,9 +202,9 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
                         mIjkVideoView.setVideoPath(s);
                     }
                 })
-                .doOnError(new Action1<Throwable>() {
+                .doOnError(new Consumer<Throwable>() {
                     @Override
-                    public void call(Throwable throwable) {
+                    public void accept(Throwable throwable) {
                         String target = "解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
@@ -218,20 +218,20 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
                 .getPlusService()
                 .getPlayData(mVideoDetail.getSeason() == null ? 0 : 1, mVideoDetail.getAid(), mVideoDetail.getPages().get(mPage).getPage() + "")
                 .subscribeOn(Schedulers.io())
-                .compose(new Observable.Transformer<PlusVideoPlayerData, PlusVideoPlayerData>() {
+                .compose(new ObservableTransformer<PlusVideoPlayerData, PlusVideoPlayerData>() {
                     @Override
-                    public Observable<PlusVideoPlayerData> call(Observable<PlusVideoPlayerData> plusVideoPlayerDataObservable) {
+                    public ObservableSource<PlusVideoPlayerData> apply(Observable<PlusVideoPlayerData> upstream) {
                         if (mPlusPlayerData != null) {
                             return Observable.just(mPlusPlayerData);
                         } else {
-                            return plusVideoPlayerDataObservable;
+                            return upstream;
                         }
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
-                .flatMap(new Func1<PlusVideoPlayerData, Observable<String>>() {
+                .flatMap(new Function<PlusVideoPlayerData, ObservableSource<String>>() {
                     @Override
-                    public Observable<String> call(PlusVideoPlayerData plusVideoPlayerData) {
+                    public ObservableSource<String> apply(PlusVideoPlayerData plusVideoPlayerData) {
                         mPlusPlayerData = plusVideoPlayerData;
                         if (!plusVideoPlayerData.getMode().equals("error")) {
                             List<PlusVideoPlayerData.Data> datas = plusVideoPlayerData.getData();
@@ -263,15 +263,15 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
                         }
                     }
                 })
-                .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
+                .retryWhen(new Function<Observable<Throwable>, ObservableSource<?>>() {
 
                     boolean haveRetry = false;
 
                     @Override
-                    public Observable<?> call(Observable<? extends Throwable> observable) {
-                        return observable.flatMap(new Func1<Throwable, Observable<?>>() {
+                    public ObservableSource<?> apply(Observable<Throwable> observable) {
+                        return observable.flatMap(new Function<Throwable, ObservableSource<?>>() {
                             @Override
-                            public Observable<?> call(Throwable throwable) {
+                            public Observable<?> apply(Throwable throwable) {
                                 System.out.println("retryWhen：" + haveRetry);
                                 if (!haveRetry) {
                                     haveRetry = true;
@@ -285,9 +285,9 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext(new Action1<String>() {
+                .doOnNext(new Consumer<String>() {
                     @Override
-                    public void call(String s) {
+                    public void accept(String s) {
                         System.out.println("Next" + Thread.currentThread().getName());
                         String target = "解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
@@ -296,9 +296,9 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
                         mIjkVideoView.setVideoPath(s);
                     }
                 })
-                .doOnError(new Action1<Throwable>() {
+                .doOnError(new Consumer<Throwable>() {
                     @Override
-                    public void call(Throwable throwable) {
+                    public void accept(Throwable throwable) {
                         String target = "解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
@@ -309,16 +309,16 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
 
     private Observable<InputStream> downloadDanmaku() {
         return DanmakuUtils.downLoadDanmaku(mVideoDetail.getPages().get(mPage).getCid() + "")
-                .doOnNext(new Action1<InputStream>() {
+                .doOnNext(new Consumer<InputStream>() {
                     @Override
-                    public void call(InputStream inputStream) {
+                    public void accept(InputStream inputStream) {
                         preparDanmaku(inputStream);
                     }
                 }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .onErrorResumeNext(new Func1<Throwable, Observable<? extends InputStream>>() {
+                .onErrorResumeNext(new Function<Throwable, ObservableSource<? extends InputStream>>() {
                     @Override
-                    public Observable<? extends InputStream> call(Throwable throwable) {
+                    public ObservableSource<? extends InputStream> apply(Throwable throwable) {
                         String target = "全舰弹幕填装...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
@@ -326,9 +326,9 @@ public class VideoPlayerFragment extends BaseFragment implements IMediaPlayer.On
                         return Observable.empty();
                     }
                 })
-                .doOnNext(new Action1<InputStream>() {
+                .doOnNext(new Consumer<InputStream>() {
                     @Override
-                    public void call(InputStream inputStream) {
+                    public void accept(InputStream inputStream) {
                         String target = "全舰弹幕填装...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");

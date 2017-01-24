@@ -1,10 +1,10 @@
 package com.lh.imbilibili.utils;
 
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
 
-import rx.Subscriber;
-import rx.schedulers.Schedulers;
+import io.reactivex.CompletableObserver;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/8.
@@ -15,10 +15,16 @@ public class HistoryUtils {
         CommonHelper.getInstance()
                 .getHistoryService()
                 .addHistory(id)
+                .ignoreElements()
                 .subscribeOn(Schedulers.io())
-                .subscribe(new Subscriber<BilibiliDataResponse>() {
+                .subscribe(new CompletableObserver() {
                     @Override
-                    public void onCompleted() {
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
 
                     }
 
@@ -26,12 +32,8 @@ public class HistoryUtils {
                     public void onError(Throwable e) {
 
                     }
-
-                    @Override
-                    public void onNext(BilibiliDataResponse bilibiliDataResponse) {
-
-                    }
                 });
+
     }
 
     public static void addHisotry(String cid, String eposideId) {

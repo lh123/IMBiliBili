@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="Encoding" defaultCharsetForPropertiesFiles="UTF-8">
-    <file url="file://$PROJECT_DIR$/app/build.gradle" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/lh/imbilibili/view/adapter/attention/AttentionBangumiRecyclerViewAdapter.java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/lh/imbilibili/view/adapter/attention/AttentionItemDecoration.java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/lh/imbilibili/view/adapter/attention/AttentionRecyclerViewAdapter.java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/lh/imbilibili/view/adapter/bangumidetail/BangumiEpAdapter.java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/lh/imbilibili/view/adapter/bangumidetail/BangumiRecommendAdapter.java" charset="UTF-8" />
+  <component name="Encoding">
     <file url="PROJECT" charset="UTF-8" />
   </component>
 </project>

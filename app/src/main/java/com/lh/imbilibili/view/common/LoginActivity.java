@@ -12,20 +12,21 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.helper.LoginHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.user.RsaData;
 import com.lh.imbilibili.model.user.User;
 import com.lh.imbilibili.utils.BiliBilliSignUtils;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.DrawableTintUtils;
 import com.lh.imbilibili.utils.RsaHelper;
-import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
-import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.lh.imbilibili.view.BaseActivity;
+import com.lh.rxbuslibrary.RxBus;
 
 import java.net.URLEncoder;
 import java.util.LinkedHashMap;
@@ -33,12 +34,12 @@ import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.ObservableSource;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/7.
@@ -61,7 +62,7 @@ public class LoginActivity extends BaseActivity implements View.OnFocusChangeLis
     EditText mEdPassword;
     @BindView(R.id.login)
     TextView mBtnLogin;
-    private Subscription mLoginSub;
+    private Disposable mLoginSub;
 
     public static void startActivity(Context context) {
         Intent intent = new Intent(context, LoginActivity.class);
@@ -107,74 +108,65 @@ public class LoginActivity extends BaseActivity implements View.OnFocusChangeLis
         mLoginSub = LoginHelper.getInstance()
                 .getLoginService()
                 .getRsaKey(System.currentTimeMillis())
-                .flatMap(new Func1<BilibiliDataResponse<RsaData>, Observable<BilibiliDataResponse<User>>>() {
+                .flatMap(new Function<BiliBiliResponse<RsaData>, ObservableSource<BiliBiliResponse<User>>>() {
+
                     @Override
-                    public Observable<BilibiliDataResponse<User>> call(BilibiliDataResponse<RsaData> rsaDataBilibiliDataResponse) {
-                        RsaData rsaData = rsaDataBilibiliDataResponse.getData();
+                    public ObservableSource<BiliBiliResponse<User>> apply(BiliBiliResponse<RsaData> rsaDataBiliBiliResponse) throws Exception {
+                        RsaData rsaData = rsaDataBiliBiliResponse.getResult();
                         String temp = rsaData.getHash() + password;
-                        try {
-                            String psw = RsaHelper.encryptByPublicKey(temp.getBytes(), RsaHelper.getPublicKey(rsaData.getKey()));
-                            LinkedHashMap<String, String> map = new LinkedHashMap<>();
-                            map.put("appkey", Constant.APPKEY);
-                            map.put("build", "428001");
-                            map.put("mobi_app", Constant.MOBI_APP);
-                            map.put("password", psw);
-                            map.put("ts", System.currentTimeMillis() + "");
-                            map.put("username", username);
-                            StringBuilder bodyBuilder = new StringBuilder();
-                            boolean isFirst = true;
-                            for (Map.Entry<String, String> entry : map.entrySet()) {
-                                if (isFirst) {
-                                    isFirst = false;
-                                    bodyBuilder.append(entry.getKey())
+                        String psw = RsaHelper.encryptByPublicKey(temp.getBytes(), RsaHelper.getPublicKey(rsaData.getKey()));
+                        LinkedHashMap<String, String> map = new LinkedHashMap<>();
+                        map.put("appkey", Constant.APPKEY);
+                        map.put("build", "428001");
+                        map.put("mobi_app", Constant.MOBI_APP);
+                        map.put("password", psw);
+                        map.put("ts", System.currentTimeMillis() + "");
+                        map.put("username", username);
+                        StringBuilder bodyBuilder = new StringBuilder();
+                        boolean isFirst = true;
+                        for (Map.Entry<String, String> entry : map.entrySet()) {
+                            if (isFirst) {
+                                isFirst = false;
+                                bodyBuilder.append(entry.getKey())
+                                        .append("=")
+                                        .append(entry.getValue());
+                            } else {
+                                if (entry.getKey().equals("password")) {
+                                    System.out.println(entry.getKey());
+                                    bodyBuilder.append("&")
+                                            .append(entry.getKey())
+                                            .append("=")
+                                            .append(URLEncoder.encode(entry.getValue(), "utf-8"));
+                                } else {
+                                    bodyBuilder.append("&")
+                                            .append(entry.getKey())
                                             .append("=")
                                             .append(entry.getValue());
-                                } else {
-                                    if (entry.getKey().equals("password")) {
-                                        System.out.println(entry.getKey());
-                                        bodyBuilder.append("&")
-                                                .append(entry.getKey())
-                                                .append("=")
-                                                .append(URLEncoder.encode(entry.getValue(), "utf-8"));
-                                    } else {
-                                        bodyBuilder.append("&")
-                                                .append(entry.getKey())
-                                                .append("=")
-                                                .append(entry.getValue());
-                                    }
                                 }
                             }
-                            String sign = BiliBilliSignUtils.getSign(bodyBuilder.toString(), Constant.SECRETKEY);
-                            map.put("sign", sign);
-                            return LoginHelper.getInstance().getLoginService().doLogin(map);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            return Observable.error(e);
                         }
+                        String sign = BiliBilliSignUtils.getSign(bodyBuilder.toString(), Constant.SECRETKEY);
+                        map.put("sign", sign);
+                        return LoginHelper.getInstance().getLoginService().doLogin(map);
                     }
                 })
                 .subscribeOn(Schedulers.io())
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<User>, User>handlerResult())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<BilibiliDataResponse<User>>() {
+                .firstOrError()
+                .subscribeWith(new DisposableSingleObserver<User>() {
                     @Override
-                    public void onCompleted() {
-
+                    public void onSuccess(User user) {
+                        ToastUtils.showToastShort("登陆成功");
+                        UserManagerUtils.getInstance().saveUserInfo(getApplicationContext(), user);
+                        UserManagerUtils.getInstance().readUserInfo(getApplicationContext());
+                        RxBus.getInstance().post(user);
+                        finish();
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        ToastUtils.showToastShort("失败");
-                    }
-
-                    @Override
-                    public void onNext(BilibiliDataResponse<User> userBilibiliDataResponse) {
-                        if (userBilibiliDataResponse.isSuccess()) {
-                            ToastUtils.showToastShort("登陆成功");
-                            UserManagerUtils.getInstance().saveUserInfo(getApplicationContext(), userBilibiliDataResponse.getData());
-                            UserManagerUtils.getInstance().readUserInfo(getApplicationContext());
-                            RxBus.getInstance().send(userBilibiliDataResponse.getData());
-                            finish();
-                        }
+                        ToastUtils.showToastShort("登陆失败");
                     }
                 });
     }
@@ -210,6 +202,6 @@ public class LoginActivity extends BaseActivity implements View.OnFocusChangeLis
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mLoginSub);
+        DisposableUtils.dispose(mLoginSub);
     }
 }

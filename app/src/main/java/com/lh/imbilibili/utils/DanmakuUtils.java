@@ -9,13 +9,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import rx.Observable;
-import rx.Subscriber;
-import rx.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/9/26.
@@ -25,9 +25,9 @@ public class DanmakuUtils {
 
     public static Observable<InputStream> downLoadDanmaku(final String cid) {
 
-        return Observable.create(new Observable.OnSubscribe<InputStream>() {
+        return Observable.create(new ObservableOnSubscribe<InputStream>() {
             @Override
-            public void call(Subscriber<? super InputStream> subscriber) {
+            public void subscribe(ObservableEmitter<InputStream> emitter) throws Exception {
                 OkHttpClient okHttpClient = new OkHttpClient.Builder().build();
                 Request request = new Request.Builder().url(Constant.COMMENT_URL + "/" + cid + ".xml")
                         .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
@@ -51,12 +51,12 @@ public class DanmakuUtils {
                     }
                     fileOutputStream.close();
                     inputStream.close();
-                    subscriber.onNext(new FileInputStream(file));
-                    subscriber.onCompleted();
+                    emitter.onNext(new FileInputStream(file));
+                    emitter.onComplete();
                 } catch (IOException e) {
-                    subscriber.onError(e);
+                    emitter.onError(e);
                 }
             }
-        }).subscribeOn(Schedulers.io());
+        });
     }
 }

@@ -1,5 +1,6 @@
 package com.lh.imbilibili.data.helper;
 
+import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.api.AttentionService;
 import com.lh.imbilibili.data.api.BangumiService;
@@ -19,7 +20,6 @@ import java.util.concurrent.TimeUnit;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
-import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
@@ -56,7 +56,7 @@ public class CommonHelper extends BaseHelper {
                 .build();
         mRetrofit = new Retrofit.Builder().baseUrl(Constant.BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
-                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .client(client)
                 .build();
         initService();

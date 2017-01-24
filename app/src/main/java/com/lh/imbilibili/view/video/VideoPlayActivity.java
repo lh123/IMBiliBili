@@ -20,14 +20,13 @@ import com.lh.imbilibili.data.ApiException;
 import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.data.helper.PlusHelper;
 import com.lh.imbilibili.data.helper.VideoPlayerHelper;
-import com.lh.imbilibili.model.BiliBiliResultResponse;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.bangumi.BangumiDetail;
 import com.lh.imbilibili.model.video.PlusVideoPlayerData;
 import com.lh.imbilibili.model.video.SourceData;
 import com.lh.imbilibili.model.video.VideoPlayData;
 import com.lh.imbilibili.utils.DanmakuUtils;
-import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.VideoUtils;
 import com.lh.imbilibili.view.BaseActivity;
@@ -41,13 +40,15 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 import tv.danmaku.ijk.media.player.IMediaPlayer;
 
 /**
@@ -72,7 +73,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     @BindView(R.id.danmaku_view)
     DanmakuView mDanmakuView;
 
-    private Subscription mPrepareSub;
+    private Disposable mPrepareSub;
 
     private BangumiDetail.Episode mEpisode;
     private SourceData mSourceData;
@@ -129,7 +130,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     }
 
     private void preparePlay() {
-        SubscriptionUtils.unsubscribe(mPrepareSub);
+        DisposableUtils.dispose(mPrepareSub);
         mPreMsgBuilder.append("【完成】\n解析视频信息...");
         mPrePlayMsg.setText(mPreMsgBuilder);
         mPrepareSub = CommonHelper.getInstance()
@@ -137,11 +138,11 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                 .getSource(mEpisode.getEpisodeId(), System.currentTimeMillis())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .flatMap(new Func1<BiliBiliResultResponse<List<SourceData>>, Observable<?>>() {
+                .flatMap(new Function<BiliBiliResponse<List<SourceData>>, ObservableSource<?>>() {
                     @Override
-                    public Observable<?> call(BiliBiliResultResponse<List<SourceData>> listBiliBiliResultResponse) {
-                        if (listBiliBiliResultResponse.isSuccess()) {
-                            mSourceData = listBiliBiliResultResponse.getResult().get(0);
+                    public ObservableSource<?> apply(BiliBiliResponse<List<SourceData>> listBiliBiliResponse) {
+                        if (listBiliBiliResponse.isSuccess()) {
+                            mSourceData = listBiliBiliResponse.getResult().get(0);
                             mPreMsgBuilder.append("【完成】\n" +
                                     "解析视频地址...\n" +
                                     "全舰弹幕填装...");
@@ -150,25 +151,21 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                         } else {
                             mPreMsgBuilder.append("【失败】");
                             mPrePlayMsg.setText(mPreMsgBuilder);
-                            return Observable.error(new ApiException(listBiliBiliResultResponse.getCode()));
+                            return Observable.error(new ApiException(listBiliBiliResponse.getCode()));
                         }
                     }
                 })
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<Object>() {
+                .subscribeWith(new DisposableSingleObserver<Object>() {
                     @Override
-                    public void onCompleted() {
+                    public void onSuccess(Object o) {
                         startPlaying();
                     }
 
                     @Override
                     public void onError(Throwable e) {
                         e.printStackTrace();
-                    }
-
-                    @Override
-                    public void onNext(Object o) {
-
                     }
                 });
     }
@@ -187,9 +184,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                 .getPlayData(mSourceData.getAvId(), 0, 0, 0, mSourceData.getCid(), mCurrentQuality, "json")
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .flatMap(new Func1<VideoPlayData, Observable<String>>() {
+                .flatMap(new Function<VideoPlayData, ObservableSource<String>>() {
                     @Override
-                    public Observable<String> call(VideoPlayData videoPlayData) {
+                    public ObservableSource<String> apply(VideoPlayData videoPlayData) {
                         if (videoPlayData.getDurl() != null && !videoPlayData.getDurl().isEmpty()) {
                             int[] qualities = videoPlayData.getAcceptQuality();
                             List<VideoControlView.QualityItem> qualityItems = new ArrayList<>();
@@ -214,9 +211,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext(new Action1<String>() {
+                .doOnNext(new Consumer<String>() {
                     @Override
-                    public void call(String s) {
+                    public void accept(String s) {
                         String target = "解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
@@ -224,9 +221,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                         mIjkVideoView.setVideoPath(s);
                     }
                 })
-                .doOnError(new Action1<Throwable>() {
+                .doOnError(new Consumer<Throwable>() {
                     @Override
-                    public void call(Throwable throwable) {
+                    public void accept(Throwable throwable) {
                         String target = "解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
@@ -240,20 +237,20 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                 .getPlusService()
                 .getPlayData(1, mSourceData.getAvId(), mEpisode.getPage())
                 .subscribeOn(Schedulers.io())
-                .compose(new Observable.Transformer<PlusVideoPlayerData, PlusVideoPlayerData>() {
+                .compose(new ObservableTransformer<PlusVideoPlayerData, PlusVideoPlayerData>() {
                     @Override
-                    public Observable<PlusVideoPlayerData> call(Observable<PlusVideoPlayerData> plusVideoPlayerDataObservable) {
+                    public ObservableSource<PlusVideoPlayerData> apply(Observable<PlusVideoPlayerData> upstream) {
                         if (mPlusPlayerData != null) {
                             return Observable.just(mPlusPlayerData);
                         } else {
-                            return plusVideoPlayerDataObservable;
+                            return upstream;
                         }
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
-                .flatMap(new Func1<PlusVideoPlayerData, Observable<String>>() {
+                .flatMap(new Function<PlusVideoPlayerData, ObservableSource<String>>() {
                     @Override
-                    public Observable<String> call(PlusVideoPlayerData plusVideoPlayerData) {
+                    public ObservableSource<String> apply(PlusVideoPlayerData plusVideoPlayerData) {
                         mPlusPlayerData = plusVideoPlayerData;
                         if (!plusVideoPlayerData.getMode().equals("error")) {
                             List<PlusVideoPlayerData.Data> datas = plusVideoPlayerData.getData();
@@ -285,15 +282,15 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                         }
                     }
                 })
-                .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
+                .retryWhen(new Function<Observable<Throwable>, ObservableSource<?>>() {
 
                     boolean haveRetry = false;
 
                     @Override
-                    public Observable<?> call(Observable<? extends Throwable> observable) {
-                        return observable.flatMap(new Func1<Throwable, Observable<?>>() {
+                    public ObservableSource<?> apply(Observable<Throwable> observable) {
+                        return observable.flatMap(new Function<Throwable, ObservableSource<?>>() {
                             @Override
-                            public Observable<?> call(Throwable throwable) {
+                            public ObservableSource<?> apply(Throwable throwable) {
                                 if (!haveRetry) {
                                     haveRetry = true;
                                     return PlusHelper.getInstance().getPlusService().updateInfo(mSourceData.getAvId(), 1).subscribeOn(Schedulers.io());
@@ -305,9 +302,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext(new Action1<String>() {
+                .doOnNext(new Consumer<String>() {
                     @Override
-                    public void call(String s) {
+                    public void accept(String s) {
                         String target = "解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
@@ -315,18 +312,18 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                         mIjkVideoView.setVideoPath(s);
                     }
                 })
-                .doOnError(new Action1<Throwable>() {
+                .doOnError(new Consumer<Throwable>() {
                     @Override
-                    public void call(Throwable throwable) {
+                    public void accept(Throwable throwable) {
                         String target = "解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
                         mPrePlayMsg.setText(mPreMsgBuilder);
                     }
                 })
-                .onErrorResumeNext(new Func1<Throwable, Observable<? extends String>>() {
+                .onErrorResumeNext(new Function<Throwable, ObservableSource<? extends String>>() {
                     @Override
-                    public Observable<? extends String> call(Throwable throwable) {
+                    public ObservableSource<? extends String> apply(Throwable throwable) {
                         mPreMsgBuilder.append("\n海外解析视频地址...");
                         mPrePlayMsg.setText(mPreMsgBuilder);
                         return loadVideoInfoFromPlusUnBlock();
@@ -339,20 +336,20 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                 .getPlusService()
                 .getPlayDataUnBlock(1, mSourceData.getAvId(), mEpisode.getPage())
                 .subscribeOn(Schedulers.io())
-                .compose(new Observable.Transformer<PlusVideoPlayerData, PlusVideoPlayerData>() {
+                .compose(new ObservableTransformer<PlusVideoPlayerData, PlusVideoPlayerData>() {
                     @Override
-                    public Observable<PlusVideoPlayerData> call(Observable<PlusVideoPlayerData> plusVideoPlayerDataObservable) {
+                    public ObservableSource<PlusVideoPlayerData> apply(Observable<PlusVideoPlayerData> upstream) {
                         if (mPlusPlayerData != null) {
                             return Observable.just(mPlusPlayerData);
                         } else {
-                            return plusVideoPlayerDataObservable;
+                            return upstream;
                         }
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
-                .flatMap(new Func1<PlusVideoPlayerData, Observable<String>>() {
+                .flatMap(new Function<PlusVideoPlayerData, ObservableSource<String>>() {
                     @Override
-                    public Observable<String> call(PlusVideoPlayerData plusVideoPlayerData) {
+                    public ObservableSource<String> apply(PlusVideoPlayerData plusVideoPlayerData) {
                         mPlusPlayerData = plusVideoPlayerData;
                         if (!plusVideoPlayerData.getMode().equals("error")) {
                             List<PlusVideoPlayerData.Data> datas = plusVideoPlayerData.getData();
@@ -385,9 +382,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                     }
                 })
                 .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext(new Action1<String>() {
+                .doOnNext(new Consumer<String>() {
                     @Override
-                    public void call(String s) {
+                    public void accept(String s) {
                         String target = "海外解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
@@ -395,9 +392,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                         mIjkVideoView.setVideoPath(s);
                     }
                 })
-                .doOnError(new Action1<Throwable>() {
+                .doOnError(new Consumer<Throwable>() {
                     @Override
-                    public void call(Throwable throwable) {
+                    public void accept(Throwable throwable) {
                         String target = "海外解析视频地址...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
@@ -408,16 +405,16 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
 
     private Observable<InputStream> downloadDanmaku() {
         return DanmakuUtils.downLoadDanmaku(mSourceData.getCid())
-                .doOnNext(new Action1<InputStream>() {
+                .doOnNext(new Consumer<InputStream>() {
                     @Override
-                    public void call(InputStream inputStream) {
+                    public void accept(InputStream inputStream) {
                         preparDanmaku(inputStream);
                     }
                 }).subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .onErrorResumeNext(new Func1<Throwable, Observable<? extends InputStream>>() {
+                .onErrorResumeNext(new Function<Throwable, ObservableSource<? extends InputStream>>() {
                     @Override
-                    public Observable<? extends InputStream> call(Throwable throwable) {
+                    public ObservableSource<? extends InputStream> apply(Throwable throwable) {
                         String target = "全舰弹幕填装...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【失败】");
@@ -425,9 +422,9 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
                         return Observable.empty();
                     }
                 })
-                .doOnNext(new Action1<InputStream>() {
+                .doOnNext(new Consumer<InputStream>() {
                     @Override
-                    public void call(InputStream inputStream) {
+                    public void accept(InputStream inputStream) {
                         String target = "全舰弹幕填装...";
                         int startPosition = mPreMsgBuilder.indexOf(target);
                         mPreMsgBuilder.insert(startPosition + target.length(), "【完成】");
@@ -451,12 +448,12 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
         }
     }
 
-    private Observable<BilibiliDataResponse> reportWatch(String cid, String eposideId) {
+    private Observable<BiliBiliResponse> reportWatch(String cid, String eposideId) {
         return CommonHelper.getInstance()
                 .getHistoryService()
                 .reportWatch(cid, eposideId, System.currentTimeMillis())
                 .subscribeOn(Schedulers.io())
-                .onErrorResumeNext(Observable.<BilibiliDataResponse>empty());
+                .onErrorResumeNext(Observable.<BiliBiliResponse>empty());
     }
 
     private void startPlaying() {
@@ -502,7 +499,7 @@ public class VideoPlayActivity extends BaseActivity implements IMediaPlayer.OnIn
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mPrepareSub);
+        DisposableUtils.dispose(mPrepareSub);
         mHandler.removeCallbacksAndMessages(null);
         mIjkVideoView.release(true);
         if (mDanmakuView != null) {

@@ -10,7 +10,7 @@ import android.widget.ProgressBar;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.history.History;
 import com.lh.imbilibili.utils.CallUtils;
 import com.lh.imbilibili.utils.ToastUtils;
@@ -54,7 +54,7 @@ public class HistoryRecordFragment extends BaseFragment {
 
     private HistoryAdapter mAdapter;
 
-    private Call<BilibiliDataResponse<List<History>>> mHistoryCall;
+    private Call<BiliBiliResponse<List<History>>> mHistoryCall;
 
     public static HistoryRecordFragment newInstance() {
         return new HistoryRecordFragment();
@@ -128,18 +128,18 @@ public class HistoryRecordFragment extends BaseFragment {
 
     private void loadHistory() {
         mHistoryCall = CommonHelper.getInstance().getHistoryService().getHistory(1, 200);
-        mHistoryCall.enqueue(new Callback<BilibiliDataResponse<List<History>>>() {
+        mHistoryCall.enqueue(new Callback<BiliBiliResponse<List<History>>>() {
             @Override
-            public void onResponse(Call<BilibiliDataResponse<List<History>>> call, Response<BilibiliDataResponse<List<History>>> response) {
+            public void onResponse(Call<BiliBiliResponse<List<History>>> call, Response<BiliBiliResponse<List<History>>> response) {
                 if (response.body().isSuccess()) {
-                    mAdapter.setData(response.body().getData());
+                    mAdapter.setData(response.body().getResult());
                     mAdapter.notifyDataSetChanged();
                     mPb.setVisibility(View.GONE);
                 }
             }
 
             @Override
-            public void onFailure(Call<BilibiliDataResponse<List<History>>> call, Throwable t) {
+            public void onFailure(Call<BiliBiliResponse<List<History>>> call, Throwable t) {
                 ToastUtils.showToastShort(R.string.load_error);
             }
         });

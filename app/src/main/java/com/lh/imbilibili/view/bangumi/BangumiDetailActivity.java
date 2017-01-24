@@ -22,11 +22,11 @@ import android.widget.TextView;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.helper.CommonHelper;
 import com.lh.imbilibili.data.helper.PlusHelper;
-import com.lh.imbilibili.model.BiliBiliResultResponse;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.bangumi.Bangumi;
 import com.lh.imbilibili.model.bangumi.BangumiDetail;
 import com.lh.imbilibili.model.bangumi.SeasonRecommend;
@@ -34,27 +34,30 @@ import com.lh.imbilibili.model.feedback.Feedback;
 import com.lh.imbilibili.model.feedback.FeedbackData;
 import com.lh.imbilibili.model.feedback.ReplyCount;
 import com.lh.imbilibili.utils.DisplayUtils;
-import com.lh.imbilibili.utils.RxBus;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
-import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.adapter.bangumidetail.BangumiDetailAdapter;
 import com.lh.imbilibili.view.video.VideoPlayActivity;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
+import com.lh.rxbuslibrary.RxBus;
+import com.lh.rxbuslibrary.annotation.Subscribe;
+import com.lh.rxbuslibrary.event.EventThread;
 
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.observers.DisposableCompletableObserver;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by home on 2016/7/30.
@@ -97,10 +100,9 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
 
     private BangumiDetailAdapter mAdapter;
 
-    private Subscription mAllDataSub;
-    private Subscription mFeedbackSub;
-    private Subscription mLoadMoreFeedbackSub;
-    private Subscription mBusSub;
+    private Disposable mAllDataSub;
+    private Disposable mFeedbackSub;
+    private Disposable mLoadMoreFeedbackSub;
 
     private BangumiDetail mBangumiDetail;
     private List<Bangumi> mSeasonsRecommends;
@@ -116,23 +118,13 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
     @Override
     protected void onStart() {
         super.onStart();
-        mBusSub = RxBus.getInstance()
-                .toObserverable(EpisodeChooseFragment.EpisodeClickEvent.class)
-                .subscribe(new Action1<EpisodeChooseFragment.EpisodeClickEvent>() {
-                    @Override
-                    public void call(EpisodeChooseFragment.EpisodeClickEvent episodeClickEvent) {
-                        mAdapter.setEpSelectPosition(episodeClickEvent.position);
-                        onEposideSelect(episodeClickEvent.position
-                                , episodeClickEvent.mode == EpisodeChooseFragment.MODE_PLAY
-                                , episodeClickEvent.mode == EpisodeChooseFragment.MODE_FEEDBACK);
-                    }
-                });
+        RxBus.getInstance().register(this);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        SubscriptionUtils.unsubscribe(mBusSub);
+        RxBus.getInstance().unRegister(this);
     }
 
     @Override
@@ -180,7 +172,7 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
             }
         });
     }
-
+    
     private void initRecyclerView() {
         mAdapter = new BangumiDetailAdapter(this);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
@@ -249,6 +241,14 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
         });
     }
 
+    @Subscribe(scheduler = EventThread.UI)
+    public void OnEpisodeClick(EpisodeChooseFragment.EpisodeClickEvent episodeClickEvent){
+        mAdapter.setEpSelectPosition(episodeClickEvent.position);
+        onEposideSelect(episodeClickEvent.position
+                , episodeClickEvent.mode == EpisodeChooseFragment.MODE_PLAY
+                , episodeClickEvent.mode == EpisodeChooseFragment.MODE_FEEDBACK);
+    }
+
 
     private void showFab() {
         if (mFabShow) {
@@ -307,10 +307,11 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
     private void loadAllData() {
         mAllDataSub = Observable.mergeDelayError(loadBangumiAndFeedbackData(), loadBangumiRecommendData())
                 .subscribeOn(Schedulers.io())
+                .ignoreElements()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<Object>() {
+                .subscribeWith(new DisposableCompletableObserver(){
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         finishTask();
                     }
 
@@ -322,10 +323,6 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                         mRecyclerView.setShowLoadingView(false);
                         finishTask();
                     }
-
-                    @Override
-                    public void onNext(Object o) {
-                    }
                 });
     }
 
@@ -334,30 +331,30 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                 .getInstance()
                 .getBangumiService()
                 .getBangumiDetail(mSeasonId, System.currentTimeMillis(), Constant.TYPE_BANGUMI)
-                .flatMap(new Func1<BiliBiliResultResponse<BangumiDetail>, Observable<BiliBiliResultResponse<BangumiDetail>>>() {
+                .flatMap(new Function<BiliBiliResponse<BangumiDetail>, ObservableSource<BiliBiliResponse<BangumiDetail>>>() {
                     @Override
-                    public Observable<BiliBiliResultResponse<BangumiDetail>> call(BiliBiliResultResponse<BangumiDetail> bangumiDetailBiliBiliResultResponse) {
-                        if (!bangumiDetailBiliBiliResultResponse.isSuccess() || bangumiDetailBiliBiliResultResponse.getResult().getEpisodes().isEmpty()) {
+                    public ObservableSource<BiliBiliResponse<BangumiDetail>> apply(BiliBiliResponse<BangumiDetail> bangumiDetailBiliBiliResponse) throws Exception {
+                        if (!bangumiDetailBiliBiliResponse.isSuccess() || bangumiDetailBiliBiliResponse.getResult().getEpisodes().isEmpty()) {
                             return PlusHelper.getInstance().getPlusService().getBangumiDetailFromPlus(mSeasonId)
-                                    .map(new Func1<BiliBiliResultResponse<BangumiDetail>, BiliBiliResultResponse<BangumiDetail>>() {
+                                    .map(new Function<BiliBiliResponse<BangumiDetail>, BiliBiliResponse<BangumiDetail>>() {
                                         @Override
-                                        public BiliBiliResultResponse<BangumiDetail> call(BiliBiliResultResponse<BangumiDetail> bangumiDetailBiliBiliResultResponse) {
-                                            if (bangumiDetailBiliBiliResultResponse.isSuccess()) {
-                                                bangumiDetailBiliBiliResultResponse.getResult().setCover("http:" + bangumiDetailBiliBiliResultResponse.getResult().getCover());
+                                        public BiliBiliResponse<BangumiDetail> apply(BiliBiliResponse<BangumiDetail> bangumiDetailBiliBiliResponse) throws Exception {
+                                            if (bangumiDetailBiliBiliResponse.isSuccess()) {
+                                                bangumiDetailBiliBiliResponse.getResult().setCover("http:" + bangumiDetailBiliBiliResponse.getResult().getCover());
                                             }
-                                            return bangumiDetailBiliBiliResultResponse;
+                                            return bangumiDetailBiliBiliResponse;
                                         }
                                     });
                         } else {
-                            return Observable.just(bangumiDetailBiliBiliResultResponse);
+                            return Observable.just(bangumiDetailBiliBiliResponse);
                         }
                     }
                 })
-                .flatMap(new Func1<BiliBiliResultResponse<BangumiDetail>, Observable<Object>>() {
+                .flatMap(new Function<BiliBiliResponse<BangumiDetail>, ObservableSource<?>>() {
                     @Override
-                    public Observable<Object> call(BiliBiliResultResponse<BangumiDetail> bangumiDetailBiliBiliResultResponse) {
-                        if (bangumiDetailBiliBiliResultResponse.isSuccess()) {
-                            mBangumiDetail = bangumiDetailBiliBiliResultResponse.getResult();
+                    public ObservableSource<?> apply(BiliBiliResponse<BangumiDetail> bangumiDetailBiliBiliResponse) throws Exception {
+                        if (bangumiDetailBiliBiliResponse.isSuccess()) {
+                            mBangumiDetail = bangumiDetailBiliBiliResponse.getResult();
                             if (!mBangumiDetail.getEpisodes().isEmpty()) {
                                 String avId = mBangumiDetail.getEpisodes().get(0).getAvId();
                                 return Observable.mergeDelayError(loadReplyCount(avId),
@@ -366,8 +363,8 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                                 return Observable.empty();
                             }
                         } else {
-                            return Observable.error(new ApiException(bangumiDetailBiliBiliResultResponse.getCode(),
-                                    bangumiDetailBiliBiliResultResponse.getMessage()));
+                            return Observable.error(new ApiException(bangumiDetailBiliBiliResponse.getCode(),
+                                    bangumiDetailBiliBiliResponse.getMessage()));
                         }
                     }
                 });
@@ -378,16 +375,12 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                 .getInstance()
                 .getBangumiService()
                 .getSeasonRecommend(mSeasonId, System.currentTimeMillis())
-                .flatMap(new Func1<BiliBiliResultResponse<SeasonRecommend>, Observable<List<Bangumi>>>() {
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<SeasonRecommend>, SeasonRecommend>handlerResult())
+                .map(new Function<SeasonRecommend, List<Bangumi>>() {
                     @Override
-                    public Observable<List<Bangumi>> call(BiliBiliResultResponse<SeasonRecommend> seasonRecommendBiliBiliResultResponse) {
-                        if (seasonRecommendBiliBiliResultResponse.isSuccess()) {
-                            mSeasonsRecommends = seasonRecommendBiliBiliResultResponse.getResult().getList();
-                            return Observable.just(mSeasonsRecommends);
-                        } else {
-                            return Observable.error(new ApiException(seasonRecommendBiliBiliResultResponse.getCode(),
-                                    seasonRecommendBiliBiliResultResponse.getMessage()));
-                        }
+                    public List<Bangumi> apply(SeasonRecommend seasonRecommend) throws Exception {
+                        mSeasonsRecommends = seasonRecommend.getList();
+                        return mSeasonsRecommends;
                     }
                 });
     }
@@ -435,20 +428,16 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                 .getInstance()
                 .getReplyService()
                 .getFeedback(noHot ? 1 : 0, avId, mCurrentPage, noHot ? PAGE_SIZE : 3, noHot ? 0 : 2, 1)
-                .flatMap(new Func1<BilibiliDataResponse<FeedbackData>, Observable<List<Feedback>>>() {
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<FeedbackData>, FeedbackData>handlerResult())
+                .map(new Function<FeedbackData, List<Feedback>>() {
                     @Override
-                    public Observable<List<Feedback>> call(BilibiliDataResponse<FeedbackData> feedbackDataBilibiliDataResponse) {
-                        if (feedbackDataBilibiliDataResponse.isSuccess()) {
-                            if (!noHot) {
-                                mHotFeedback = feedbackDataBilibiliDataResponse.getData().getHots();
-                                return Observable.just(mHotFeedback);
-                            } else {
-                                mNormalFeedback = feedbackDataBilibiliDataResponse.getData().getReplies();
-                                return Observable.just(mNormalFeedback);
-                            }
+                    public List<Feedback> apply(FeedbackData feedbackData) throws Exception {
+                        if (!noHot) {
+                            mHotFeedback = feedbackData.getHots();
+                            return mHotFeedback;
                         } else {
-                            return Observable.error(new ApiException(feedbackDataBilibiliDataResponse.getCode(),
-                                    feedbackDataBilibiliDataResponse.getMessage()));
+                            mNormalFeedback = feedbackData.getReplies();
+                            return mNormalFeedback;
                         }
                     }
                 });
@@ -458,16 +447,12 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
         return CommonHelper.getInstance()
                 .getReplyService()
                 .getReplyCount(id, 1)
-                .flatMap(new Func1<BilibiliDataResponse<ReplyCount>, Observable<Integer>>() {
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<ReplyCount>, ReplyCount>handlerResult())
+                .map(new Function<ReplyCount, Integer>() {
                     @Override
-                    public Observable<Integer> call(BilibiliDataResponse<ReplyCount> replyCountBilibiliDataResponse) {
-                        if (replyCountBilibiliDataResponse.isSuccess()) {
-                            mReplyCount = replyCountBilibiliDataResponse.getData().getCount();
-                            return Observable.just(mReplyCount);
-                        } else {
-                            return Observable.error(new ApiException(replyCountBilibiliDataResponse.getCode(),
-                                    replyCountBilibiliDataResponse.getMessage()));
-                        }
+                    public Integer apply(ReplyCount replyCount) throws Exception {
+                        mReplyCount = replyCount.getCount();
+                        return mReplyCount;
                     }
                 });
     }
@@ -475,7 +460,7 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
 
     @Override
     protected void onDestroy() {
-        SubscriptionUtils.unsubscribe(mAllDataSub, mLoadMoreFeedbackSub, mFeedbackSub);
+        DisposableUtils.dispose(mAllDataSub, mLoadMoreFeedbackSub, mFeedbackSub);
         super.onDestroy();
     }
 
@@ -487,21 +472,10 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
         mLoadMoreFeedbackSub = loadFeedbackDate(mBangumiDetail.getEpisodes().get(mAdapter.getEpSelectPosition()).getAvId(), true)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<List<Feedback>>() {
+                .firstOrError()
+                .subscribeWith(new DisposableSingleObserver<List<Feedback>>() {
                     @Override
-                    public void onCompleted() {
-
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        mRecyclerView.setLoading(false);
-                        mRecyclerView.setEnableLoadMore(false);
-                        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_RETRY);
-                    }
-
-                    @Override
-                    public void onNext(List<Feedback> feedbacks) {
+                    public void onSuccess(List<Feedback> feedbacks) {
                         mRecyclerView.setLoading(false);
                         if (feedbacks.isEmpty()) {
                             mRecyclerView.setEnableLoadMore(false);
@@ -513,11 +487,18 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                             mCurrentPage++;
                         }
                     }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        mRecyclerView.setLoading(false);
+                        mRecyclerView.setEnableLoadMore(false);
+                        mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_RETRY);
+                    }
                 });
     }
 
     private void onEposideSelect(final int position, final boolean playVideo, final boolean needScroll) {
-        SubscriptionUtils.unsubscribe(mAllDataSub, mLoadMoreFeedbackSub, mFeedbackSub);
+        DisposableUtils.dispose(mAllDataSub, mLoadMoreFeedbackSub, mFeedbackSub);
         BangumiDetail.Episode episode = mBangumiDetail.getEpisodes().get(position);
         if (playVideo) {
             VideoPlayActivity.startVideoActivity(this, episode);
@@ -528,9 +509,10 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                 loadFeedbackDate(episode.getAvId(), true))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<Object>() {
+                .ignoreElements()
+                .subscribeWith(new DisposableCompletableObserver(){
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         mTvTitle.setText(StringUtils.format("评论 第%s话", mBangumiDetail.getEpisodes().get(position).getIndex()));
                         mTvAdditionInfo.setText(StringUtils.format("(%d)", mReplyCount));
                         mAdapter.clearFeedback();
@@ -552,11 +534,6 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                     public void onError(Throwable e) {
                         ToastUtils.showToastShort(R.string.load_error);
                     }
-
-                    @Override
-                    public void onNext(Object o) {
-
-                    }
                 });
     }
 
@@ -571,7 +548,7 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
     public void onItemClick(int type, final int position) {
         switch (type) {
             case BangumiDetailAdapter.TYPE_SEASON_LIST:
-                SubscriptionUtils.unsubscribe(mAllDataSub, mLoadMoreFeedbackSub, mFeedbackSub);
+                DisposableUtils.dispose(mAllDataSub, mLoadMoreFeedbackSub, mFeedbackSub);
                 mSeasonId = mBangumiDetail.getSeasons().get(position).getSeasonId();
                 mAdapter.clearAllData();
                 mCurrentPage = 1;
@@ -616,9 +593,9 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
             return;
         }
         Observable.just(mBangumiDetail.getUserSeason().getAttention())
-                .flatMap(new Func1<String, Observable<BilibiliDataResponse>>() {
+                .flatMap(new Function<String, ObservableSource<BiliBiliResponse>>() {
                     @Override
-                    public Observable<BilibiliDataResponse> call(String s) {
+                    public ObservableSource<BiliBiliResponse> apply(String s) throws Exception {
                         if (s.equals("1")) {
                             return CommonHelper.getInstance().getAttentionService().unConcernSeason(mBangumiDetail.getSeasonId());
                         } else {
@@ -626,10 +603,11 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
                         }
                     }
                 }).subscribeOn(Schedulers.io())
+                .ignoreElements()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<BilibiliDataResponse>() {
+                .subscribeWith(new DisposableCompletableObserver() {
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         if (mBangumiDetail.getUserSeason().getAttention().equals("1")) {
                             mBangumiDetail.getUserSeason().setAttention("0");
                             showBottomTip(R.string.bangumi_unsubscribe_success);
@@ -642,12 +620,7 @@ public class BangumiDetailActivity extends BaseActivity implements LoadMoreRecyc
 
                     @Override
                     public void onError(Throwable e) {
-
-                    }
-
-                    @Override
-                    public void onNext(BilibiliDataResponse o) {
-
+                        showBottomTip(R.string.load_error);
                     }
                 });
     }

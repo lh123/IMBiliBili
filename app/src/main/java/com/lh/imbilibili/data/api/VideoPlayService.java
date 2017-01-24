@@ -3,9 +3,9 @@ package com.lh.imbilibili.data.api;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.model.video.VideoPlayData;
 
+import io.reactivex.Observable;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
-import rx.Observable;
 
 /**
  * Created by liuhui on 2016/10/8.

@@ -5,18 +5,17 @@ import android.view.View;
 
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.RxBus;
-import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.LinearLayoutItemDecoration;
 import com.lh.imbilibili.view.adapter.usercenter.GameRecyclerViewAdapter;
 import com.lh.imbilibili.widget.EmptyView;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
+import com.lh.rxbuslibrary.RxBus;
+import com.lh.rxbuslibrary.annotation.Subscribe;
+import com.lh.rxbuslibrary.event.EventThread;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Subscription;
-import rx.functions.Action1;
 
 /**
  * Created by liuhui on 2016/10/17.
@@ -37,8 +36,6 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
     private GameRecyclerViewAdapter mAdapter;
 
 //    private int mCurrentPage;
-
-    private Subscription mBusSub;
 
     private UserCenterDataProvider mUserCenterProvider;
 
@@ -71,27 +68,23 @@ public class UserCenterGameFragment extends BaseFragment implements LoadMoreRecy
     @Override
     public void onStart() {
         super.onStart();
-        mBusSub = RxBus.getInstance()
-                .toObserverable(UserCenter.class)
-                .subscribe(new Action1<UserCenter>() {
-                    @Override
-                    public void call(UserCenter userCenter) {
-                        if (mUserCenter == null) {
-                            mUserCenter = userCenter;
-                            initData();
-                        }
-                    }
-                });
+        RxBus.getInstance().register(this);
         if (mUserCenterProvider != null) {
             mUserCenter = mUserCenterProvider.getUserCenter();
             initData();
         }
     }
 
+    @Subscribe(scheduler = EventThread.UI)
+    public void OnUserCenterInfoReceiver(UserCenter userCenter){
+        mUserCenter = userCenter;
+        initData();
+    }
+
     @Override
     public void onStop() {
         super.onStop();
-        SubscriptionUtils.unsubscribe(mBusSub);
+        RxBus.getInstance().unRegister(this);
     }
 
     public void initData() {

@@ -4,12 +4,11 @@ import android.support.v7.widget.GridLayoutManager;
 import android.view.View;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.user.UserCenter;
-import com.lh.imbilibili.utils.RxBus;
-import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.GridLayoutItemDecoration;
@@ -17,15 +16,16 @@ import com.lh.imbilibili.view.adapter.usercenter.FollowBangumiRecyclerViewAdapte
 import com.lh.imbilibili.view.bangumi.BangumiDetailActivity;
 import com.lh.imbilibili.widget.EmptyView;
 import com.lh.imbilibili.widget.LoadMoreRecyclerView;
+import com.lh.rxbuslibrary.RxBus;
+import com.lh.rxbuslibrary.annotation.Subscribe;
+import com.lh.rxbuslibrary.event.EventThread;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/17.
@@ -46,9 +46,7 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
 
     private FollowBangumiRecyclerViewAdapter mAdapter;
 
-    private Subscription mUserBangumiSub;
-
-    private Subscription mBusSub;
+    private Disposable mUserBangumiSub;
 
     private UserCenterDataProvider mUserCenterProvider;
 
@@ -92,27 +90,23 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
     @Override
     public void onStart() {
         super.onStart();
-        mBusSub = RxBus.getInstance()
-                .toObserverable(UserCenter.class)
-                .subscribe(new Action1<UserCenter>() {
-                    @Override
-                    public void call(UserCenter userCenter) {
-                        if (mUserCenter == null) {
-                            mUserCenter = userCenter;
-                            initData();
-                        }
-                    }
-                });
+        RxBus.getInstance().register(this);
         if (mUserCenterProvider != null) {
             mUserCenter = mUserCenterProvider.getUserCenter();
             initData();
         }
     }
 
+    @Subscribe(scheduler = EventThread.UI)
+    public void OnUserCenterInfoReceiver(UserCenter userCenter){
+        mUserCenter = userCenter;
+        initData();
+    }
+
     @Override
     public void onStop() {
         super.onStop();
-        SubscriptionUtils.unsubscribe(mBusSub);
+        RxBus.getInstance().unRegister(this);
     }
 
     public void initData() {
@@ -152,20 +146,12 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
                 .getUserService()
                 .getUserBangumi(mCurrentPage, PAGE_SIZE, System.currentTimeMillis(), Integer.parseInt(mUserCenter.getCard().getMid()))
                 .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<BilibiliDataResponse<UserCenter.CenterList<UserCenter.Season>>, Observable<UserCenter.CenterList<UserCenter.Season>>>() {
-                    @Override
-                    public Observable<UserCenter.CenterList<UserCenter.Season>> call(BilibiliDataResponse<UserCenter.CenterList<UserCenter.Season>> centerListBilibiliDataResponse) {
-                        if (centerListBilibiliDataResponse.isSuccess()) {
-                            return Observable.just(centerListBilibiliDataResponse.getData());
-                        } else {
-                            return Observable.error(new ApiException(centerListBilibiliDataResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<UserCenter.CenterList<UserCenter.Season>>, UserCenter.CenterList<UserCenter.Season>>handlerResult())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<UserCenter.CenterList<UserCenter.Season>>() {
+                .subscribeWith(new DisposableSingleObserver<UserCenter.CenterList<UserCenter.Season>>() {
                     @Override
-                    public void call(UserCenter.CenterList<UserCenter.Season> seasonCenterList) {
+                    public void onSuccess(UserCenter.CenterList<UserCenter.Season> seasonCenterList) {
                         mRecyclerView.setLoading(false);
                         if (seasonCenterList.getCount() < PAGE_SIZE) {
                             mRecyclerView.setEnableLoadMore(false);
@@ -177,9 +163,9 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
                             mCurrentPage++;
                         }
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
+                    public void onError(Throwable e) {
                         mRecyclerView.setLoading(false);
                         ToastUtils.showToastShort(R.string.load_error);
                     }
@@ -199,7 +185,7 @@ public class UserCenterFollowBangumiFragment extends BaseFragment implements Loa
     @Override
     public void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mUserBangumiSub);
+        DisposableUtils.dispose(mUserBangumiSub);
     }
 
     @Override

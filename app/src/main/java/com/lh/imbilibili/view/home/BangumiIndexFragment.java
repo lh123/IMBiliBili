@@ -13,12 +13,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BiliBiliResultResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.bangumi.BangumiIndex;
 import com.lh.imbilibili.model.bangumi.BangumiIndexCond;
-import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.GridLayoutItemDecoration;
@@ -32,16 +32,14 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by home on 2016/8/11.
+ * Index
  */
 public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecyclerView.OnLoadMoreLinstener, BangumiIndexAdapter.OnBangumiItemClickListener, View.OnClickListener, AdapterView.OnItemClickListener {
     public static final String TAG = "BangumiIndexFragment";
@@ -88,12 +86,12 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
     private BangumiIndexCond mBangumiIndexCond;
     private List<BangumiIndexCond.Category> mBangumiTypeList;
     private List<BangumiIndexCond.Category> mBangumiStatusList;
-    private List<BangumiIndexCond.Category> mBangumiRegionList;
+//    private List<BangumiIndexCond.Category> mBangumiRegionList;
 
-    private List<Integer> mYears;
+//    private List<Integer> mYears;
 
-    private Subscription mBangumiIndexSub;
-    private Subscription mBangumiIndexCondSub;
+    private Disposable mBangumiIndexSub;
+    private Disposable mBangumiIndexCondSub;
 
     private int mCurrentPage;
     private int mYear;
@@ -144,7 +142,7 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
         mCurrentPage = 1;
         mYear = getArguments().getInt("year");
         mQuarter = getArguments().getInt("quarter");
-        mYears = getArguments().getIntegerArrayList("years");
+//        mYears = getArguments().getIntegerArrayList("years");
         mTvSortButtons = new TextView[]{mTvSortRecent, mTvSortHit, mTvSortDay};
         mIvUps = new ImageView[]{mIvRecentUp, mIvHitUp, mIvDayUp};
         mIvDowns = new ImageView[]{mIvRecentDown, mIvHitDown, mIvDayDown};
@@ -171,12 +169,12 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
         mBangumiStatusList.add(generateCategory("全部", "0"));
         mBangumiStatusList.add(generateCategory("完结", "2"));
         mBangumiStatusList.add(generateCategory("连载", "1"));
-        mBangumiRegionList = new ArrayList<>();
-        mBangumiRegionList.add(generateCategory("全部", "0"));
-        mBangumiRegionList.add(generateCategory("国产", "1"));
-        mBangumiRegionList.add(generateCategory("日本", "2"));
-        mBangumiRegionList.add(generateCategory("美国", "3"));
-        mBangumiRegionList.add(generateCategory("其他", "4"));
+//        mBangumiRegionList = new ArrayList<>();
+//        mBangumiRegionList.add(generateCategory("全部", "0"));
+//        mBangumiRegionList.add(generateCategory("国产", "1"));
+//        mBangumiRegionList.add(generateCategory("日本", "2"));
+//        mBangumiRegionList.add(generateCategory("美国", "3"));
+//        mBangumiRegionList.add(generateCategory("其他", "4"));
         for (TextView mTvSortButton : mTvSortButtons) {
             mTvSortButton.setOnClickListener(this);
         }
@@ -288,31 +286,13 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
                 .getBangumiService().getBangumiIndex(
                         indexSort, indexType, "", isFinish, page, pageSize,
                         quarter, startYear, tagId, System.currentTimeMillis(), updatePeriod, version)
-                .flatMap(new Func1<BiliBiliResultResponse<BangumiIndex>, Observable<BangumiIndex>>() {
-                    @Override
-                    public Observable<BangumiIndex> call(BiliBiliResultResponse<BangumiIndex> bangumiIndexBiliBiliResultResponse) {
-                        if (bangumiIndexBiliBiliResultResponse.isSuccess()) {
-                            return Observable.just(bangumiIndexBiliBiliResultResponse.getResult());
-                        } else {
-                            return Observable.error(new ApiException(bangumiIndexBiliBiliResultResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<BangumiIndex>, BangumiIndex>handlerResult())
                 .subscribeOn(Schedulers.io())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<BangumiIndex>() {
+                .subscribeWith(new DisposableSingleObserver<BangumiIndex>() {
                     @Override
-                    public void onCompleted() {
-
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        ToastUtils.showToastShort(R.string.load_error);
-                    }
-
-                    @Override
-                    public void onNext(BangumiIndex bangumiIndex) {
+                    public void onSuccess(BangumiIndex bangumiIndex) {
                         mBangumiIndex = bangumiIndex;
                         mAdapter.addBangumis(mBangumiIndex.getList());
                         mAdapter.notifyDataSetChanged();
@@ -325,6 +305,11 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
                             mLoadMoreRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_REFRESHING);
                         }
                     }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        ToastUtils.showToastShort(R.string.load_error);
+                    }
                 });
     }
 
@@ -332,27 +317,23 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
         mBangumiIndexCondSub = CommonHelper.getInstance()
                 .getBangumiService()
                 .getBangumiIndexCond(System.currentTimeMillis(), type)
-                .flatMap(new Func1<BiliBiliResultResponse<BangumiIndexCond>, Observable<BangumiIndexCond>>() {
-                    @Override
-                    public Observable<BangumiIndexCond> call(BiliBiliResultResponse<BangumiIndexCond> bangumiIndexCondBiliBiliResultResponse) {
-                        if (bangumiIndexCondBiliBiliResultResponse.isSuccess()) {
-                            return Observable.just(bangumiIndexCondBiliBiliResultResponse.getResult());
-                        } else {
-                            return Observable.error(new ApiException(bangumiIndexCondBiliBiliResultResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<BangumiIndexCond>, BangumiIndexCond>handlerResult())
                 .subscribeOn(Schedulers.io())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<BangumiIndexCond>() {
+                .subscribeWith(new DisposableSingleObserver<BangumiIndexCond>() {
                     @Override
-                    public void call(BangumiIndexCond bangumiIndexCond) {
+                    public void onSuccess(BangumiIndexCond bangumiIndexCond) {
                         mBangumiIndexCond = bangumiIndexCond;
                         BangumiIndexCond.Category defaultCategory = new BangumiIndexCond.Category();
                         defaultCategory.setTagName("全部");
                         defaultCategory.setTagId("0");
                         mBangumiIndexCond.getCategory().add(0, defaultCategory);
-//                        mDrawerViewHolder.setStyleTags(mBangumiIndexCond.getCategory(), true);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        ToastUtils.showToastShort(R.string.load_error);
                     }
                 });
     }
@@ -366,7 +347,7 @@ public class BangumiIndexFragment extends BaseFragment implements LoadMoreRecycl
     @Override
     public void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mBangumiIndexCondSub, mBangumiIndexSub);
+        DisposableUtils.dispose(mBangumiIndexCondSub, mBangumiIndexSub);
     }
 
     @Override

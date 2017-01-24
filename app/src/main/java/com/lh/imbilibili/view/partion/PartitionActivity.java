@@ -11,21 +11,20 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.utils.RxBus;
 import com.lh.imbilibili.utils.StatusBarUtils;
-import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.partion.PartionViewPagerAdapter;
 import com.lh.imbilibili.view.adapter.partion.model.PartionModel;
+import com.lh.rxbuslibrary.RxBus;
+import com.lh.rxbuslibrary.annotation.Subscribe;
+import com.lh.rxbuslibrary.event.EventThread;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Subscription;
-import rx.functions.Action1;
 
 /**
  * Created by liuhui on 2016/9/29.
@@ -47,8 +46,6 @@ public class PartitionActivity extends BaseActivity {
 
     private PartionModel mPartionModel;
 
-    private Subscription mBusSub;
-
     public static void startActivity(Context context, PartionModel partionModel) {
         Intent intent = new Intent(context, PartitionActivity.class);
         intent.putExtra(EXTRA_DATA, partionModel);
@@ -68,20 +65,18 @@ public class PartitionActivity extends BaseActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        mBusSub = RxBus.getInstance()
-                .toObserverable(SubPartionClickEvent.class)
-                .subscribe(new Action1<SubPartionClickEvent>() {
-                    @Override
-                    public void call(SubPartionClickEvent subPartionClickEvent) {
-                        mViewPager.setCurrentItem(subPartionClickEvent.position + 1);
-                    }
-                });
+        RxBus.getInstance().register(this);
+    }
+
+    @Subscribe(scheduler = EventThread.UI)
+    public void SubPartionClick(SubPartionClickEvent subPartionClickEvent){
+        mViewPager.setCurrentItem(subPartionClickEvent.position + 1);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        SubscriptionUtils.unsubscribe(mBusSub);
+        RxBus.getInstance().unRegister(this);
     }
 
     private void initView() {

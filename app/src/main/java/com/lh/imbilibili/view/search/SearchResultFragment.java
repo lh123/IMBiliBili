@@ -5,11 +5,11 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.view.View;
 
 import com.lh.imbilibili.R;
-import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.search.SearchResult;
-import com.lh.imbilibili.utils.SubscriptionUtils;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.LazyLoadFragment;
 import com.lh.imbilibili.view.adapter.LinearLayoutItemDecoration;
@@ -20,15 +20,14 @@ import com.lh.imbilibili.widget.LoadMoreRecyclerView;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/5.
+ * 搜索界面
  */
 
 public class SearchResultFragment extends LazyLoadFragment implements LoadMoreRecyclerView.OnLoadMoreLinstener, SearchRecyclerViewAdapter.OnSearchItemClickListener {
@@ -42,7 +41,7 @@ public class SearchResultFragment extends LazyLoadFragment implements LoadMoreRe
     LoadMoreRecyclerView mRecyclerView;
     private SearchRecyclerViewAdapter mAdapter;
     private int mCurrentPage;
-    private Subscription mSearchSub;
+    private Disposable mSearchSub;
     private SearchResult mSearchResult;
     private String mKeyWord;
 
@@ -85,31 +84,13 @@ public class SearchResultFragment extends LazyLoadFragment implements LoadMoreRe
         mSearchSub = CommonHelper.getInstance()
                 .getSearchService()
                 .getSearchResult(0, mKeyWord, mCurrentPage, PAGE_SIZE)
-                .flatMap(new Func1<BilibiliDataResponse<SearchResult>, Observable<SearchResult>>() {
-                    @Override
-                    public Observable<SearchResult> call(BilibiliDataResponse<SearchResult> searchResultBilibiliDataResponse) {
-                        if (searchResultBilibiliDataResponse.isSuccess()) {
-                            return Observable.just(searchResultBilibiliDataResponse.getData());
-                        } else {
-                            return Observable.error(new ApiException(searchResultBilibiliDataResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<SearchResult>, SearchResult>handlerResult())
                 .subscribeOn(Schedulers.io())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<SearchResult>() {
+                .subscribeWith(new DisposableSingleObserver<SearchResult>() {
                     @Override
-                    public void onCompleted() {
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        mRecyclerView.setLoading(false);
-                        ToastUtils.showToastShort(R.string.load_error);
-                    }
-
-                    @Override
-                    public void onNext(SearchResult searchResult) {
+                    public void onSuccess(SearchResult searchResult) {
                         mRecyclerView.setLoading(false);
                         if (searchResult.getItems().getArchive().size() != 0) {
                             mSearchResult = searchResult;
@@ -121,6 +102,12 @@ public class SearchResultFragment extends LazyLoadFragment implements LoadMoreRe
                             mRecyclerView.setEnableLoadMore(false);
                             mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_NO_MORE);
                         }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        mRecyclerView.setLoading(false);
+                        ToastUtils.showToastShort(R.string.load_error);
                     }
                 });
     }
@@ -150,7 +137,7 @@ public class SearchResultFragment extends LazyLoadFragment implements LoadMoreRe
     @Override
     public void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mSearchSub);
+        DisposableUtils.dispose(mSearchSub);
     }
 
     public interface OnSeasonMoreClickListener {

@@ -24,31 +24,30 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.data.ApiException;
+import com.lh.imbilibili.data.BilibiliResponseHandler;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.helper.CommonHelper;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.video.VideoDetail;
-import com.lh.imbilibili.utils.RxBus;
+import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.StatusBarUtils;
 import com.lh.imbilibili.utils.StringUtils;
-import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseActivity;
 import com.lh.imbilibili.view.BaseFragment;
 import com.lh.imbilibili.view.adapter.videodetail.ViewPagerAdapter;
 import com.lh.imbilibili.widget.EmptyView;
+import com.lh.rxbuslibrary.RxBus;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Observable;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuhui on 2016/10/2.
@@ -98,7 +97,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
     private boolean mIsInitLayout;
     private int mCurrentSelectVideoPage;
 
-    private Subscription mVideoDetailSub;
+    private Disposable mVideoDetailSub;
 
     public static void startActivity(Context context, String aid) {
         Intent intent = new Intent(context, VideoDetailActivity.class);
@@ -157,28 +156,20 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
                 .getVideoService()
                 .getVideoDetail(mAid, Constant.PLAT, System.currentTimeMillis())
                 .subscribeOn(Schedulers.io())
-                .flatMap(new Func1<BilibiliDataResponse<VideoDetail>, Observable<VideoDetail>>() {
-                    @Override
-                    public Observable<VideoDetail> call(BilibiliDataResponse<VideoDetail> videoDetailBilibiliDataResponse) {
-                        if (videoDetailBilibiliDataResponse.isSuccess()) {
-                            return Observable.just(videoDetailBilibiliDataResponse.getData());
-                        } else {
-                            return Observable.error(new ApiException(videoDetailBilibiliDataResponse.getCode()));
-                        }
-                    }
-                })
+                .flatMap(BilibiliResponseHandler.<BiliBiliResponse<VideoDetail>, VideoDetail>handlerResult())
+                .firstOrError()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<VideoDetail>() {
+                .subscribeWith(new DisposableSingleObserver<VideoDetail>() {
                     @Override
-                    public void call(VideoDetail videoDetail) {
+                    public void onSuccess(VideoDetail videoDetail) {
                         mVideoDetail = videoDetail;
-                        RxBus.getInstance().send(new VideoStateChangeEvent(VideoStateChangeEvent.STATE_LOAD_FINISH, mVideoDetail));
+                        RxBus.getInstance().post(new VideoStateChangeEvent(VideoStateChangeEvent.STATE_LOAD_FINISH, mVideoDetail));
                         bindViewData();
                     }
-                }, new Action1<Throwable>() {
+
                     @Override
-                    public void call(Throwable throwable) {
-                        if (throwable instanceof ApiException) {
+                    public void onError(Throwable e) {
+                        if (e instanceof ApiException) {
                             mEmptyView.setVisibility(View.VISIBLE);
                             mEmptyView.setImgResource(R.drawable.img_tips_error_not_foud);
                             mEmptyView.setShowRetryButton(false);
@@ -243,7 +234,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
         hidFab();
         mPreViewLayout.setVisibility(View.INVISIBLE);
         mToolbar.setVisibility(View.INVISIBLE);
-        RxBus.getInstance().send(new VideoStateChangeEvent(VideoStateChangeEvent.STATE_PLAY, mVideoDetail));
+        RxBus.getInstance().post(new VideoStateChangeEvent(VideoStateChangeEvent.STATE_PLAY, mVideoDetail));
         AppBarLayout.LayoutParams params = (AppBarLayout.LayoutParams) mCollapsingToolbarLayout.getLayoutParams();
         params.setScrollFlags(0);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -254,7 +245,7 @@ public class VideoDetailActivity extends BaseActivity implements VideoPlayerFrag
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        SubscriptionUtils.unsubscribe(mVideoDetailSub);
+        DisposableUtils.dispose(mVideoDetailSub);
     }
 
     @Override

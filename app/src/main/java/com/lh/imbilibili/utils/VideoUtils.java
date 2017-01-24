@@ -5,13 +5,13 @@ import com.lh.imbilibili.model.video.VideoPlayData;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import rx.Observable;
-import rx.Subscriber;
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
 
 /**
  * Created by liuhui on 2016/9/26.
@@ -19,9 +19,9 @@ import rx.Subscriber;
 
 public class VideoUtils {
     public static Observable<String> concatVideo(final List<VideoPlayData.Durl> durls) {
-        return Observable.create(new Observable.OnSubscribe<String>() {
+        return Observable.create(new ObservableOnSubscribe<String>() {
             @Override
-            public void call(Subscriber<? super String> subscriber) {
+            public void subscribe(ObservableEmitter<String> e) throws Exception {
                 String videoPlayPath = null;
                 if (durls.size() > 1) {
                     StringBuilder stringBuilder = new StringBuilder();
@@ -35,36 +35,24 @@ public class VideoUtils {
                         stringBuilder.append("\n");
                     }
                     File file = new File(StorageUtils.getAppCachePath(), "video.cancat");
-                    FileWriter fileWriter = null;
-                    try {
-                        fileWriter = new FileWriter(file);
-                        fileWriter.write(stringBuilder.toString());
-                        fileWriter.flush();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } finally {
-                        try {
-                            if (fileWriter != null) {
-                                fileWriter.close();
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
+                    FileWriter fileWriter = new FileWriter(file);
+                    fileWriter.write(stringBuilder.toString());
+                    fileWriter.flush();
+                    fileWriter.close();
                     videoPlayPath = file.getAbsolutePath();
                 } else if (durls.size() == 1) {
                     videoPlayPath = durls.get(0).getUrl();
                 }
-                subscriber.onNext(videoPlayPath);
-                subscriber.onCompleted();
+                e.onNext(videoPlayPath);
+                e.onComplete();
             }
         });
     }
 
     public static Observable<String> concatPlusVideo(final List<PlusVideoPlayerData.Data.Part> parts) {
-        return Observable.create(new Observable.OnSubscribe<String>() {
+        return Observable.create(new ObservableOnSubscribe<String>() {
             @Override
-            public void call(Subscriber<? super String> subscriber) {
+            public void subscribe(ObservableEmitter<String> e) throws Exception {
                 String videoPlayPath = null;
                 if (parts.size() > 1) {
                     StringBuilder stringBuilder = new StringBuilder();
@@ -84,28 +72,16 @@ public class VideoUtils {
                         stringBuilder.append("\n");
                     }
                     File file = new File(StorageUtils.getAppCachePath(), "video.cancat");
-                    FileWriter fileWriter = null;
-                    try {
-                        fileWriter = new FileWriter(file);
-                        fileWriter.write(stringBuilder.toString());
-                        fileWriter.flush();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } finally {
-                        try {
-                            if (fileWriter != null) {
-                                fileWriter.close();
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
+                    FileWriter fileWriter = new FileWriter(file);
+                    fileWriter.write(stringBuilder.toString());
+                    fileWriter.flush();
+                    fileWriter.close();
                     videoPlayPath = file.getAbsolutePath();
                 } else if (parts.size() == 1) {
                     videoPlayPath = parts.get(0).getUrl();
                 }
-                subscriber.onNext(videoPlayPath);
-                subscriber.onCompleted();
+                e.onNext(videoPlayPath);
+                e.onComplete();
             }
         });
     }

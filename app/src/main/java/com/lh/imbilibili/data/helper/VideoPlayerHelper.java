@@ -3,6 +3,7 @@ package com.lh.imbilibili.data.helper;
 import android.text.TextUtils;
 
 import com.facebook.stetho.okhttp3.StethoInterceptor;
+import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import com.lh.imbilibili.data.Constant;
 import com.lh.imbilibili.data.api.VideoPlayService;
 import com.lh.imbilibili.model.user.User;
@@ -21,7 +22,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import retrofit2.Retrofit;
-import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
@@ -55,7 +55,7 @@ public class VideoPlayerHelper extends BaseHelper {
                 .build();
         Retrofit retrofit = new Retrofit.Builder().baseUrl(INTERFACE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
-                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .client(client)
                 .build();
         mService = retrofit.create(VideoPlayService.class);

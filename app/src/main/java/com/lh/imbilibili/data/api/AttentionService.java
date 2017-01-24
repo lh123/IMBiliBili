@@ -1,16 +1,16 @@
 package com.lh.imbilibili.data.api;
 
 import com.lh.imbilibili.data.Constant;
-import com.lh.imbilibili.model.BilibiliDataResponse;
+import com.lh.imbilibili.model.BiliBiliResponse;
 import com.lh.imbilibili.model.attention.DynamicVideo;
 import com.lh.imbilibili.model.attention.FollowBangumi;
 import com.lh.imbilibili.model.attention.FollowBangumiResponse;
 
 import java.util.List;
 
+import io.reactivex.Observable;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
-import rx.Observable;
 
 /**
  * Created by liuhui on 2016/10/14.
@@ -25,7 +25,7 @@ public interface AttentionService {
 
 
     @GET(Constant.API_URL + Constant.VIDEO_DYNAMIC)
-    Observable<BilibiliDataResponse<DynamicVideo>> getDynamicVideo(@Query("pn") int pn,
+    Observable<BiliBiliResponse<DynamicVideo>> getDynamicVideo(@Query("pn") int pn,
                                                                    @Query("ps") int ps,
                                                                    @Query("type") int type);
 
@@ -35,9 +35,9 @@ public interface AttentionService {
                                                                                @Query("ts") long ts);
 
     @GET(Constant.UNCONCERN_SEASON)
-    Observable<BilibiliDataResponse> unConcernSeason(@Query("season_id") String seasonId);
+    Observable<BiliBiliResponse> unConcernSeason(@Query("season_id") String seasonId);
 
     @GET(Constant.CONCERN_SEASON)
-    Observable<BilibiliDataResponse> concernSeason(@Query("season_id") String seasonId);
+    Observable<BiliBiliResponse> concernSeason(@Query("season_id") String seasonId);
 
 }

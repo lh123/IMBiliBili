@@ -13,8 +13,6 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.lh.imbilibili.R;
 import com.lh.imbilibili.model.user.UserDetailInfo;
-import com.lh.imbilibili.utils.RxBus;
-import com.lh.imbilibili.utils.SubscriptionUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
 import com.lh.imbilibili.utils.transformation.CircleTransformation;
 import com.lh.imbilibili.view.BaseFragment;
@@ -22,14 +20,15 @@ import com.lh.imbilibili.view.adapter.MainViewPagerAdapter;
 import com.lh.imbilibili.view.search.SearchActivity;
 import com.lh.imbilibili.view.video.VideoDetailActivity;
 import com.lh.imbilibili.widget.BiliBiliSearchView;
+import com.lh.rxbuslibrary.RxBus;
+import com.lh.rxbuslibrary.annotation.Subscribe;
+import com.lh.rxbuslibrary.event.EventThread;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import rx.Subscription;
-import rx.functions.Action1;
 
 /**
  * Created by liuhui on 2016/7/6.
@@ -60,8 +59,6 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
 
     private BiliBiliSearchView mSearchView;
 
-    private Subscription mBusSub;
-
     public static MainFragment newInstance() {
         return new MainFragment();
     }
@@ -69,20 +66,13 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
     @Override
     public void onStart() {
         super.onStart();
-        mBusSub = RxBus.getInstance()
-                .toObserverable(UserDetailInfo.class)
-                .subscribe(new Action1<UserDetailInfo>() {
-                    @Override
-                    public void call(UserDetailInfo userDetailInfo) {
-                        bindUserInfoView(userDetailInfo);
-                    }
-                });
+        RxBus.getInstance().register(this);
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        SubscriptionUtils.unsubscribe(mBusSub);
+        RxBus.getInstance().unRegister(this);
     }
 
     @Override
@@ -127,6 +117,7 @@ public class MainFragment extends BaseFragment implements Toolbar.OnMenuItemClic
         });
     }
 
+    @Subscribe(scheduler = EventThread.UI)
     public void bindUserInfoView(UserDetailInfo detailInfo) {
         Glide.with(this).load(detailInfo.getFace()).transform(new CircleTransformation(getContext().getApplicationContext())).into(mIvAvatar);
         mTvNickName.setText(detailInfo.getUname());
