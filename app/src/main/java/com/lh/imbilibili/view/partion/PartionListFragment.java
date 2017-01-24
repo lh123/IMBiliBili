@@ -86,7 +86,6 @@ public class PartionListFragment extends LazyLoadFragment implements LoadMoreRec
     @Override
     protected void fetchData() {
         loadData();
-        loadNewData();
     }
 
     @Override

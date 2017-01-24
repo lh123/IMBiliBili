@@ -17,6 +17,7 @@ import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.RxCacheUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.view.BaseFragment;
+import com.lh.imbilibili.view.LazyLoadFragment;
 import com.lh.imbilibili.view.adapter.bangumi.BangumiAdapter;
 import com.lh.imbilibili.view.adapter.bangumi.BangumiIndexItemDecoration;
 import com.lh.imbilibili.view.bangumi.BangumiDetailActivity;
@@ -43,7 +44,7 @@ import io.reactivex.schedulers.Schedulers;
  * Created by liuhui on 2016/7/6.
  * 番剧页面
  */
-public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.OnRefreshListener, LoadMoreRecyclerView.OnLoadMoreLinstener, BangumiAdapter.OnItemClickListener {
+public class BangumiFragment extends LazyLoadFragment implements SwipeRefreshLayout.OnRefreshListener, LoadMoreRecyclerView.OnLoadMoreLinstener, BangumiAdapter.OnItemClickListener {
 
     private static final int PAGE_SIZE = 10;
 
@@ -77,6 +78,10 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
         ButterKnife.bind(this, view);
         mNeedForeRefresh = false;
         initRecyclerView();
+    }
+
+    @Override
+    protected void fetchData() {
         loadAllData();
     }
 
@@ -121,8 +126,10 @@ public class BangumiFragment extends BaseFragment implements SwipeRefreshLayout.
 
     private void initRecyclerView() {
         swipeRefreshLayout.setOnRefreshListener(this);
-        adapter = new BangumiAdapter(getContext());
-        adapter.setItemClickListener(this);
+        if (adapter == null) {
+            adapter = new BangumiAdapter(getContext());
+            adapter.setItemClickListener(this);
+        }
         GridLayoutManager gridLayoutManager = new GridLayoutManager(getContext(), 3);
         gridLayoutManager.setOrientation(GridLayoutManager.VERTICAL);
         gridLayoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {

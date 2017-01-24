@@ -19,7 +19,7 @@ import com.lh.imbilibili.utils.DisposableUtils;
 import com.lh.imbilibili.utils.RxCacheUtils;
 import com.lh.imbilibili.utils.ToastUtils;
 import com.lh.imbilibili.utils.UserManagerUtils;
-import com.lh.imbilibili.view.BaseFragment;
+import com.lh.imbilibili.view.LazyLoadFragment;
 import com.lh.imbilibili.view.adapter.attention.AttentionItemDecoration;
 import com.lh.imbilibili.view.adapter.attention.AttentionRecyclerViewAdapter;
 import com.lh.imbilibili.view.bangumi.BangumiDetailActivity;
@@ -46,7 +46,7 @@ import io.reactivex.schedulers.Schedulers;
  * 关注页面
  */
 
-public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerView.OnLoadMoreLinstener, SwipeRefreshLayout.OnRefreshListener, AttentionRecyclerViewAdapter.OnItemClickListener {
+public class AttentionFragment extends LazyLoadFragment implements LoadMoreRecyclerView.OnLoadMoreLinstener, SwipeRefreshLayout.OnRefreshListener, AttentionRecyclerViewAdapter.OnItemClickListener {
     private static final int PAGE_SIZE = 20;
 
     @BindView(R.id.swiperefresh_layout)
@@ -65,7 +65,6 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     private Disposable mDynamicDataSub;
 
     private boolean mNeedLoadData;
-    private boolean mNeedForceFresh;
 
     public static AttentionFragment newInstance() {
         return new AttentionFragment();
@@ -77,7 +76,6 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
         initRecyclerView();
         mCurrentPage = 1;
         mNeedLoadData = false;
-        mNeedForceFresh = false;
         if (UserManagerUtils.getInstance().getCurrentUser() == null) {
             mBtnLogin.setVisibility(View.VISIBLE);
             mSwipeRefreshLayout.setVisibility(View.GONE);
@@ -88,7 +86,12 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
                     LoginActivity.startActivity(getContext());
                 }
             });
-        } else {
+        }
+    }
+
+    @Override
+    protected void fetchData() {
+        if (UserManagerUtils.getInstance().getCurrentUser() != null) {
             mBtnLogin.setVisibility(View.GONE);
             mSwipeRefreshLayout.setVisibility(View.VISIBLE);
             loadAllData();
@@ -107,7 +110,9 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     }
 
     private void initRecyclerView() {
-        mAdapter = new AttentionRecyclerViewAdapter(getContext());
+        if (mAdapter == null) {
+            mAdapter = new AttentionRecyclerViewAdapter(getContext());
+        }
         GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 3);
         layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override
@@ -158,7 +163,6 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     }
 
     private void finishTask() {
-        mNeedForceFresh = false;
         mSwipeRefreshLayout.setRefreshing(false);
         if (mFollowBangumis != null) {
             mSwipeRefreshLayout.setRefreshing(false);
@@ -262,7 +266,6 @@ public class AttentionFragment extends BaseFragment implements LoadMoreRecyclerV
     @Override
     public void onRefresh() {
         mCurrentPage = 1;
-        mNeedForceFresh = true;
         mRecyclerView.setEnableLoadMore(true);
         mRecyclerView.setLodingViewState(LoadMoreRecyclerView.STATE_REFRESHING);
         loadAllData();
